@@ -1,0 +1,8 @@
+psets/
+.venv/
+.vscode/
+__pycache__/
+flask_session/
+scratch
+.DS_Store
+s.sql

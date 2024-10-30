@@ -1,0 +1,237 @@
+/* 
+    ChatGPT was used sparingly to solve a couple of formatting issues, 
+    like centering objects on the webpage and setting up css grids.
+*/
+
+/* use root to set global var grid size */
+:root {
+    --grid-width: 9;
+    --grid-height: 9;
+    --sq-size: 1.75rem;
+    --bs-nav-link-color: white;
+}
+/* General layout */
+
+.nav {
+    background-color: #000000;
+    color: #ffffff;
+    justify-content: center;
+}
+
+h1 {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #000000;
+}
+
+h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+header {
+    background-color: #000000;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1rem;
+    justify-content: center;
+}
+
+body {
+    background-color: #dddddd;
+}
+
+.nav-link {
+    color: #ffffff
+}
+
+.container-custom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 4rem;
+}
+
+footer {
+    background-color: #000000;
+    color: #ffffff;
+    margin-top: 6rem;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    height: 100px;
+}
+
+.signature {
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+}
+
+.filler-span {
+    min-width: 30px;
+}
+
+.card {
+    width: 18rem;
+}
+
+.btn-custom:hover {
+    background-color: #bbbbbb;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn-custom {
+    background-color: #dfdfdf;
+    border: 1px solid black;
+    border-radius: 0.25rem;
+    color: #000000;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+/* Minesweeper */
+
+.board-container{
+    display: grid;
+    align-items: center;
+    outline: groove #000000;
+    display: inline-grid;
+    padding: 2rem;
+    background-color: rgb(255, 255, 255);
+    box-shadow:
+    inset #059c8e 0 0 0 1px, 
+    inset #009688 0 0 0 5px, 
+    inset #0cab9c 0 0 0 10px, 
+    inset #1fbdae 0 0 0 11px, 
+    inset #8ce9ff 0 0 0 16px, 
+    inset #48e4d6 0 0 0 17px, 
+    inset #e5f9f7 0 0 0 21px, 
+    inset #bfecf7 0 0 0 22px;
+}
+
+.difficulty-container {
+    max-width: 300px;
+    font-weight: bold;
+    padding: .5rem;
+    margin: .5rem;
+    display: flex;
+    font-size: 1.5rem;
+}
+
+.panel-container {
+    font-family: monospace;
+    font-weight: bold;
+    padding: .5rem;
+    margin: .5rem;
+    outline: groove rgb(98, 209, 207);
+    display: flex;
+    grid-template-columns: repeat(5, 1fr);
+    font-size: 1.5rem;
+    justify-content: center;
+    color: #056a60;
+    background-color: #dddddd;
+}
+
+.panel-span {
+    padding: .25rem;
+    color: #0b3a5e;
+    outline-offset: .2rem;
+}
+
+.panel-button {
+    padding: .25rem;
+    font-size: 1.25rem;
+    align-content: center;
+    color: #063f3a;
+}
+
+#board {
+    display: grid;
+    place-items: center;
+    place-self: center;
+    grid-template-columns: repeat(var(--grid-width), 1fr);
+    grid-template-rows: repeat(var(--grid-height), 1fr);
+    width: calc(var(--grid-width) * var(--sq-size));
+    height: calc(var(--grid-height) * var(--sq-size));
+    gap: 0px;
+    line-height: 0;
+}
+
+.square-button {
+    font-size: 1rem;
+    font-weight: bolder;
+    padding: 0;
+    margin: 0;
+    height: var(--sq-size);
+    width: var(--sq-size);
+    color: #000000;
+    background-color: rgb(130, 130, 130);
+}
+
+/* Remove blue outline for minesweeper squares */
+.square-button:focus{
+    outline: 0;
+}
+
+/* Mines are red */
+.square-button[data-mine='unflagged'] {
+    background-color: red;
+    font-weight: 700;
+}
+
+/* Flags are purple */
+.square-button[data-flagged] {
+    background-color: purple;
+}
+
+/* Wrongly flagged squares get strikethrough, lower alpha */
+.square-button[data-flagged='miss'] {
+    text-decoration-line: line-through;
+    background-color: rgba(128, 0, 128, 0.624);
+}
+
+/* Color the numbers */
+.square-button[data-adj-num='1'] {
+    color: rgb(36, 105, 225);
+}
+.square-button[data-adj-num='2'] {
+    color: rgb(25, 133, 41);
+}
+.square-button[data-adj-num='3'] {
+    color: rgb(223, 46, 11);
+}
+.square-button[data-adj-num='4'] {
+    color: rgb(34, 0, 112);
+}
+.square-button[data-adj-num='5'] {
+    color: rgb(116, 87, 183);
+}
+.square-button[data-adj-num='6'] {
+    color: rgb(185, 88, 27);
+}
+.square-button[data-adj-num='7'] {
+    color: rgb(45, 80, 3);
+}
+.square-button[data-adj-num='8'] {
+    color: rgb(76, 14, 71);
+}
+
+/* Color of visible squares */
+.square-button:disabled {
+    background-color: rgb(242, 242, 242);
+}

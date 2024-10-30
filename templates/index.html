@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block main %}
+    <div class="container text-center container-custom">
+        <div class="card">
+            <a href="/minesweeper" class="btn-custom">
+                <div class="card-body">
+                    <h4 class="card-title">Minesweeper</h4>
+                    <p class="card-text">Find all the safe squares as quickly as possible.<br></p>
+                </div>
+                <img src="/static/minesweeper_screenshot.png" class="card-img-top" alt="Minesweeper screenshot">
+            </a>
+        </div>
+    </div>
+{% endblock %}
