@@ -27,7 +27,7 @@ class Card:
         self.suit = suit
         self.suit_display = suit_display
     
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.rank}{self.suit_display}"
 
 class Deck:
@@ -51,10 +51,10 @@ class Deck:
         # print("\u2666") ♦
         # print("\u2667") ♧
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"Deck({self.shuffled_cards})"
 
-# counted as one "hand" (i.e. one cycle of turns before needing to shuffling again)
+# counted as one "hand" (i.e. one cycle of turns before needing to shuffle again)
 class Round:
     def __init__(self, player_order, num=0) -> None:
         self.num = num
