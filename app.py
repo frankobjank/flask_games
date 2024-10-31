@@ -47,11 +47,15 @@ def minesweeper():
         # Retrieve minesweeper state from session
         ms = fl.session.get("ms")
 
+        # Prevents accessing from `None`
+        if not ms:
+            return ("", 204)
+
         # Square index from client
-        square_idx = fl.request.form.get("square")
+        square_idx = fl.request.form.get("square", "")
 
         # Only return data if game not over
-        if square_idx and not (ms.win or ms.lose):
+        if len(square_idx) > 0 and not (ms.win or ms.lose):
             ms.update_server(square_idx)
             
             # Connect to database on gameover; should only happen once
@@ -59,14 +63,14 @@ def minesweeper():
                 
                 # Validate score received from client to prevent cheating
                 server_score = int(ms.score)
-                client_score = int(fl.request.form.get("score"))
+                client_score = int(fl.request.form.get("score", 0))
 
                 # Test if margin of error is less than 20%
                 if abs(server_score - client_score) < (0.2 * server_score):
                     server_score = client_score
 
                 # Update database only if logged in
-                if fl.session.get("user_id"):
+                if len(fl.session.get("user_id", "")) > 0:
                     with sqlite3.connect("database.db") as conn:
                         conn.execute(
                             """
@@ -105,8 +109,9 @@ def minesweeper():
 
 @app.route("/minesweeper/stats")
 def minesweeper_stats():
+
     # If not logged in
-    if fl.session.get("user_id") is None:
+    if len(fl.session.get("user_id", "")) == 0:
         return fl.render_template("minesweeper_stats.html", data=None)
     
     # Display stats if logged in
@@ -200,7 +205,7 @@ def login():
 
         # Ensure username exists and password is correct
         if len(username) == 0 or not ws.check_password_hash(
-                                     pwhash, fl.request.form.get("password")):
+                                     pwhash, fl.request.form.get("password", "")):
             return apology("Invalid username and/or password.", 403)
 
         # Remember which user has logged in
@@ -253,7 +258,7 @@ def register():
                             """,
                             (fl.request.form.get("username"),
                             ws.generate_password_hash(
-                            fl.request.form.get("password")),
+                            fl.request.form.get("password", "")),
                             time()))
 
         # Dupe username
@@ -302,18 +307,18 @@ def change_password():
             return apology("Error connecting to database.", 500)
 
         # Ensure old password is correct
-        if not ws.check_password_hash(pwhash_from_server, fl.request.form.get("old_password")):
+        if not ws.check_password_hash(pwhash_from_server, fl.request.form.get("old_password", "")):
             return apology("Invalid password.", 403)
 
         # Check for dupe password
-        if ws.check_password_hash(pwhash_from_server, fl.request.form.get("new_password")):
+        if ws.check_password_hash(pwhash_from_server, fl.request.form.get("new_password", "")):
             return apology("New password must be different from the old password.", 400)
 
         # If not dupe, update password hash in table
         with sqlite3.connect("database.db") as conn:
             conn.row_factory = dict_factory
             conn.execute("UPDATE users SET pwhash = ? WHERE id = ?",
-                   (ws.generate_password_hash(fl.request.form.get("new_password")),
+                   (ws.generate_password_hash(fl.request.form.get("new_password", "")),
                    fl.session.get("user_id")))
 
         fl.flash("Your password has been changed!")

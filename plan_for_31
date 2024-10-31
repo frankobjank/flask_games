@@ -1,0 +1,17 @@
+Plan for 31
+
+Client :
+    Receives player info from server (how many, player scores)
+    Receives hands from server (full hand for self, size of hand for others)
+    
+    Displays self player (and hand visible to self) and all other players (and hands hidden to self)
+    Displays deck and discard pile
+    
+    Gets signal from players to start game and send to server
+    Server receives signal, starts game, and returns info to client
+
+    Server determines player order.
+    
+    Client allows players to make a move on their turn
+    TODO - see if the moves one player makes updates to other clients automatically 
+        or if needs to go through server and back to other clients

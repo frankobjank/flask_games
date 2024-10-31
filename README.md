@@ -1,4 +1,4 @@
-# Games via flask
+# Games via Flask
 
 ## Games
 

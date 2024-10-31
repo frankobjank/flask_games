@@ -60,11 +60,11 @@ class State:
         # validate
         if len(coords) != 2:
             print("Tuple must have 2 items.")
-            return None
+            return -1
 
         if coords[0] > self.width - 1 or coords[1] > self.height - 1:
             print("Coords out of bounds.")
-            return None
+            return -1
 
         # y * self.width + x
         return coords[1] * self.width + coords[0]
@@ -74,7 +74,7 @@ class State:
         # validate
         if i > self.height * self.width:
             print("Index out of bounds.")
-            return None
+            return ()
 
         # Can use modulo or divmod
         # x = i % self.width, y = i // self.width
@@ -196,7 +196,7 @@ class State:
             self.score = time() - self.start_time
 
 
-    def update_packet(self):
+    def update_packet(self) -> dict:
         # Reveal adj, vis, mines as needed
         packet = {"adj": [], "visible": [], "mines": [], "win": self.win}
         
