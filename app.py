@@ -170,6 +170,14 @@ def minesweeper_stats():
     return fl.render_template("minesweeper_stats.html", data=data)
 
 
+@app.route("/thirty_one", methods=["GET", "POST"])
+def thirty_one():
+    if fl.request.method == "POST":
+        return ("", 204)
+    elif fl.request.method == "GET":
+        return fl.render_template("thirty_one.html")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""

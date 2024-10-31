@@ -1,8 +1,6 @@
 import shared_cards as shared
 import random
 import sys
-from time import sleep
-
 
 class CustomState(shared.State):
     def __init__(self, ace_value=11, hand_size=3, max_players=7, random_names_flag=True) -> None:
@@ -53,13 +51,13 @@ class CustomState(shared.State):
             # tie for loser - display knocked; no one loses
             # 1 loser - display one who knocked and one who lost
             # 1 loser AND loser knocked - loser loses 2 points
-        self.sleep_print(f"--- END OF ROUND {self.round.num} ---\n")
-        self.sleep_print("---     SCORES     ---\n")
+        print(f"--- END OF ROUND {self.round.num} ---\n")
+        print("---     SCORES     ---\n")
         for player in self.player_order:
             hand_score = f"{player} - {self.calc_hand_score(self.players[player])}"
             if player == self.knocked:
                 hand_score += " - k"
-            self.sleep_print(f"{hand_score}")
+            print(f"{hand_score}")
         
         if self.check_for_blitz():
             for player in self.player_order:
@@ -71,7 +69,7 @@ class CustomState(shared.State):
             lowest_hand_score = min(hand_scores)
 
             if hand_scores.count(lowest_hand_score) > 1:
-                self.sleep_print("Tie for last place, no change in score.")
+                print("Tie for last place, no change in score.")
             else:
                 lowest_hand_score_player = ""
                 for p_object in self.players.values():
@@ -79,32 +77,32 @@ class CustomState(shared.State):
                         lowest_hand_score_player = p_object.name
                         
                 if lowest_hand_score_player != self.knocked:
-                    self.sleep_print(f"{lowest_hand_score_player} loses 1 extra life.")
+                    print(f"{lowest_hand_score_player} loses 1 extra life.")
                     self.players[lowest_hand_score_player].score -= 1
                 else:
-                    self.sleep_print(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
+                    print(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
                     self.players[lowest_hand_score_player].score -= 2
         
         knocked_out = [p_name for p_name, p_object in self.players.items() if 0 > p_object.score]
         
         for p_name in knocked_out:
-            self.sleep_print(f"{p_name} has been knocked out.")
+            print(f"{p_name} has been knocked out.")
             self.dead_players[p_name] = self.players.pop(p_name)
             # the only time player_order must be changed
             self.player_order.remove(p_name)
 
         if len(self.players) == 1:
             winner = [p for p in self.players.keys()][0]
-            self.sleep_print(f"\n{winner} wins!")
+            print(f"\n{winner} wins!")
             self.mode = "end_game"
         else:
             self.mode = "end_round"
-            self.sleep_print("\nRemaining Players' Extra Lives:")
+            print("\nRemaining Players' Extra Lives:")
             for p_name, p_object in self.players.items():
                 msg = f"{p_name} - {p_object.score} extra lives"
                 if p_object.score == 0:
                     msg += f" - ({self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]})"
-                self.sleep_print(msg)
+                print(msg)
             print("\n")
 
 
@@ -137,6 +135,7 @@ class CustomState(shared.State):
         return self.calc_hand_score(self.players[self.round.current_player]) == 31
 
 
+    #  MOVE TO CLIENT
     def get_user_input(self) -> dict:
         user_input = ""
         packet = {}
@@ -195,7 +194,7 @@ class CustomState(shared.State):
 
         return packet
 
-
+    #  MOVE TO CLIENT
     def user_input_to_packet(self, action, msg) -> dict:
         # actions: start, add_player, draw, pickup, knock, discard, continue, new_game, quit
         return {"action": action, "msg": msg}
@@ -274,18 +273,13 @@ class CustomState(shared.State):
                 raise SystemExit(0)
 
 
-    def sleep_print(self, *msg):
-        for m in msg:
-            sleep(.8)
-            print(m)
-    
-
     def print_state(self):
         if len(self.discard) > 0:
             discard_card = self.discard[-1]
         else:
             discard_card = None
-        self.sleep_print(f"Current Hand: {self.players[self.round.current_player].hand}. Score: {self.calc_hand_score(self.players[self.round.current_player])}", f"Discard: {discard_card}")
+        print(f"Current Hand: {self.players[self.round.current_player].hand}. Score: {self.calc_hand_score(self.players[self.round.current_player])}")
+        print(f"Discard: {discard_card}")
         
 
 # main loop

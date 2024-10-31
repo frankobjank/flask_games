@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    31
+{% endblock %}
+
+{% block header %}
+   <h2>31</h2>
+{% endblock %}
+
+{% block main %}
+    <script type="text/javascript">
+        /* Receive data as dict; transform into JSON */
+        const serverBoard = {{ data|tojson }};
+    </script>
+    
+    <!-- Javascript for building board and handling input -->
+    <script type="text/javascript" src="/static/thirty_one.js"></script>
+
+    <div class="container-custom">
+        <!-- Custom `GET` requests -->
+        <div class="difficulty-container">
+            <form action="/thirty_one" method="get">
+                <button class="btn-custom difficulty-button" id="easy" name="difficulty" value="easy">Easy</button>
+                <button class="btn-custom difficulty-button" id="medium" name="difficulty" value="medium">Medium</button>
+                <button class="btn-custom difficulty-button" id="hard" name="difficulty" value="hard">Hard</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add panel, board to container via Javascript -->
+    <div class="board-container mb-5" id="board-container" oncontextmenu="return false;"></div>
+    <div class="link">
+        <a href="/minesweeper/stats" class="btn-custom" id="stats-button">Stats</a>
+    </div>
+{% endblock %}
