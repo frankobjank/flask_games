@@ -72,6 +72,7 @@ function createDeck() {
             deck.push([rank, suits]);
         }
     }
+    console.log(deck);
     return deck;
 }
 
