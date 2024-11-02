@@ -1,8 +1,9 @@
 # Python modules
 import flask as fl
 from flask_session import Session
+import flask_socketio as fio
 import sqlite3
-from time import time
+from time import time, localtime, strftime
 import werkzeug.security as ws
 
 # Python files
@@ -14,10 +15,20 @@ import minesweeper_game
 # Configure application
 app = fl.Flask(__name__)
 
+# Still unclear if I need this/ what exactly it's used for
+# app.config["SECRET_KEY"] = "secret!"
+# or app.secret_key = "replace later"
+
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+# Configure socketio
+socketio = fio.SocketIO(app)
+
+# Predefined chatrooms; eventually want to enable users to create their own
+ROOMS = ["lounge", "news", "games", "coding"]
 
 
 @app.after_request
@@ -344,3 +355,46 @@ def change_password():
 def apology(message, code=400):
     """Render message as an apology to user."""
     return fl.render_template("apology.html", top=code, bottom=message), code
+
+
+# -- From video
+@app.route("/chat", methods=["GET", "POST"])
+def chat():
+    username = fl.session.get("username", "") 
+    
+    return fl.render_template("chat.html", username=username, rooms=ROOMS)
+
+
+@socketio.on("message")
+def message(data):
+    
+    # For debug
+    print(f"\n\n{data}\n\n")
+    # fio.emit("some-event", "this is a custom event message")
+    
+    fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+
+
+@socketio.on("join")
+def join(data):
+
+    fio.join_room(data["room"])
+    fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
+
+
+@socketio.on("leave")
+def leave(data):
+
+    fio.leave_room(data["room"])
+    fio.send({"msg": data["username"] + " has left the " + data["room"] + "room."}, room=data["room"])
+
+
+# @socketio.on("connect")
+# def connect():
+#     print("\n\nConnected\n\n")
+
+# -- End video
+
+if __name__ == "__main__":
+    # Instead of app.run (for default flask)
+    socketio.run(app, port=5001, debug=True)

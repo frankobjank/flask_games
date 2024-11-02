@@ -12,7 +12,7 @@
                     <h4 class="card-title">31</h4>
                     <p class="card-text">Multiplayer card game - get to 31!<br></p>
                 </div>
-                <img src="/static/31_cover_art.png" class="card-img-top" alt="31 screenshot">
+                <img src="{{ url_for('static', filename='/images/31_cover_art.png') }}" class="card-img-top" alt="31 screenshot">
             </a>
         </div>
         <div class="card">
@@ -21,7 +21,8 @@
                     <h4 class="card-title">Minesweeper</h4>
                     <p class="card-text">Find all the safe squares as quickly as possible.<br></p>
                 </div>
-                <img src="/static/minesweeper_screenshot.png" class="card-img-top" alt="Minesweeper screenshot">
+                
+                <img src="{{ url_for('static', filename='/images/minesweeper_screenshot.png') }}" class="card-img-top" alt="Minesweeper screenshot">
             </a>
         </div>
     </div>

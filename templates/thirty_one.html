@@ -9,15 +9,9 @@
 {% endblock %}
 
 {% block main %}
-    <script type="text/javascript">
-        /* Receive data as dict; transform into JSON */
-        // const serverBoard = {{ data|tojson }};
-    </script>
-    
+
     <!-- Javascript for building board and handling input -->
-    <script type="text/javascript" src="/static/thirty_one.js"></script>
-
-
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/thirty_one.js') }}"></script>
     
     <!-- Add panel, board to container via Javascript -->
     <div class="board-container mb-5" id="board-container"></div>

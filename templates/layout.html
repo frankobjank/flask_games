@@ -13,10 +13,10 @@
         <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 
         <!-- import css -->
-        <link href="/static/styles.css" rel="stylesheet">
+        <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
 
         <!-- Fav Icon -->
-        <link href="/static/favicon.png" rel="icon">
+        <link href="{{ url_for('static', filename='favicon.png') }}" rel="icon">
 
         <title>The Space: {% block title %}{% endblock %}</title>
     </head>
