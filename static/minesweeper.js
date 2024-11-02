@@ -4,9 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.documentElement.style.setProperty('--grid-width', serverBoard.width);
     document.documentElement.style.setProperty('--grid-height', serverBoard.height);
     
-    /* ChatGPT was used to jump-start creating the rows and columns of the
-    board in javascript. The finished project does not contain much of that
-    toriginal ChatGPT code. */
     document.getElementById('board-container').style.setProperty('width', serverBoard.width * 30)
     document.getElementById('board-container').style.setProperty('height', serverBoard.height * 30)
 

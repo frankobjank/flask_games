@@ -70,7 +70,7 @@ def minesweeper():
                     server_score = client_score
 
                 # Update database only if logged in
-                if len(fl.session.get("user_id", "")) > 0:
+                if fl.session.get("user_id", 0) != 0:
                     with sqlite3.connect("database.db") as conn:
                         conn.execute(
                             """
@@ -109,9 +109,11 @@ def minesweeper():
 
 @app.route("/minesweeper/stats")
 def minesweeper_stats():
-
-    # If not logged in
-    if len(fl.session.get("user_id", "")) == 0:
+    
+    user_id = fl.session.get("user_id", 0)
+    
+    # If not logged in; user_id is stored as int
+    if user_id == 0:
         return fl.render_template("minesweeper_stats.html", data=None)
     
     # Display stats if logged in
@@ -125,7 +127,7 @@ def minesweeper_stats():
         # To do in one transaction, could sort into mode as 
         for mode in modes:
             db_responses[mode] = conn.execute(
-                "SELECT score, win, date FROM ms_stats WHERE user_id = ? AND mode = ? AND score != 0", (fl.session.get("user_id"), mode)
+                "SELECT score, win, date FROM ms_stats WHERE user_id = ? AND mode = ? AND score != 0", (user_id, mode)
             )
 
     # Calculate win rate and average time for win, best time for all modes
@@ -304,7 +306,7 @@ def change_password():
         with sqlite3.connect("database.db") as conn:
             conn.row_factory = dict_factory
             db_response = conn.execute("SELECT pwhash FROM users WHERE id = ?",
-                                       (fl.session.get("user_id"),))
+                                       (fl.session.get("user_id"), 0))
 
         pwhash_from_server = ""
         
@@ -327,7 +329,7 @@ def change_password():
             conn.row_factory = dict_factory
             conn.execute("UPDATE users SET pwhash = ? WHERE id = ?",
                    (ws.generate_password_hash(fl.request.form.get("new_password", "")),
-                   fl.session.get("user_id")))
+                    fl.session.get("user_id", 0)))
 
         fl.flash("Your password has been changed!")
 

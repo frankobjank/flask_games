@@ -13,7 +13,7 @@
 {% block main %}
     {% if not session["user_id"] %}
         <div class="info">Please <a href="/login" color="#000000">log in</a> to view stats.</div>
-    {% else %}
+    {% elif session["user_id"] %}
         <div class="stats mb-5">
             <table class="table table-striped">
                 <thead>
