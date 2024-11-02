@@ -7,12 +7,21 @@
 {% block main %}
     <div class="container text-center container-custom">
         <div class="card">
+            <a href="/chat" class="btn-custom">
+                <div class="card-body">
+                    <h4 class="card-title">Chat</h4>
+                    <p class="card-text">Enter chatrooms !<br><br></p>
+                </div>
+                <img src="{{ url_for('static', filename='/images/chat.png') }}" class="card-img-top" alt="Chat">
+            </a>
+        </div>
+        <div class="card">
             <a href="/thirty_one" class="btn-custom">
                 <div class="card-body">
                     <h4 class="card-title">31</h4>
                     <p class="card-text">Multiplayer card game - get to 31!<br></p>
                 </div>
-                <img src="{{ url_for('static', filename='/images/31_cover_art.png') }}" class="card-img-top" alt="31 screenshot">
+                <img src="{{ url_for('static', filename='/images/31.png') }}" class="card-img-top" alt="31 screenshot">
             </a>
         </div>
         <div class="card">

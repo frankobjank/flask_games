@@ -30,6 +30,7 @@ socketio = fio.SocketIO(app)
 # Predefined chatrooms; eventually want to enable users to create their own
 ROOMS = ["lounge", "news", "games", "coding"]
 
+# Users: [frankobjank, burnt, AAAA, newuser]
 
 @app.after_request
 def after_request(response):
@@ -387,12 +388,6 @@ def leave(data):
 
     fio.leave_room(data["room"])
     fio.send({"msg": data["username"] + " has left the " + data["room"] + "room."}, room=data["room"])
-
-
-# @socketio.on("connect")
-# def connect():
-#     print("\n\nConnected\n\n")
-
 # -- End video
 
 if __name__ == "__main__":
