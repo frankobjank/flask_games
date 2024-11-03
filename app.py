@@ -9,8 +9,9 @@ import werkzeug.security as ws
 # Python files
 from helpers import dict_factory, to_percent
 import minesweeper_game
+import thirty_one
 
-# link to access app for debug http://127.0.0.1:5000
+# link to access app for debug http://127.0.0.1:5001
 
 # Configure application
 app = fl.Flask(__name__)
@@ -29,6 +30,9 @@ socketio = fio.SocketIO(app)
 
 # Predefined chatrooms; eventually want to enable users to create their own
 ROOMS = ["lounge", "news", "games", "coding"]
+
+# Names to randomly assign
+NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude"]
 
 # Users: [frankobjank, burnt, AAAA, newuser]
 
@@ -187,9 +191,17 @@ def minesweeper_stats():
 @app.route("/thirty_one", methods=["GET", "POST"])
 def thirty_one():
     if fl.request.method == "POST":
+        
         return ("", 204)
+    
     elif fl.request.method == "GET":
-        return fl.render_template("thirty_one.html")
+
+        # Create new game State object; add to flask session to access later
+        fl.session["thirty_one"] = thirty_one.CustomState(random_names_flag=True)
+        # fl.session["thirty_one"].
+
+        # Send to client as dict
+        return fl.render_template("thirty_one.html") #, data=fl.session["ms"].setup_packet())
 
 
 @app.route("/login", methods=["GET", "POST"])

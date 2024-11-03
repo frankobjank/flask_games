@@ -1,5 +1,12 @@
 Plan for 31
 
+Server : 
+    How to handle user accounts? I think actual accounts may not be necessary for games
+    Give ability to pick own name and associate that name with a cookie (if possible)
+    Lobby page where you enter the name of the room, name of yourself, and optional passcode
+        Something similar to jackbox where a prompt comes up to choose a name before you can join a room
+        If name is currently being used by another user, make them pick a different one
+
 Client :
     Receives player info from server (how many, player scores)
     Receives hands from server (full hand for self, size of hand for others)

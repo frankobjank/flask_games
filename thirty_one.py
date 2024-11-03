@@ -290,4 +290,5 @@ def hotseat(random_names_flag=True):
         packet = state.get_user_input()
         state.update(packet)
 
-hotseat(random_names_flag=True)
+if __name__ == "__main__":
+    hotseat(random_names_flag=True)

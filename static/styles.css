@@ -1,15 +1,11 @@
-/* 
-    ChatGPT was used sparingly to solve a couple of formatting issues, 
-    like centering objects on the webpage and setting up css grids.
-*/
-
-/* use root to set global var grid size */
+/* Use root to set global var grid size */
 :root {
     --grid-width: 9;
     --grid-height: 9;
     --sq-size: 1.75rem;
     --bs-nav-link-color: white;
 }
+
 /* General layout */
 
 .nav {
@@ -234,4 +230,10 @@ footer {
 /* Color of visible squares */
 .square-button:disabled {
     background-color: rgb(242, 242, 242);
+}
+
+/* 31 */
+
+.card-table {
+    /* background-color: darkgreen; */
 }

@@ -156,7 +156,7 @@ function createBoard(serverBoard) {
             b.id = index;
 
             // Add EventListeners to button
-            b.addEventListener("mousedown", (event) => {
+            b.addEventListener('mousedown', (event) => {
                 
                 if (!hasStarted) {
                     hasStarted = true;
@@ -188,9 +188,6 @@ function createBoard(serverBoard) {
                 
                 // Right mouse click
                 else if (event.button === 2 && !gameOver) {
-
-                    // SUPPOSED TO PREVENT CONTEXT MENU APPEARING; NOT WORKING
-                    event.preventDefault();
                     
                     // Toggle flag true/false
                     b.toggleAttribute('data-flagged');
