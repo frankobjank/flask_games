@@ -135,7 +135,7 @@ class State:
         return Point(random.randrange(self.width), random.randrange(self.height))
 
 
-    def setup_packet(self):
+    def setup_packet(self) -> dict:
         # Only need dimensions; keep mines and adj info hidden on server side
         return {"width": self.width, "height": self.height, "num_mines": self.num_mines, "difficulty": self.difficulty}
 

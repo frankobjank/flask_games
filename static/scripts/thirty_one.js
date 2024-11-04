@@ -10,45 +10,54 @@ document.addEventListener('DOMContentLoaded', function() {
         // Navigation
 
     // Game status
-    hasStarted = false;
-    gameOver = false;
+    inProgress = false;
 
     // Creates card table and elements within it
+    playerPanel = createPlayerPanel();
     cardTable = createTable();
+    startButton = createStartButton();
 
-    // Add table to container
-    document.querySelector('.table-container').appendChild(cardTable);
+    // Add table / Start button to container
+    document.querySelector('.outer-container').appendChild(playerPanel);
+    document.querySelector('.outer-container').appendChild(cardTable);
+    document.querySelector('.outer-container').appendChild(startButton);
 });
 
 
 function serverRequest(input) {
-    console.log(input)
     // Cards can be represented by 2 chars, rank and suit
     // AS, KS, QS, JS, TS, 9S, 8S, 7S, 6S, 5S, 4S, 3S, 2S
     // AH, KH, QH, JH, TH, 9H, 8H, 7H, 6H, 5H, 4H, 3H, 2H
     // AD, KD, QD, JD, TD, 9D, 8D, 7D, 6D, 5D, 4D, 3D, 2D
     // AC, KC, QC, JC, TC, 9C, 8C, 7C, 6C, 5C, 4C, 3C, 2C
     
-    // Moves = Draw (no index), 
+    // Moves:
+        // Draw (no index), 
         // Pickup (no index), 
         // Knock (no index), 
         // Discard (takes index)
+
+    // Pad input to include all attributes [move, card, newGame]
+    if (!(move in input)) {
+        input.move = '';
+    }
+    if (!(card in input)) {
+        input.card = '';
+    }
+    if (!(newGame in input)) {
+        input.newGame = false;
+    }
+
     
-        // Initialize data to pass to server
-    
-    // let data = {'move': '', 'card': '', 'reset': false};
     let validMoves = ['draw', 'pickup', 'knock', 'discard'];
 
     // Validate move provided
-    if (!validMoves.includes(input.move)) {
+    if (input.move.length > 0 && (!validMoves.includes(input.move))) {
         console.log(`Move ${input.move} is invalid.`)
         return
     }
 
-    // If input is 'reset'
-    if (input.reset) {
-        console.log('Reset pressed.');
-    }
+    console.log(input)
 
     // Send data via jQuery ajax function
     $.ajax({
@@ -68,52 +77,98 @@ function success(response) {
     if (response === undefined) {
         return;
     }
+
+    update(response);
 }
 
 
-// Create deck
-function createDeck() {
-    // Unicode for suits if needed
-    // suit_to_display = {"spade": "\u2664", "heart": "\u2665", "diamond": "\u2666", "club": "\u2667"}
-    
-    let deck = [];
-
-    ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-    suits = ['spade', 'heart', 'diamond', 'club'];
-    
-    for (suit of suits) {
-        for (rank of ranks) {
-            deck.push([rank, suit]);
-        }
-    }
-    console.log(deck);
-    return deck;
-}
-
-
-function createTable() {
+function createTable(serverBoard) {
 
     // Create div for card table
     const cardTable = document.createElement('div');
     cardTable.className = 'card-table mb-5';
 
-    // Create deck
+    // Create deck container
+    const deckContainer = document.createElement('div');
+    deckContainer.className = 'deck-container';
+    
+    // Add container to table
+    cardTable.appendChild(deckContainer);
+
+    // Create deck button
     const deck = document.createElement('button');
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        serverRequest({move: 'draw', card: '', reset: false});
+        serverRequest({move: 'draw', card: '', newGame: false});
     }
 
-    cardTable.appendChild(deck);
+    // Add deck button to container
+    deckContainer.appendChild(deck);
+    
+    // Create discard container
+    const discardContainer = document.createElement('div');
+    discardContainer.className = 'discard-container';
+    
+    // Add container to table
+    cardTable.appendChild(discardContainer);
+    
+    // Create discard button
+    const discard = document.createElement('button');
+    discard.id = 'discard'
+    discard.onclick = () => {
+        serverRequest({move: 'pickup'});
+    }
+    
+    // Add discard button to container
+    discardContainer.appendChild(discard);
+    
+    // Create container for hand
+    const handContainer = document.createElement('div');
+    handContainer.className = 'hand-container';
+    
+    // Add to table
+    cardTable.appendChild(handContainer);
+
     return cardTable;
 }
 
 
-function updateBoard(response) {
+function createNewButton() {
+    // New game button
+    const b = document.createElement('button');
     
+    b.className = 'new-game-button';
+    b.innerHTML = 'New game';
+
+    b.onclick = () => {
+        serverRequest({newGame: true});
+    }
+
+    // Disable start button when game in progress
+    if (inProgress) {
+        b.disabled;
+    }
 }
 
-function drawCard() {
+
+function checkStartButton(numPlayers) {
+    return (2 <= numPlayers <= 7 && !inProgress)
+}
+
+
+function createPlayerPanel() {
+    const playerPanel = document.createElement('div');
     
+    return playerPanel
+}
+
+
+function createChatLog() {
+
+}
+
+
+function update(response) {
+
 }

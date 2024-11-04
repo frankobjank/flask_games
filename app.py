@@ -9,7 +9,7 @@ import werkzeug.security as ws
 # Python files
 from helpers import dict_factory, to_percent
 import minesweeper_game
-import thirty_one
+import thirty_one_game
 
 # link to access app for debug http://127.0.0.1:5001
 
@@ -197,11 +197,21 @@ def thirty_one():
     elif fl.request.method == "GET":
 
         # Create new game State object; add to flask session to access later
-        fl.session["thirty_one"] = thirty_one.CustomState(random_names_flag=True)
-        # fl.session["thirty_one"].
+        s31 = thirty_one_game.CustomState(random_names_flag=True)
+        
+        # Just for debug; set players
+        names = ["player_one", "player_two"]
+        for n in names:
+            s31.players[n] = thirty_one_game.shared.Player()
+        
+        s31.set_player_order()
+        s31.start_round()
+        s31.mode = "main_phase"
 
+        fl.session["thirty_one"] = s31
+        
         # Send to client as dict
-        return fl.render_template("thirty_one.html") #, data=fl.session["ms"].setup_packet())
+        return fl.render_template("thirty_one.html", data=s31.to_client())
 
 
 @app.route("/login", methods=["GET", "POST"])

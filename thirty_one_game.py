@@ -1,6 +1,5 @@
 import shared_cards as shared
 import random
-import sys
 
 class CustomState(shared.State):
     def __init__(self, ace_value=11, hand_size=3, max_players=7, random_names_flag=True) -> None:
@@ -29,9 +28,7 @@ class CustomState(shared.State):
         self.new_round()
         self.discard = [self.draw_card()]
         self.knocked = ""
-        for i in range(12):
-            print("\n")
-        print(f"--- ROUND {self.round.num} ---\n")
+        print(f"\n--- ROUND {self.round.num} ---\n")
         print("\n--- DEALING ---")
 
 
@@ -212,9 +209,11 @@ class CustomState(shared.State):
 
         elif self.mode == "add_player" and packet["action"] == "add_player":
             for p_name, p_object in self.players.items():
+                
                 # player name starts as order: int. continue through str player names
                 if isinstance(p_name, str):
                     continue
+                
                 self.set_player_name(p_name, p_object, name_input=packet["msg"])
                 break
 
@@ -280,6 +279,23 @@ class CustomState(shared.State):
             discard_card = None
         print(f"Current Hand: {self.players[self.round.current_player].hand}. Score: {self.calc_hand_score(self.players[self.round.current_player])}")
         print(f"Discard: {discard_card}")
+    
+    
+    def to_client(self, player_name) -> dict:
+
+        # Get discard card
+        discard_card = None
+        if len(self.discard) > 0:
+            discard_card = self.discard[-1]
+
+        # All data the client needs from server
+        return {
+            "all_players": self.player_order,  # list of player names in order
+            "current_player": self.round.current_player,  # current player's name
+            "hand": self.players[player_name].hand,  # hand for self only
+            "score": self.calc_hand_score(self.players[player_name]),  # self score only
+            "discard": discard_card  # top card of discard pile
+        }
         
 
 # main loop
