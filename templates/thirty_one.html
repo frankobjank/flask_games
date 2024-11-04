@@ -13,6 +13,7 @@
     <!-- Get game state from server -->
     <script type="text/javascript">
         const serverResponse = {{ data }};
+        console.log(serverResponse)
     </script>
 
     <!-- SocketIO JS -->
@@ -22,7 +23,6 @@
     <script type="text/javascript" src="{{ url_for('static', filename='scripts/thirty_one.js') }}"></script>
     
     <!-- Outer container includes whole game board / controls. Filled in with script -->
-    <div class="outer-container">
+    <div class="outer-container"></div>
 
-    </div>
 {% endblock %}

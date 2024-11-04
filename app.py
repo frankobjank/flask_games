@@ -2,6 +2,7 @@
 import flask as fl
 from flask_session import Session
 import flask_socketio as fio
+import random
 import sqlite3
 from time import time, localtime, strftime
 import werkzeug.security as ws
@@ -196,7 +197,7 @@ def thirty_one():
     
     elif fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
-
+        username = fl.session.get("username", NAMES[random.randint(len(NAMES) - 1)])
         # Create new game State object; add to flask session to access later
         s31 = thirty_one_game.CustomState(random_names_flag=True)
         
