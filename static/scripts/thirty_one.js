@@ -1,16 +1,21 @@
-document.addEventListener('DOMContentLoaded', function() {
-    
+document.addEventListener('DOMContentLoaded', () => {
     // Elements that need to be on screen
         // Deck (not all the cards, just a button representating the whole deck)
         // Hand
         // Discard pile (same as deck, just a button with one card that represents whole pile)
-        
         // Some representation of other players' hands, scores, avatars
         // Chat / Log box
         // Navigation
-
+    
+    // Initializing socket
+    const socket = io();
+    
     // Game status
-    inProgress = false;
+    let inProgress = false;
+
+    // Join room - one for debug
+    let room = 'thirty_one_room';
+    joinRoom(room)
 
     // Creates card table and elements within it
     playerPanel = createPlayerPanel();

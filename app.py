@@ -195,6 +195,7 @@ def thirty_one():
         return ("", 204)
     
     elif fl.request.method == "GET":
+        # Load lobby?? Or drop into room and make lobby a separate route
 
         # Create new game State object; add to flask session to access later
         s31 = thirty_one_game.CustomState(random_names_flag=True)
