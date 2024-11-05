@@ -2,17 +2,18 @@ import shared_cards as shared
 import random
 
 class CustomState(shared.State):
-    def __init__(self, ace_value=11, hand_size=3, max_players=7, random_names_flag=True) -> None:
-        super().__init__(ace_value, hand_size, max_players, random_names_flag)
+    def __init__(self, ace_value=11, hand_size=3, max_players=7) -> None:
+        super().__init__(ace_value, hand_size, max_players)
         
-        # modes : start, add_players, main_phase, discard, end_turn, end_round, end_game
-        # end_turn is specific to hotseat - otherwise, next turn can begin automatically
+        # modes : start, add_players, main_phase, discard 
+        #   HANDLE THESE MODES internally instead: end_turn, end_round, end_game
+        
         self.mode = "start"
         
         self.dead_players = {} # could get rid of this by making a Round class that only includes players that aren't dead yet
         self.knocked = ""
         self.discard = []
-        self.free_ride_alts = ["free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "has a tummy ache", "has had a long day"]
+        self.free_ride_alts = ["getting a free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "having a tummy ache", "having a long day"]
 
 
     def calc_hand_score(self, player_object:shared.Player) -> int:
@@ -24,21 +25,21 @@ class CustomState(shared.State):
         return max(hand_scores.values())
 
 
-    def new_round_custom(self):
-        self.new_round()
-        self.discard = [self.draw_card()]
-        self.knocked = ""
-        print(f"\n--- ROUND {self.round.num} ---\n")
-        print("\n--- DEALING ---")
-
-
-    def new_game_custom(self):
+    def new_game_31(self):
         self.new_game()
         self.dead_players = {}
 
 
     def start_round(self):
-        self.new_round_custom()
+        # Resets variables in shared
+        self.new_round()
+
+        # Resets 31-specific variables
+        self.discard = [self.draw_card()]
+        self.knocked = ""
+        
+        print(f"\n--- ROUND {self.round.num} ---\n")
+        print("\n--- DEALING ---")
         self.start_turn()
 
 
@@ -48,13 +49,9 @@ class CustomState(shared.State):
             # tie for loser - display knocked; no one loses
             # 1 loser - display one who knocked and one who lost
             # 1 loser AND loser knocked - loser loses 2 points
+        
         print(f"--- END OF ROUND {self.round.num} ---\n")
         print("---     SCORES     ---\n")
-        for player in self.player_order:
-            hand_score = f"{player} - {self.calc_hand_score(self.players[player])}"
-            if player == self.knocked:
-                hand_score += " - k"
-            print(f"{hand_score}")
         
         if self.check_for_blitz():
             for player in self.player_order:
@@ -75,56 +72,56 @@ class CustomState(shared.State):
                         
                 if lowest_hand_score_player != self.knocked:
                     print(f"{lowest_hand_score_player} loses 1 extra life.")
+                    self.log.append(f"{lowest_hand_score_player} loses 1 extra life.")
                     self.players[lowest_hand_score_player].score -= 1
                 else:
                     print(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
+                    self.log.append(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
                     self.players[lowest_hand_score_player].score -= 2
         
         knocked_out = [p_name for p_name, p_object in self.players.items() if 0 > p_object.score]
         
         for p_name in knocked_out:
-            print(f"{p_name} has been knocked out.")
+            self.log.append(f"{p_name} has been knocked out.")
             self.dead_players[p_name] = self.players.pop(p_name)
-            # the only time player_order must be changed
+            
+            # The only time player_order must be changed
             self.player_order.remove(p_name)
 
         if len(self.players) == 1:
             winner = [p for p in self.players.keys()][0]
             print(f"\n{winner} wins!")
-            self.mode = "end_game"
+            self.log.append(f"\n{winner} wins!")
+            self.in_progress = False
+
         else:
-            self.mode = "end_round"
             print("\nRemaining Players' Extra Lives:")
+            self.log.append("\nRemaining Players' Extra Lives:")
             for p_name, p_object in self.players.items():
-                msg = f"{p_name} - {p_object.score} extra lives"
+                print(f"{p_name} - {p_object.score} extra lives")
+                self.log.append(f"{p_name} - {p_object.score} extra lives")
                 if p_object.score == 0:
-                    msg += f" - ({self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]})"
-                print(msg)
-            print("\n")
+                    self.log.append(f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}")
+                    print(f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}")
 
 
     def start_turn(self):
-        # 2 msgs per turn, so num to display is 2*num_players-1
-        log_to_display =  self.round.round_log[-2*(len(self.player_order)-1):]
-        for msg in log_to_display:
-            print(msg)
+        # Increment turn number
         self.round.turn_num += 1
-        print_players = ""
-        for p_name in self.player_order:
-            if p_name == self.round.current_player:
-                print_players += "*"
-            print_players += f"{p_name} "
-        print(f"\nPlayer order: {print_players}")
-        print(f"It is {self.round.current_player}'s turn.\n")
 
+        # Set mode to main phase
         self.mode = "main_phase"
+
+        # Add to log to print in client
+        self.log.append(f"It is {self.round.current_player}'s turn.")
 
 
     def end_turn(self):
+        # Calculate new current player
         self.round.current_player = self.player_order[((self.round.turn_num + ((self.round.num-1) % len(self.player_order))) % len(self.player_order))]
-        if self.round.current_player != self.knocked:
-            self.mode = "end_turn"
-        else:
+        
+        # If new current player has knocked, round should end
+        if self.round.current_player == self.knocked:
             self.end_round()
 
 
@@ -132,74 +129,16 @@ class CustomState(shared.State):
         return self.calc_hand_score(self.players[self.round.current_player]) == 31
 
 
-    #  MOVE TO CLIENT
-    def get_user_input(self) -> dict:
-        user_input = ""
-        packet = {}
-        if self.mode == "start":
-            accepted_inputs = [str(i) for i in range(2, self.max_players+1)]
-            while user_input not in accepted_inputs:
-                user_input = input(f"How many players? Enter a number from 2-{self.max_players}.\n")
-            packet = self.user_input_to_packet(action="start", msg=user_input)
-        
-        elif self.mode == "add_player":
-            if self.random_names_flag:
-                # using while loop here removes the need to .pop and reset list every game
-                while user_input not in self.random_names_list:
-                    user_input = self.random_names_list[random.randint(0, len(self.random_names_list)-1)]
-            else:
-                while len(user_input) == 0:
-                    user_input = input("Please enter a name:\n")
-                    if len(user_input) > 12:
-                        user_input = user_input[:12]
-            packet = self.user_input_to_packet(action="add_player", msg=user_input)
-        
-        elif self.mode == "main_phase":
-            abbr_to_word = {"p": "pickup", "d": "draw", "k": "knock"}
-            while user_input not in abbr_to_word.values():
-                self.print_state()
-                user_input = input("Choose one: [p]ickup, [d]raw or [k]nock\n")
-                if user_input in abbr_to_word.keys():
-                    user_input = abbr_to_word[user_input]
-            packet = self.user_input_to_packet(action=user_input, msg="")
-        
-        elif self.mode == "discard":
-            accepted_inputs = [str(i+1) for i in range(len(self.players[self.round.current_player].hand))]
-            while user_input not in accepted_inputs:
-                self.print_state()
-                for i, card in enumerate(self.players[self.round.current_player].hand):
-                    print(f"[{i+1}]:{card}")
-                user_input = input(f"Enter the index of the card you want to discard:\n")
-            packet = self.user_input_to_packet(action="discard", msg=user_input)
-
-        elif self.mode == "end_turn" or self.mode == "end_round":
-            if self.mode == "end_turn":
-                for i in range(14):
-                    print("\n")
-            while len(user_input) == 0:
-                input("Enter any key to continue.\n")
-                user_input = "continue"
-            packet = self.user_input_to_packet(action=user_input, msg="")
-
-        elif self.mode == "end_game":
-            abbr_to_word = {"n": "new_game", "q": "quit"}
-            while user_input not in abbr_to_word.values():
-                user_input = input("\nChoose one: [n]ew game or [q]uit\n")
-                if user_input in abbr_to_word.keys():
-                    user_input = abbr_to_word[user_input]
-            packet = self.user_input_to_packet(action=user_input, msg="")
-
-        return packet
-
-
     def update(self, packet: dict):
-        # {"name": "", "action": "", "msg": ""}
-        # actions: start, add_player, draw, pickup, knock, discard, continue, new_game, quit
+        # actions: start, add_player, draw, pickup, knock, discard, new_game, quit
+        
         if self.mode == "start":
             self.add_players(num_players=int(packet["msg"]))
             for p_object in self.players.values():
-                # set extra lives (score) to +3
+                
+                # Score starts at 3
                 p_object.score += 3
+
             self.mode = "add_player"
 
         elif self.mode == "add_player" and packet["action"] == "add_player":
@@ -225,7 +164,7 @@ class CustomState(shared.State):
                     return
                 self.knocked = self.round.current_player
                 print(f"{self.round.current_player} has knocked.")
-                self.round.round_log.append(f"{self.round.current_player} knocked.")
+                self.log.append(f"{self.round.current_player} knocked.")
                 self.end_turn()
                 return
 
@@ -233,12 +172,12 @@ class CustomState(shared.State):
                 # convert to str here for type consistency
                 taken_card = self.discard.pop()
                 print(f"\nYou pick up a {taken_card} from discard.")
-                self.round.round_log.append(f"{self.round.current_player} picked up a {taken_card} from discard.")
+                self.log.append(f"{self.round.current_player} picked up a {taken_card} from discard.")
 
             elif packet["action"] == "draw":
                 taken_card = self.draw_card()
                 print(f"\nYou draw: {taken_card}.")
-                self.round.round_log.append(f"{self.round.current_player} drew a card from the deck.")
+                self.log.append(f"{self.round.current_player} drew a card from the deck.")
             
             self.players[self.round.current_player].hand.append(taken_card)
             self.mode = "discard"
@@ -250,22 +189,9 @@ class CustomState(shared.State):
         elif self.mode == "discard" and packet["action"] == "discard":
             discarded_card = self.players[self.round.current_player].hand.pop(int(packet["msg"])-1)
             self.discard.append(discarded_card)
-            self.round.round_log.append(f"{self.round.current_player} discarded: {discarded_card}")
+            self.log.append(f"{self.round.current_player} discarded: {discarded_card}")
             self.end_turn()
         
-        elif self.mode == "end_turn":
-            if packet["action"] == "continue":
-                self.start_turn()
-        elif self.mode == "end_round":
-            if packet["action"] == "continue":
-                self.start_round()
-        elif self.mode == "end_game":
-            if packet["action"] == "new_game":
-                self.new_game_custom()
-                self.mode = "start"
-            elif packet["action"] == "quit":
-                raise SystemExit(0)
-    
     
     def package_state(self, player_name) -> dict:
 
@@ -281,5 +207,6 @@ class CustomState(shared.State):
             "current_player": self.round.current_player,  # current player's name
             "hand": self.players[player_name].zip_hand(),  # hand for self only
             "score": self.calc_hand_score(self.players[player_name]),  # self score only
-            "discard": discard_card  # top card of discard pile
+            "discard": discard_card,  # top card of discard pile
+            "mode": self.mode  # current game mode - might help restrict inputs on client side
         }    

@@ -12,19 +12,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Some representation of other players' hands, scores, avatars
         // Chat / Log box
         // Navigation
-    
+
     // Join room - one for debug
+    var username = serverSetup.username
     let room = 'thirty_one_room';
-    joinRoom(room);
+    joinRoom(username, room);
 
     // Creates card table and elements within it
     playerPanel = createPlayerPanel();
     cardTable = createTable();
+    chatLog = createChatLog();
     startButton = createStartButton();
 
     // Add table / Start button to container
     document.querySelector('.outer-container').appendChild(playerPanel);
     document.querySelector('.outer-container').appendChild(cardTable);
+    document.querySelector('.outer-container').appendChild(chatLog);
     document.querySelector('.outer-container').appendChild(startButton);
 });
 
@@ -41,17 +44,18 @@ function serverRequest(input) {
         // Pickup (no index), 
         // Knock (no index), 
         // Discard (takes index)
+    
+    // Set username in input
+    input.username = username
 
-    // Pad input to include all attributes [move, card, newGame]
+    // Pad input to include all attributes [move, card]
     if (!('move' in input)) {
         input.move = '';
     }
     if (!('card' in input)) {
         input.card = '';
     }
-    if (!('newGame' in input)) {
-        input.newGame = false;
-    }
+
 
     
     let validMoves = ['draw', 'pickup', 'knock', 'discard'];
@@ -147,7 +151,7 @@ function createStartButton() {
     start.innerHTML = 'start new game';
 
     start.onclick = () => {
-        serverRequest({newGame: true});
+        serverRequest({move: 'start'});
     }
 
     // Disable start button when game in progress
@@ -167,13 +171,15 @@ function checkNewButton(numPlayers) {
 function createPlayerPanel() {
     // Fill in this panel later
     const playerPanel = document.createElement('div');
-
+    
     return playerPanel;
 }
 
 
 function createChatLog() {
+    const chatLog = document.createElement('div');
 
+    return chatLog;
 }
 
 
@@ -182,6 +188,6 @@ function update(response) {
 }
 
 // Join room
-function joinRoom(room) {
-    socket.emit('join', {'username': serverResponse.username, 'room': room});
+function joinRoom(username, room) {
+    socket.emit('join', {'username': username, 'room': room});
 }

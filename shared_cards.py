@@ -83,10 +83,9 @@ class Deck:
 # counted as one "hand" (i.e. one cycle of turns before needing to shuffle again)
 class Round:
     def __init__(self, player_order, num=0) -> None:
-        self.num = num
+        self.round_num = num
         # current player and turn_num could be considered turn attributes but doesn't merit another class
         self.turn_num = 0
-        self.round_log = []
         
         if len(player_order) > 0:
             # increment first player and set dealer
@@ -95,23 +94,32 @@ class Round:
             self.current_player = player_order[first_player_index]
             self.dealer = player_order[first_player_index-1]
 
+    def set_dealer(self, player_order):
+        if len(player_order) == 0:
+            return
+        # increment first player and set dealer
+        first_player_index = ((num)-1) % len(player_order)
+        self.first_player = player_order[first_player_index]
+        self.current_player = player_order[first_player_index]
+        self.dealer = player_order[first_player_index-1]
+
 
 class State:
-    def __init__(self, ace_value: int, hand_size: int, max_players: int, random_names_flag: bool) -> None:
+    def __init__(self, ace_value: int, hand_size: int, max_players: int) -> None:
+        # Game pieces
         self.deck = Deck(ace_value)
         self.hand_size = hand_size
         self.max_players = max_players
         self.players = {}
         self.player_order = []  # static
 
-        # self.turn_num = 0  # global - putting into Round
-        self.log = []  # global - putting into Round
-        # self.log_to_display = []
+        # Gameplay
+        self.in_progress = False
+        self.log = []
+        
         # round.num defaults to 0 and increments on subsequent rounds
         self.round = Round(self.player_order)
 
-        self.random_names_flag = random_names_flag
-        self.random_names_list = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude"]
 
     def shuffle_deck(self) -> list:
         shuffled_cards = []
