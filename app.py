@@ -197,12 +197,12 @@ def thirty_one():
     
     elif fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
-        username = fl.session.get("username", NAMES[random.randint(len(NAMES) - 1)])
+        username = fl.session.get("username", NAMES[random.randint(0, len(NAMES) - 1)])
         # Create new game State object; add to flask session to access later
         s31 = thirty_one_game.CustomState(random_names_flag=True)
         
         # Just for debug; set players
-        names = ["player_one", "player_two"]
+        names = [username, "player_two"]
         for n in names:
             s31.players[n] = thirty_one_game.shared.Player()
         
@@ -213,7 +213,7 @@ def thirty_one():
         fl.session["thirty_one"] = s31
         
         # Send to client as dict
-        return fl.render_template("thirty_one.html", data=s31.to_client())
+        return fl.render_template("thirty_one.html", data=s31.package_state(username))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -398,6 +398,11 @@ def message(data):
     # fio.emit("some-event", "this is a custom event message")
     
     fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+
+
+@socketio.on('connect')
+def ws_connect():
+    join_room('connected_clients')
 
 
 @socketio.on("join")

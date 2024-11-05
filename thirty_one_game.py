@@ -15,7 +15,7 @@ class CustomState(shared.State):
         self.free_ride_alts = ["free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "has a tummy ache", "has had a long day"]
 
 
-    def calc_hand_score(self, player_object):
+    def calc_hand_score(self, player_object:shared.Player) -> int:
         hand_scores = {}
         for card in player_object.hand:
             if card.suit not in hand_scores.keys():
@@ -191,11 +191,6 @@ class CustomState(shared.State):
 
         return packet
 
-    #  MOVE TO CLIENT
-    def user_input_to_packet(self, action, msg) -> dict:
-        # actions: start, add_player, draw, pickup, knock, discard, continue, new_game, quit
-        return {"action": action, "msg": msg}
-
 
     def update(self, packet: dict):
         # {"name": "", "action": "", "msg": ""}
@@ -270,41 +265,21 @@ class CustomState(shared.State):
                 self.mode = "start"
             elif packet["action"] == "quit":
                 raise SystemExit(0)
-
-
-    def print_state(self):
-        if len(self.discard) > 0:
-            discard_card = self.discard[-1]
-        else:
-            discard_card = None
-        print(f"Current Hand: {self.players[self.round.current_player].hand}. Score: {self.calc_hand_score(self.players[self.round.current_player])}")
-        print(f"Discard: {discard_card}")
     
     
-    def to_client(self, player_name) -> dict:
+    def package_state(self, player_name) -> dict:
 
         # Get discard card
         discard_card = None
         if len(self.discard) > 0:
-            discard_card = self.discard[-1]
+            discard_card = self.discard[-1].zip_self()
 
         # All data the client needs from server
         return {
+            "username": player_name,  # self player
             "all_players": self.player_order,  # list of player names in order
             "current_player": self.round.current_player,  # current player's name
-            "hand": self.players[player_name].hand,  # hand for self only
+            "hand": self.players[player_name].zip_hand(),  # hand for self only
             "score": self.calc_hand_score(self.players[player_name]),  # self score only
             "discard": discard_card  # top card of discard pile
-        }
-        
-
-# main loop
-def hotseat(random_names_flag=True):
-    state = CustomState(random_names_flag)
-    
-    while True:
-        packet = state.get_user_input()
-        state.update(packet)
-
-if __name__ == "__main__":
-    hotseat(random_names_flag=True)
+        }    

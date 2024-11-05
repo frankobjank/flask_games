@@ -1,3 +1,9 @@
+// Initializing socket
+const socket = io();
+
+// Game status
+let inProgress = false;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Elements that need to be on screen
         // Deck (not all the cards, just a button representating the whole deck)
@@ -7,15 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Chat / Log box
         // Navigation
     
-    // Initializing socket
-    const socket = io();
-    
-    // Game status
-    let inProgress = false;
-
     // Join room - one for debug
     let room = 'thirty_one_room';
-    joinRoom(room)
+    joinRoom(room);
 
     // Creates card table and elements within it
     playerPanel = createPlayerPanel();
@@ -43,13 +43,13 @@ function serverRequest(input) {
         // Discard (takes index)
 
     // Pad input to include all attributes [move, card, newGame]
-    if (!(move in input)) {
+    if (!('move' in input)) {
         input.move = '';
     }
-    if (!(card in input)) {
+    if (!('card' in input)) {
         input.card = '';
     }
-    if (!(newGame in input)) {
+    if (!('newGame' in input)) {
         input.newGame = false;
     }
 
@@ -87,7 +87,7 @@ function success(response) {
 }
 
 
-function createTable(serverBoard) {
+function createTable() {
 
     // Create div for card table
     const cardTable = document.createElement('div');
@@ -105,7 +105,7 @@ function createTable(serverBoard) {
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        serverRequest({move: 'draw', card: '', newGame: false});
+        serverRequest({move: 'draw'});
     }
 
     // Add deck button to container
@@ -139,33 +139,36 @@ function createTable(serverBoard) {
 }
 
 
-function createNewButton() {
-    // New game button
-    const b = document.createElement('button');
+function createStartButton() {
+    // Start game button
+    const start = document.createElement('button');
     
-    b.className = 'new-game-button';
-    b.innerHTML = 'New game';
+    start.className = 'start-game-button';
+    start.innerHTML = 'start new game';
 
-    b.onclick = () => {
+    start.onclick = () => {
         serverRequest({newGame: true});
     }
 
     // Disable start button when game in progress
     if (inProgress) {
-        b.disabled;
+        start.disabled;
     }
+
+    return start;
 }
 
 
-function checkStartButton(numPlayers) {
-    return (2 <= numPlayers <= 7 && !inProgress)
+function checkNewButton(numPlayers) {
+    return (2 <= numPlayers <= 7 && !inProgress);
 }
 
 
 function createPlayerPanel() {
+    // Fill in this panel later
     const playerPanel = document.createElement('div');
-    
-    return playerPanel
+
+    return playerPanel;
 }
 
 
@@ -176,4 +179,9 @@ function createChatLog() {
 
 function update(response) {
 
+}
+
+// Join room
+function joinRoom(room) {
+    socket.emit('join', {'username': serverResponse.username, 'room': room});
 }

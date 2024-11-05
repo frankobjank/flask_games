@@ -12,7 +12,7 @@
 
     <!-- Get game state from server -->
     <script type="text/javascript">
-        const serverResponse = {{ data }};
+        const serverResponse = {{ data|tojson }};
         console.log(serverResponse)
     </script>
 

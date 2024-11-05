@@ -4,7 +4,6 @@ from enum import Enum
 
 # Try using decorators for inheriting functions
 
-# games: 31, cribbage, conquian, Battleship
 
 class Player:
     def __init__(self, name="") -> None:
@@ -13,12 +12,25 @@ class Player:
         self.hand = []
         self.score = 0
     
+    
     def __repr__(self) -> str:
         return self.name
 
-    def sort_hand(self, suit=True) -> None:
+    
+    def sort_hand(self) -> None:
         # self.hand = sorted(sorted(self.hand, key=attrgetter("value"), reverse=True), key=attrgetter("suit"), reverse=True)
         self.hand = sorted(sorted(self.hand, key=attrgetter("suit"), reverse=True), key=attrgetter("value"), reverse=True)
+    
+
+    def zip_hand(self):
+        """Convert hand to portable strings to send to client."""
+        
+        cards = []
+        for c in self.hand:
+            cards.append(c.zip_self())
+        
+        return cards
+
 
 class Card:
     def __init__(self, rank: str, value: int, suit: str, suit_display: str):
@@ -27,8 +39,22 @@ class Card:
         self.suit = suit
         self.suit_display = suit_display
     
+    
     def __str__(self) -> str:
         return f"{self.rank}{self.suit_display}"
+    
+
+    def zip_self(self):
+        """Create portable string to send to client."""
+        
+        # Convert 10 to T to make all cards 2 chars long
+        rank = self.rank
+        if rank == "10":
+            rank = "T"
+
+        # returns 2S, 3C, AH, etc.
+        return f"{rank}{self.suit[0].capitalize()}"
+
 
 class Deck:
     def __init__(self, ace_value) -> None:
@@ -76,10 +102,10 @@ class State:
         self.hand_size = hand_size
         self.max_players = max_players
         self.players = {}
-        self.player_order = [] # static
+        self.player_order = []  # static
 
-        # self.turn_num = 0 # global - putting into Round
-        self.log = [] # global - putting into Round
+        # self.turn_num = 0  # global - putting into Round
+        self.log = []  # global - putting into Round
         # self.log_to_display = []
         # round.num defaults to 0 and increments on subsequent rounds
         self.round = Round(self.player_order)
@@ -95,7 +121,7 @@ class State:
             randindex = random.randint(0, len(cards_to_add)-1)
             shuffled_cards.append(cards_to_add.pop(randindex))
         
-        assert len(self.deck.unshuffled_cards) == 52, "this should always be 52"
+        assert len(self.deck.unshuffled_cards) == 52, "This list,j should remain unchanged."
 
         return shuffled_cards
 

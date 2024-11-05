@@ -4,8 +4,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.documentElement.style.setProperty('--grid-width', serverBoard.width);
     document.documentElement.style.setProperty('--grid-height', serverBoard.height);
     
-    document.getElementById('board-container').style.setProperty('width', serverBoard.width * 30)
-    document.getElementById('board-container').style.setProperty('height', serverBoard.height * 30)
+    let pixelMultiplier = 30
+    document.getElementById('board-container').style.setProperty('width', serverBoard.width * pixelMultiplier)
+    document.getElementById('board-container').style.setProperty('height', serverBoard.height * pixelMultiplier)
 
     // Keep track if game has started for timer
     hasStarted = false;
