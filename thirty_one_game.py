@@ -71,11 +71,18 @@ class Deck:
 
 
 class State:
-    def __init__(self, ace_value=11, hand_size=3, max_players=7) -> None:
+    def __init__(self, room_name, ace_value=11, hand_size=3, max_players=7) -> None:
         
         # modes : start, add_players, main_phase, discard 
             # HANDLE THESE MODES internally instead: end_turn, end_round, end_game
+
+        # Room
+        self.room_name = room_name
         
+        # Room constants
+        self.MAX_PLAYERS = 7
+        self.MIN_PLAYERS = 2
+
         # Game pieces
         self.deck = Deck(ace_value)
         self.shuffled_cards = []
@@ -98,13 +105,6 @@ class State:
         self.knocked = ""  # player name
         self.discard = []
         self.free_ride_alts = ["getting a free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "having a tummy ache", "having a long day"]
-
-        # Websocket id
-        self.sid = ""
-
-        # Room constants
-        self.MAX_PLAYERS = 7
-        self.MIN_PLAYERS = 2
         
 
     def shuffle_deck(self) -> list:
@@ -143,7 +143,8 @@ class State:
         self.dead_players = {}
 
 
-    # def add_player(self) -> None:
+    def add_player(self, name) -> None:
+        self.players[name] = Player(name)
 
 
     def start_game(self) -> None:
@@ -340,6 +341,7 @@ class State:
 
         # All data the client needs from server
         return {
+            "room": self.room_name,  # name of room
             "username": player_name,  # self player
             "all_players": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name

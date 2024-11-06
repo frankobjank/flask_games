@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Join room - one for debug
     var username = serverSetup.username
-    let room = 'thirty_one_room';
+    let room = serverSetup.room;
     joinRoom(username, room);
 
     // Creates card table and elements within it

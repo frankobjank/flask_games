@@ -30,8 +30,13 @@ Session(app)
 # Configure socketio
 socketio = fio.SocketIO(app)
 
-# Predefined chatrooms; eventually want to enable users to create their own
-ROOMS = ["lounge", "news", "games", "coding"]
+# # Predefined chatrooms; eventually want to enable users to create their own
+CHATROOMS = ["lounge", "news", "games", "coding"]
+
+GAMEROOMS = ["thirty_one_room"]
+room_clients = {r: set() for r in GAMEROOMS}
+active_games = {}  # {room_name: game_state}
+
 
 # Users: [frankobjank, burnt, AAAA, newuser]
 
@@ -54,9 +59,9 @@ def thirty_one():
     if fl.request.method == "POST":
         
         if fl.session.get("thirty_one"):
-            fl.session["thirty_one"].update(fl.request)
+            active_games[GAMEROOMS[0]].update(fl.request)
 
-            response = fl.session["thirty_one"].update_packet()
+            response = active_games[GAMEROOMS[0]].update_packet()
             
             return response
 
@@ -64,33 +69,53 @@ def thirty_one():
     
     elif fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
-        username = fl.session.get("username", get_random_name())
-        print(fl.session)
 
-        # Create new game State object; add to flask session to access later
-        fl.session["thirty_one"] = thirty_one_game.CustomState()
-        
-        # Send to client as dict
-        return fl.render_template("thirty_one.html", data=fl.session["thirty_one"].package_state(username))
+        # Need to create a room but not overwrite it whenever GET is called
+        username = fl.session.get("username", get_random_name())
+
+        # Create new game State object per room; add to dict, accessed by room name
+        active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
+
+        # Must add player before package_state runs
+        # Add player to game state
+        active_games[GAMEROOMS[0]].add_player(username)
+
+        # Send to client as dict - This is being executed before websocket 'join'
+        return fl.render_template("thirty_one.html", data=active_games[GAMEROOMS[0]].package_state(username))
 
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
     username = fl.session.get("username", get_random_name())
     
-    return fl.render_template("chat.html", username=username, rooms=ROOMS)
+    return fl.render_template("chat.html", username=username, rooms=CHATROOMS)
 
 
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
-    print("ON JOIN")
     print(data)
-    fl.session[data["sid"]].append(data["room"])
-    print(f"rooms = ")
 
+    print(f"{data['username']} has joined the {data['room']} room.")
+
+    # use lower() to standardize room name and username
+    room_clients[data["room"].lower()].add(fl.session["username"].lower())
+    
     fio.join_room(data["room"])
     fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
+
+    print(f"\n\nGame state players = {active_games[GAMEROOMS[0]].players}\n\n")
+
+
+@socketio.on("leave")
+def on_leave(data):
+    print(f"{data['username']} has left the {data['room']} room.")
+    
+    # use lower() to standardize room name and username
+    room_clients[data["room"].lower()].discard(fl.session["username"].lower())
+    
+    fio.leave_room(data["room"])
+    fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
 
 
 @socketio.on("message")
@@ -106,20 +131,11 @@ def message(data):
 @socketio.on("connect")
 def on_connect():
     print("ON CONNECT")
-    username = fl.session.get("username", get_random_name())
-    print(f"rooms = {fio.rooms}")
 
 
 @socketio.on("disconnect")
 def on_disconnect():
     print("ON DISCONNECT")
-
-
-@socketio.on("leave")
-def on_leave(data):
-    print("ON LEAVE")
-    fio.leave_room(data["room"])
-    fio.send({"msg": data["username"] + " has left the " + data["room"] + "room."}, room=data["room"])
 # -- End FlaskSocketIO -- #
 
 
