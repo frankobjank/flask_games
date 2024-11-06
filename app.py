@@ -1,5 +1,4 @@
 # Python official modules
-import random
 import sqlite3
 from time import time, localtime, strftime
 import werkzeug.security as ws
@@ -10,7 +9,7 @@ from flask_session import Session
 import flask_socketio as fio
 
 # Python files
-from helpers import dict_factory, to_percent
+from helpers import dict_factory, to_percent, get_random_name
 import minesweeper_game
 import thirty_one_game
 
@@ -33,9 +32,6 @@ socketio = fio.SocketIO(app)
 
 # Predefined chatrooms; eventually want to enable users to create their own
 ROOMS = ["lounge", "news", "games", "coding"]
-
-# Names to randomly assign
-NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude"]
 
 # Users: [frankobjank, burnt, AAAA, newuser]
 
@@ -60,7 +56,6 @@ def thirty_one():
         if fl.session.get("thirty_one"):
             fl.session["thirty_one"].update(fl.request)
 
-            # Return mines, visible squares to client
             response = fl.session["thirty_one"].update_packet()
             
             return response
@@ -69,7 +64,7 @@ def thirty_one():
     
     elif fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
-        username = fl.session.get("username", NAMES[random.randint(0, len(NAMES) - 1)])
+        username = fl.session.get("username", get_random_name())
         print(fl.session)
 
         # Create new game State object; add to flask session to access later
@@ -81,7 +76,7 @@ def thirty_one():
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
-    username = fl.session.get("username", "")
+    username = fl.session.get("username", get_random_name())
     
     return fl.render_template("chat.html", username=username, rooms=ROOMS)
 
@@ -89,7 +84,10 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
+    print("ON JOIN")
     print(data)
+    fl.session[data["sid"]].append(data["room"])
+    print(f"rooms = ")
 
     fio.join_room(data["room"])
     fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
@@ -107,25 +105,19 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
+    print("ON CONNECT")
+    username = fl.session.get("username", get_random_name())
     print(f"rooms = {fio.rooms}")
-    print("New connection")
 
 
 @socketio.on("disconnect")
 def on_disconnect():
-    print("Disconnection has occurred")
-
-
-@socketio.on("join")
-def on_join(data):
-
-    fio.join_room(data["room"])
-    fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
+    print("ON DISCONNECT")
 
 
 @socketio.on("leave")
 def on_leave(data):
-
+    print("ON LEAVE")
     fio.leave_room(data["room"])
     fio.send({"msg": data["username"] + " has left the " + data["room"] + "room."}, room=data["room"])
 # -- End FlaskSocketIO -- #
