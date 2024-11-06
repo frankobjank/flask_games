@@ -1,6 +1,14 @@
 from operator import attrgetter
 import random
 
+
+# Global constants
+RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": self.ace_value}
+SUITS = ["spade", "heart", "diamond", "club"]
+SUIT_TO_DISPLAY = {"spade": "\u2664", "heart": "\u2665", "diamond": "\u2666", "club": "\u2667"}
+
+
 class Player:
     def __init__(self, name="") -> None:
         self.name = name
@@ -32,11 +40,15 @@ class Player:
 
 
 class Card:
-    def __init__(self, rank: str, value: int, suit: str, suit_display: str):
+    def __init__(self, rank: str, suit: str):
         self.rank = rank
-        self.value = value
+        self.value = RANK_TO_VALUE[self.rank]
         self.suit = suit
-        self.suit_display = suit_display
+        self.suit_display = SUIT_TO_DISPLAY[self.suit]
+    
+    
+    def __repr__(self) -> str:
+        return f"Card({self.rank}, {self.suit})"
     
     
     def __str__(self) -> str:
@@ -58,12 +70,7 @@ class Card:
 class Deck:
     def __init__(self, ace_value) -> None:
         self.ace_value = ace_value
-        ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-        cardtype_to_value = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": self.ace_value}
-        suits = ["spade", "heart", "diamond", "club"]
-        suit_to_display = {"spade": "\u2664", "heart": "\u2665", "diamond": "\u2666", "club": "\u2667"}
-
-        self.unshuffled_cards = [Card(rank, cardtype_to_value[rank], suit, suit_to_display[suit]) for suit in suits for rank in ranks]
+        self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
 
 
     def __repr__(self) -> str:
@@ -290,10 +297,9 @@ class State:
         # actions: start, add_player, draw, pickup, knock, discard, new_game, quit
         
         if not self.in_progress:
-            # if action == start:
-            self.start_game()
+            if packet["action"] == "start":
+                self.start_game()
 
-            
 
         elif self.mode == "main_phase":
             taken_card = None
@@ -325,14 +331,24 @@ class State:
                 print(f"{self.current_player} BLITZED!!!")
                 self.end_round()
 
+
         elif self.mode == "discard" and packet["action"] == "discard":
-            discarded_card = self.players[self.current_player].hand.pop(int(packet["msg"])-1)
-            self.discard.append(discarded_card)
-            self.log.append(f"{self.current_player} discarded: {discarded_card}")
-            self.end_turn()
-        
-    
+            # Unzip from client
+            chosen_card = unzip_card(packet["card"])
+            
+            # Remove from hand
+            self.players[self.current_player].hand.remove(chosen_card)
+            
+            # Add to discard
+            self.discard.append(chosen_card)
+            self.log.append(f"{self.current_player} discarded: {chosen_card}")
+            
+            self.end_turn()  
+
+
     def package_state(self, player_name) -> dict:
+        
+        assert self.in_progress, "Only call once game has started"
 
         # Get discard card
         discard_card = None
@@ -350,3 +366,24 @@ class State:
             "discard": discard_card,  # top card of discard pile
             "mode": self.mode  # current game mode - might help restrict inputs on client side
         }    
+
+
+def unzip_card(self, card_str: str) -> Card:
+    """Decode portable string from client."""
+    assert len(card_str) == 2, f"Incorrect card data `{card_str}`"
+    
+    # Convert 10 to T to make all cards 2 chars long
+    rank = card_str[0]
+    if rank == "T":
+        rank = "10"
+    
+    suit_letter = card_str[1].lower()
+    suit = ""
+
+    for s in SUITS:
+        if suit_letter in s:
+            suit = s
+
+
+    # returns 2S, 3C, AH, etc.
+    return Card(rank, suit)

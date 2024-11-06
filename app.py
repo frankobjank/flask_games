@@ -56,37 +56,19 @@ def index():
 
 @app.route("/thirty_one", methods=["GET", "POST"])
 def thirty_one():
-    if fl.request.method == "POST":
-        
-        if fl.session.get("thirty_one"):
-            active_games[GAMEROOMS[0]].update(fl.request)
 
-            response = active_games[GAMEROOMS[0]].update_packet()
-            
-            return response
-
-        return ("", 204)
     
-    elif fl.request.method == "GET":
+    if fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
 
-        # Need to create a room but not overwrite it whenever GET is called
-        username = fl.session.get("username", get_random_name())
-
-        # Create new game State object per room; add to dict, accessed by room name
-        active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
-
-        # Must add player before package_state runs
-        # Add player to game state
-        active_games[GAMEROOMS[0]].add_player(username)
 
         # Send to client as dict - This is being executed before websocket 'join'
-        return fl.render_template("thirty_one.html", data=active_games[GAMEROOMS[0]].package_state(username))
+        return fl.render_template("thirty_one.html")
 
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
-    username = fl.session.get("username", get_random_name())
+    username = fl.session.get("username")
     
     return fl.render_template("chat.html", username=username, rooms=CHATROOMS)
 
@@ -96,13 +78,23 @@ def chat():
 def on_join(data):
     print(data)
 
+    # Need to create a room but not overwrite it whenever another person joins
+    # Create new game State object per room; add to dict, accessed by room name
+    if not active_games.get(GAMEROOMS[0]):
+        active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
+
     print(f"{data['username']} has joined the {data['room']} room.")
 
-    # use lower() to standardize room name and username
+    # Similar to active_games but keeps track of rooms and who is where 
+    # lower() is used to standardize room name and username
     room_clients[data["room"].lower()].add(fl.session["username"].lower())
     
     fio.join_room(data["room"])
     fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
+
+    # Must add player before package_state runs
+    # Add player to game state
+    active_games[GAMEROOMS[0]].add_player(username)
 
     print(f"\n\nGame state players = {active_games[GAMEROOMS[0]].players}\n\n")
 
@@ -118,10 +110,21 @@ def on_leave(data):
     fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
 
 
+
+# Make custom event bucket - "move"
+@socketio.on("move")
+def process_move(data):
+    # Adapted from thirty_one() POST 
+    active_games[GAMEROOMS[0]].update(data)  # update based on data.action, data.card
+
+    response=active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
+    
+    fio.emit("move", response=response)
+
+
 @socketio.on("message")
 def message(data):
     
-    # For debug
     print(f"\n\n{data}\n\n")
     # fio.emit("some-event", "this is a custom event message")
     
@@ -130,6 +133,10 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
+    # Make sure user has username on connecting
+    if not fl.session.get("username"):
+        fl.session["username"] =  get_random_name()
+
     print("ON CONNECT")
 
 

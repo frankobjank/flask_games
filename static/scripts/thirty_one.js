@@ -39,6 +39,7 @@ function serverRequest(input) {
     // AD, KD, QD, JD, TD, 9D, 8D, 7D, 6D, 5D, 4D, 3D, 2D
     // AC, KC, QC, JC, TC, 9C, 8C, 7C, 6C, 5C, 4C, 3C, 2C
     
+    // !!! Change move to action to include non-game related actions !!! 
     // Moves:
         // Draw (no index), 
         // Pickup (no index), 
