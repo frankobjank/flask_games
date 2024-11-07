@@ -5,6 +5,7 @@ const socket = io();
 let inProgress = false;
 
 document.addEventListener('DOMContentLoaded', () => {
+    
     // Elements that need to be on screen
         // Deck (not all the cards, just a button representating the whole deck)
         // Hand

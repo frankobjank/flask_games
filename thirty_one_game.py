@@ -3,8 +3,13 @@ import random
 
 
 # Global constants
+ACE_VALUE = 11
+
+# Ranks and ranks to value
 RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": self.ace_value}
+RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": ACE_VALUE}
+
+# Suits and unicode for suits
 SUITS = ["spade", "heart", "diamond", "club"]
 SUIT_TO_DISPLAY = {"spade": "\u2664", "heart": "\u2665", "diamond": "\u2666", "club": "\u2667"}
 
@@ -68,8 +73,7 @@ class Card:
     
 
 class Deck:
-    def __init__(self, ace_value) -> None:
-        self.ace_value = ace_value
+    def __init__(self) -> None:
         self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
 
 
@@ -78,7 +82,7 @@ class Deck:
 
 
 class State:
-    def __init__(self, room_name, ace_value=11, hand_size=3, max_players=7) -> None:
+    def __init__(self, room_name, hand_size=3, max_players=7) -> None:
         
         # modes : start, add_players, main_phase, discard 
             # HANDLE THESE MODES internally instead: end_turn, end_round, end_game
@@ -91,7 +95,7 @@ class State:
         self.MIN_PLAYERS = 2
 
         # Game pieces
-        self.deck = Deck(ace_value)
+        self.deck = Deck()
         self.shuffled_cards = []
         self.hand_size = hand_size
         self.players = {}
@@ -141,13 +145,6 @@ class State:
                 hand_scores[card.suit] = 0
             hand_scores[card.suit] += card.value
         return max(hand_scores.values())
-
-
-    def reset_game(self) -> None:
-        # Players will not need to be reset every game
-        self.player_order = []
-        self.round_num = 0
-        self.dead_players = {}
 
 
     def add_player(self, name) -> None:
@@ -287,6 +284,13 @@ class State:
         # If new current player has knocked, round should end
         if self.current_player == self.knocked:
             self.end_round()
+
+
+    def reset_game(self) -> None:
+        # Players will not need to be reset every game
+        self.player_order = []
+        self.round_num = 0
+        self.dead_players = {}
 
 
     def check_for_blitz(self):
