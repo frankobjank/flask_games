@@ -31,7 +31,7 @@ Session(app)
 socketio = fio.SocketIO(app)
 
 # # Predefined chatrooms; eventually want to enable users to create their own
-CHATROOMS = ["lounge", "news", "games", "coding"]
+CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
 GAMEROOMS = ["thirty_one_room"]
 room_clients = {r: set() for r in GAMEROOMS}
@@ -78,7 +78,6 @@ def chat():
 def on_join(data):
     print(data)
 
-    # Need to create a room but not overwrite it whenever another person joins
     # Create new game State object per room; add to dict, accessed by room name
     if not active_games.get(GAMEROOMS[0]):
         active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
@@ -86,15 +85,18 @@ def on_join(data):
     print(f"{data['username']} has joined the {data['room']} room.")
 
     # Similar to active_games but keeps track of rooms and who is where 
-    # lower() is used to standardize room name and username
-    room_clients[data["room"].lower()].add(fl.session["username"].lower())
+    room_clients[data["room"]].add(fl.session["username"])
     
+    # Join the room
     fio.join_room(data["room"])
+
+    # Log msg that player has joined
     fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
 
-    # Must add player before package_state runs
+
+
     # Add player to game state
-    active_games[GAMEROOMS[0]].add_player(username)
+    active_games[GAMEROOMS[0]].add_player(fl.session["username"])
 
     print(f"\n\nGame state players = {active_games[GAMEROOMS[0]].players}\n\n")
 
@@ -103,8 +105,7 @@ def on_join(data):
 def on_leave(data):
     print(f"{data['username']} has left the {data['room']} room.")
     
-    # use lower() to standardize room name and username
-    room_clients[data["room"].lower()].discard(fl.session["username"].lower())
+    room_clients[data["room"]].discard(fl.session["username"])
     
     fio.leave_room(data["room"])
     fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
@@ -114,7 +115,6 @@ def on_leave(data):
 # Make custom event bucket - "move"
 @socketio.on("move")
 def process_move(data):
-    # Adapted from thirty_one() POST 
     active_games[GAMEROOMS[0]].update(data)  # update based on data.action, data.card
 
     response=active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))

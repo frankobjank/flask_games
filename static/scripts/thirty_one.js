@@ -5,7 +5,7 @@ const socket = io();
 let inProgress = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // Elements that need to be on screen
         // Deck (not all the cards, just a button representating the whole deck)
         // Hand
@@ -34,18 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function serverRequest(input) {
-    // Cards can be represented by 2 chars, rank and suit
-    // AS, KS, QS, JS, TS, 9S, 8S, 7S, 6S, 5S, 4S, 3S, 2S
-    // AH, KH, QH, JH, TH, 9H, 8H, 7H, 6H, 5H, 4H, 3H, 2H
-    // AD, KD, QD, JD, TD, 9D, 8D, 7D, 6D, 5D, 4D, 3D, 2D
-    // AC, KC, QC, JC, TC, 9C, 8C, 7C, 6C, 5C, 4C, 3C, 2C
-    
-    // !!! Change move to action to include non-game related actions !!! 
-    // Moves:
-        // Draw (no index), 
-        // Pickup (no index), 
-        // Knock (no index), 
-        // Discard (takes index)
     
     // Set username in input
     input.username = username
@@ -70,26 +58,7 @@ function serverRequest(input) {
 
     console.log(input)
 
-    // Send data via jQuery ajax function
-    $.ajax({
-        dataType: 'json',
-        type: 'POST',
-        url: 'thirty_one',
-        data: input,
-        success: success
-    });
-}
 
-
-// Handle the success response from Flask
-function success(response) {
-
-    // Catch if response is undefined
-    if (response === undefined) {
-        return;
-    }
-
-    update(response);
 }
 
 
@@ -153,7 +122,8 @@ function createStartButton() {
     start.innerHTML = 'start new game';
 
     start.onclick = () => {
-        serverRequest({move: 'start'});
+        
+        socket.emit('move', {'action': 'start'});
     }
 
     // Disable start button when game in progress
@@ -173,7 +143,8 @@ function checkNewButton(numPlayers) {
 function createPlayerPanel() {
     // Fill in this panel later
     const playerPanel = document.createElement('div');
-    
+    playerPanel.className = 'player-panel';
+
     return playerPanel;
 }
 
@@ -186,10 +157,23 @@ function createChatLog() {
 
 
 function update(response) {
-
+    // on add player, add to player panel
 }
+
+// Socket functions / events
 
 // Join room
 function joinRoom(username, room) {
     socket.emit('join', {'username': username, 'room': room});
 }
+
+// Leave room
+function leaveRoom(room) {
+    socket.emit('leave', {'username': username, 'room': room});
+}
+
+// Custom 'update' event; receives server response
+socket.on('update', data => {
+    update(data);
+});
+
