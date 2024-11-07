@@ -61,6 +61,8 @@ def thirty_one():
     if fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
 
+        # Only info needed is username
+        username = fl.session["username"]
 
         # Send to client as dict - This is being executed before websocket 'join'
         return fl.render_template("thirty_one.html")
@@ -93,12 +95,14 @@ def on_join(data):
     # Log msg that player has joined
     fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
 
-
-
     # Add player to game state
     active_games[GAMEROOMS[0]].add_player(fl.session["username"])
 
+    # Print current players
     print(f"\n\nGame state players = {active_games[GAMEROOMS[0]].players}\n\n")
+
+    # Callback to add player to panel
+    fio.emit("update", response={"action": "add_player", "player": fl.session["username"]})
 
 
 @socketio.on("leave")
@@ -110,6 +114,8 @@ def on_leave(data):
     fio.leave_room(data["room"])
     fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
 
+    # Callback to remove player from panel
+    fio.emit("update", response={"action": "remove_player", "player": fl.session["username"]})
 
 
 # Make custom event bucket - "move"
@@ -119,7 +125,7 @@ def process_move(data):
 
     response=active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
     
-    fio.emit("move", response=response)
+    fio.emit("update", response=response)
 
 
 @socketio.on("message")
@@ -135,7 +141,10 @@ def message(data):
 def on_connect():
     # Make sure user has username on connecting
     if not fl.session.get("username"):
-        fl.session["username"] =  get_random_name()
+        fl.session["username"] = get_random_name()
+
+    # Callback update event to add username to client
+    fio.emit("update", {"action": "add_username", "username": fl.session['username']})
 
     print("ON CONNECT")
 
