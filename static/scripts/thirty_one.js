@@ -6,6 +6,7 @@ let inProgress = false;
 
 // Client username - assign on connect
 var username;
+let room = 'thirty_one_room';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -17,9 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Chat / Log box
         // Navigation
 
-    // Join room - one for debug
-    let room = 'thirty_one_room';
+    // Is this happening before connect?
     joinRoom(username, room);
+
 
     // Creates card table and elements within it
     playerPanel = createPlayerPanel();
@@ -162,9 +163,10 @@ function update(response) {
         return;
     }
     
-    // On connect, add username
+    // On connect, add username, join room  - is this 
     if (response.action === 'add_username') {
         username = response.username;
+        console.log(`Adding username ${username}`)
     }
     
     // on add player, add to player panel
@@ -183,15 +185,37 @@ function update(response) {
 
 // Join room
 function joinRoom(username, room) {
+    // For debug:
+    console.log(`${username} has joined the ${room} room.`);
+    
     socket.emit('join', {'username': username, 'room': room});
 }
 
 // Leave room
 function leaveRoom(username, room) {
+    // For debug:
+    console.log(`${username} has left the ${room} room.`);
+    
     socket.emit('leave', {'username': username, 'room': room});
 }
 
 // Custom 'update' event on action from server
 socket.on('update', data => {
+    // For debug:
+    console.log(`Client received update event. Data = ${data}`);
+
     update(data);
+});
+
+// On connect, add username
+socket.on('connect', data => {
+    console.log("Client connected");
+    username = data.username;
+    // console.log(`Adding username ${username}`)
+    // update(data);
+});
+
+// Debug msgs for now
+socket.on('message', data => {
+    console.log(`Client received: ${data}`);
 });

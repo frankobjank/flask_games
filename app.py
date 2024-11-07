@@ -61,10 +61,7 @@ def thirty_one():
     if fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
 
-        # Only info needed is username
-        username = fl.session["username"]
-
-        # Send to client as dict - This is being executed before websocket 'join'
+        # Everything taken care of via web sockets
         return fl.render_template("thirty_one.html")
 
 
@@ -126,6 +123,9 @@ def process_move(data):
     response=active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
     
     fio.emit("update", response=response)
+    
+    # For debug:
+    fio.send({"msg": f"Server callback to move event: {response}."})
 
 
 @socketio.on("message")
@@ -144,14 +144,23 @@ def on_connect():
         fl.session["username"] = get_random_name()
 
     # Callback update event to add username to client
-    fio.emit("update", {"action": "add_username", "username": fl.session['username']})
-
+    # fio.emit("update", {"action": "add_username", "username": fl.session['username']})
+    fio.emit("connect", {"username": fl.session['username']})
+    
+    # For debug:
+    fio.send({"msg": "Server callback to connect event."})
+    
     print("ON CONNECT")
 
 
 @socketio.on("disconnect")
 def on_disconnect():
+    # For debug:
+    
+    fio.send({"msg": "Server callback to disconnect event."})
+    
     print("ON DISCONNECT")
+
 # -- End FlaskSocketIO -- #
 
 
