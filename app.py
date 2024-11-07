@@ -60,9 +60,12 @@ def thirty_one():
     
     if fl.request.method == "GET":
         # Load lobby?? Or drop into room and make lobby a separate route
-
+        username = fl.session.get("username", "")
+        if len(username) == 0:
+            username = get_random_name()
+            
         # Everything taken care of via web sockets
-        return fl.render_template("thirty_one.html")
+        return fl.render_template("thirty_one.html", username=username)
 
 
 @app.route("/chat", methods=["GET", "POST"])
@@ -139,9 +142,6 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
-    # Make sure user has username on connecting
-    if not fl.session.get("username"):
-        fl.session["username"] = get_random_name()
 
     # Callback update event to add username to client
     # fio.emit("update", {"action": "add_username", "username": fl.session['username']})

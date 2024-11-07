@@ -186,7 +186,8 @@ function update(response) {
 // Join room
 function joinRoom(username, room) {
     // For debug:
-    console.log(`${username} has joined the ${room} room.`);
+    // console.log(`${username} has joined the ${room} room.`);
+    console.log('Client join event.');
     
     socket.emit('join', {'username': username, 'room': room});
 }
@@ -209,13 +210,10 @@ socket.on('update', data => {
 
 // On connect, add username
 socket.on('connect', data => {
-    console.log("Client connected");
-    username = data.username;
-    // console.log(`Adding username ${username}`)
-    // update(data);
+    console.log('Client connect event');
 });
 
 // Debug msgs for now
 socket.on('message', data => {
-    console.log(`Client received: ${data}`);
+    console.log(`Client received: ${data.msg}`);
 });
