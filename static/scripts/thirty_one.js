@@ -7,6 +7,7 @@ let inProgress = false;
 // Client username - assign on connect
 var username;
 let room = 'thirty_one_room';
+let players = [];
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -18,9 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Chat / Log box
         // Navigation
 
-    // Is this happening before connect?
+    // This actually happens before 'connect' event
     joinRoom(username, room);
-
 
     // Creates card table and elements within it
     playerPanel = createPlayerPanel();
@@ -136,7 +136,7 @@ function createStartButton() {
 }
 
 
-function checkNewButton(numPlayers) {
+function checkNumPlayers(numPlayers) {
     return (2 <= numPlayers <= 7 && !inProgress);
 }
 
@@ -170,15 +170,29 @@ function update(response) {
     }
     
     // on add player, add to player panel
-    else if (response.action === 'add_player') {
-        const playerContainer = document.createElement('p');
-        const br = document.createElement('br');
+    else if (response.action === 'update_players') {
 
-        playerContainer.innerHTML = response.player + br.outerHTML;
+        // Rebuild player panel from scratch
+        
+        console.log(`Received action: update_players, players = ${response.players}`)
+        
+        // Save player list
+        for (player of response.players) {
+            // Check if player already in list
+            if (!(players.includes(player))) {
+                
+                // If player not in list, add to list and player panel
+                players.push(player);
 
-        document.querySelector('.player-panel').appendChild(playerContainer);
+                const playerContainer = document.createElement('p');
+                const br = document.createElement('br');
+        
+                playerContainer.innerHTML = player + br.outerHTML;
+        
+                document.querySelector('.player-panel').appendChild(playerContainer);
+            }
+        }
     }
-
 }
 
 // Socket functions / events

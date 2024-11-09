@@ -78,6 +78,7 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
+    print("ON JOIN")
     print(data)
 
     # Create new game State object per room; add to dict, accessed by room name
@@ -91,18 +92,16 @@ def on_join(data):
     
     # Join the room
     fio.join_room(data["room"])
-
+    
     # Log msg that player has joined
     fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
 
     # Add player to game state
     active_games[GAMEROOMS[0]].add_player(fl.session["username"])
 
-    # Print current players
-    print(f"\n\nGame state players = {active_games[GAMEROOMS[0]].players}\n\n")
 
-    # Callback to add player to panel
-    fio.emit("update", response={"action": "add_player", "player": fl.session["username"]})
+    # Callback to send updated list of players
+    fio.emit("update", {"action": "update_players", "players": list(room_clients[data["room"]])}, broadcast=True)
 
 
 @socketio.on("leave")
@@ -114,8 +113,8 @@ def on_leave(data):
     fio.leave_room(data["room"])
     fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
 
-    # Callback to remove player from panel
-    fio.emit("update", response={"action": "remove_player", "player": fl.session["username"]})
+    # Callback to send updated list of players
+    fio.emit("update", {"action": "update_players", "players": room_clients[data["room"]]}, broadcast=True)
 
 
 # Make custom event bucket - "move"
@@ -125,7 +124,7 @@ def process_move(data):
 
     response=active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
     
-    fio.emit("update", response=response)
+    fio.emit("update", response)
     
     # For debug:
     fio.send({"msg": f"Server callback to move event: {response}."})
