@@ -169,13 +169,11 @@ function update(response) {
         console.log(`Adding username ${username}`)
     }
     
-    // on add player, add to player panel
-    else if (response.action === 'update_players') {
+    // Add players to player panel on join
+    else if (response.action === 'add_players') {
 
-        // Rebuild player panel from scratch
-        
-        console.log(`Received action: update_players, players = ${response.players}`)
-        
+        console.log(`Received action: add_players, players = ${response.players}`)
+
         // Save player list
         for (player of response.players) {
             // Check if player already in list
@@ -186,10 +184,35 @@ function update(response) {
 
                 const playerContainer = document.createElement('p');
                 const br = document.createElement('br');
-        
+                
+                // Give container id of 'playerName-container'
+                playerContainer.id = player + '-container'
                 playerContainer.innerHTML = player + br.outerHTML;
         
                 document.querySelector('.player-panel').appendChild(playerContainer);
+            }
+        }
+    }
+
+    // Remove players on leave
+    else if (response.action === 'remove_players') {
+
+        console.log(`Received action: remove_players, players = ${response.players}`)
+
+        // Remove anyone on local list who isn't on server list
+        for (player of players) {
+            // Check if player already in list
+            if ((response.players.includes(player))) {
+                
+                // Remove player from local list
+                players.pop(player);
+
+                containerID = '#' + player + '-container';
+
+                playerContainer = document.querySelector(containerID);
+                console.log(`Found ${playerContainer} with id ${containerID}, removing player ${player}`);
+                
+                document.querySelector('.player-panel').removeChild(playerContainer);
             }
         }
     }
@@ -222,9 +245,14 @@ socket.on('update', data => {
     update(data);
 });
 
-// On connect, add username
 socket.on('connect', data => {
-    console.log('Client connect event');
+    console.log('Client connect event.');
+});
+
+// On connect, add username
+socket.on('disconnect', () => {
+    console.log('Client disconnect event.');
+    // socket.emit('leave', {'username': username, 'room': room});
 });
 
 // Debug msgs for now

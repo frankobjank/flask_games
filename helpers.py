@@ -1,4 +1,7 @@
 import random
+from collections import namedtuple
+
+User = namedtuple("User", ['name', 'sid'])
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude"]
