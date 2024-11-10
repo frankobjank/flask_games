@@ -80,7 +80,7 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
-    print("ON JOIN")
+    print(f"ON JOIN for {data['username']}")
     print(data)
 
     # Create new game State object per room; add to dict, accessed by room name
@@ -89,6 +89,7 @@ def on_join(data):
 
     # Add sid associated to user to be able to identify for removal on disconnect
     sid_to_user[fl.request.sid] = data["username"]
+    print(f"sid on JOIN = {fl.request.sid} for {data['username']}")
 
     print(f"{data['username']} has joined the {data['room']} room.")
 
@@ -111,8 +112,12 @@ def on_join(data):
 
 @socketio.on("leave")
 def on_leave(data):
+    # For debug:
+    print("ON LEAVE")
+    fio.send({"msg": f"Server callback to leave event."})
     print(f"{data['username']} has left the {data['room']} room.")
     
+    # Remove from server set
     room_clients[data["room"]].discard(fl.session["username"])
     
     fio.leave_room(data["room"])
@@ -125,9 +130,11 @@ def on_leave(data):
 # Make custom event bucket - "move"
 @socketio.on("move")
 def process_move(data):
-    active_games[GAMEROOMS[0]].update(data)  # update based on data.action, data.card
 
-    response=active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
+    # Update based on data.action, data.card
+    active_games[GAMEROOMS[0]].update(data)
+
+    response = active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
     
     fio.emit("update", response)
     
@@ -139,18 +146,16 @@ def process_move(data):
 def message(data):
     
     print(f"\n\n{data}\n\n")
-    # fio.emit("some-event", "this is a custom event message")
     
     fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
 
 @socketio.on("connect")
 def on_connect():
-
-    fio.emit("connect", {"username": fl.session['username']})
     
     # For debug:
     print("ON CONNECT")
+    print(f"sid on CONNECT = {fl.request.sid}")
     fio.send({"msg": "Server callback to connect event."})
 
 
@@ -159,10 +164,28 @@ def on_disconnect():
     
     # For debug:
     print("ON DISCONNECT")
-    fio.send({"msg": "Server callback to disconnect event."})
+    print(f"sid on DISCONNECT = {fl.request.sid}")
     
-    # Must remove player with only the sid - convert sid to user and remove with update event
-    fio.emit("update", {"action": "remove_players", "players": sid_to_user[fl.request.sid]}, broadcast=True)
+    fio.send({"msg": "Server callback to disconnect event."}, broadcast=True)
+    
+    # Get username with sid
+    username = sid_to_user.get(fl.request.sid, "")
+    
+    if len(username) > 0:
+        print("Username found with sid")
+
+        # Room id is unavailable;
+        # Remove player from every room since disconnect implies leaving all rooms
+        for players in room_clients.values():
+            players.discard(username)
+            
+        # Must remove player with only the sid - convert sid to user and remove with update event
+        print(f"Sending update to client to remove {sid_to_user[fl.request.sid]}")
+        fio.emit("update", {"action": "remove_players", "players": sid_to_user[fl.request.sid]}, broadcast=True)
+    
+    # Catch errors
+    else:
+        print("Username not found with sid")
 
 
 # -- End FlaskSocketIO -- #

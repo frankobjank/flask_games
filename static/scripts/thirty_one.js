@@ -205,11 +205,16 @@ function update(response) {
             if ((response.players.includes(player))) {
                 
                 // Remove player from local list
-                players.pop(player);
+                const index = players.indexOf(player);
+                if (index > -1) {
+                    players.splice(index, 1);
+                    console.log(`Found ${player} at index ${index}, removing player ${player}`);
+                }
 
+                // Remove player container 
                 containerID = '#' + player + '-container';
-
                 playerContainer = document.querySelector(containerID);
+                
                 console.log(`Found ${playerContainer} with id ${containerID}, removing player ${player}`);
                 
                 document.querySelector('.player-panel').removeChild(playerContainer);
@@ -249,10 +254,10 @@ socket.on('connect', data => {
     console.log('Client connect event.');
 });
 
-// On connect, add username
+// On disconnect, add username
 socket.on('disconnect', () => {
     console.log('Client disconnect event.');
-    // socket.emit('leave', {'username': username, 'room': room});
+    socket.emit('leave', {'username': username, 'room': room});
 });
 
 // Debug msgs for now
