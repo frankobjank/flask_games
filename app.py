@@ -9,7 +9,7 @@ from flask_session import Session
 import flask_socketio as fio
 
 # Python files
-from helpers import dict_factory, to_percent, get_random_name, login_required
+from helpers import *
 import minesweeper_game
 import thirty_one_game
 
@@ -34,12 +34,13 @@ socketio = fio.SocketIO(app)
 CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
 GAMEROOMS = ["thirty_one_room"]
-# sid_to_user = {}
 room_clients = {r: set() for r in GAMEROOMS}
 active_games = {}  # {room_name: game_state}
 
+# Users can set username without creating an account
+# To test existence of account, check `user_id`
 
-# Users: [frankobjank, burnt, AAAA, newuser]
+# Users: [frankobjank, burnt, AAAA, newuser, richard]
 
 @app.after_request
 def after_request(response):
@@ -71,6 +72,7 @@ def thirty_one():
 
 
 @app.route("/chat", methods=["GET", "POST"])
+@name_required
 def chat():
     username = fl.session.get("username")
     
@@ -79,21 +81,26 @@ def chat():
 
 # -- FlaskSocketIO -- #
 @socketio.on("join")
-@login_required
 def on_join(data):
-    print(f"ON JOIN for {data['username']}")
 
-    # Create new game State object per room; add to dict, accessed by room name
+    # Create new game State object per room - really should be part of room creation;
+    # Add to active games dict, accessed by room name
     if not active_games.get(GAMEROOMS[0]):
         active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
 
-    # # Add sid associated to user to be able to identify for removal on disconnect
-    # sid_to_user[fl.request.sid] = data["username"]
-    # print(f"sid to user = {sid_to_user}")
+    # If client has no name OR has a name already in the room, assign a random name
+    if len(fl.session.get("username", "")) == 0 or fl.session.get("username", "") in room_clients[data["room"]]:
+        # Pass in current room names to avoid duplicates
+        random_name = get_random_name(exclude = room_clients[data["room"]])
+        print(f"Random name chosen = {random_name}")
+        
+        # Store name in session
+        fl.session["username"] = random_name
 
-    print(f"sid on JOIN = {fl.request.sid} for {data['username']}")
-
-    print(f"{data['username']} has joined the {data['room']} room.")
+    # Print for debug
+    print(f"ON JOIN for {fl.session['username']}")
+    print(f"sid on JOIN = {fl.request.sid} for {fl.session['username']}")
+    print(f"{fl.session['username']} has joined the {data['room']} room.")
 
     # Similar to active_games but keeps track of rooms and who is where 
     room_clients[data["room"]].add(fl.session["username"])
@@ -102,7 +109,7 @@ def on_join(data):
     fio.join_room(data["room"])
     
     # Log msg that player has joined
-    fio.send({"msg": data["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
+    fio.send({"msg": fl.session["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
 
     # Add player to game state
     active_games[GAMEROOMS[0]].add_player(fl.session["username"])
@@ -155,46 +162,24 @@ def message(data):
 
 
 @socketio.on("connect")
-@login_required
-def on_connect(data):
+def on_connect():
+    username = fl.session.get("username", "")
     # For debug:
-    print(f"ON CONNECT for {fl.session['username']}")
+    print(f"ON CONNECT for {username}")
     print(f"sid on CONNECT = {fl.request.sid}")
     fio.send({"msg": "Server callback to connect event."})
-    
-
-    # Problem --- when reconnecting after connection issues, client does not go through normal 'join'
-    # Therefore sid in sid_to_user becomes outdated. How to update sid without a username?
-    
-    # Solution? can check if username exists and update sid dict
-    username = fl.session.get("username", "")
-
-    # if len(username) > 0:
-    #     for 
-    #     len(username)
 
 
 @socketio.on("disconnect")
 def on_disconnect():
-    # print(f"sid to user = {sid_to_user}")
+    username = fl.session.get("username", "")
+
     # For debug:
     print(f"ON DISCONNECT for {fl.session['username']}")
     print(f"sid on DISCONNECT = {fl.request.sid}")
-    
     fio.send({"msg": "Server callback to disconnect event."}, broadcast=True)
     
-    username = ""
-
-    # Get username with sid
-    try:
-        # Pop sid since they are one-time codes that change on every connect
-        username = sid_to_user.pop(fl.request.sid)
-        print(f"Username `{username}` found with sid")
-    
-    except KeyError:
-        print("Username not found with sid")
-
-
+    # If username available, remove from rooms
     if len(username) > 0:
 
         # Room id is unavailable;
@@ -315,6 +300,8 @@ def register():
 
 
 @app.route("/change_password", methods=["GET", "POST"])
+# This is hidden if not logged in, but adding server-side validation
+@login_required
 def change_password():
     """Change password"""
 

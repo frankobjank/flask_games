@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Navigation
 
     // This actually happens before 'connect' event
-    joinRoom(username, room);
+    joinRoom(room);
 
     // Creates card table and elements within it
     playerPanel = createPlayerPanel();
@@ -226,12 +226,14 @@ function update(response) {
 // Socket functions / events
 
 // Join room
-function joinRoom(username, room) {
-    // For debug:
-    // console.log(`${username} has joined the ${room} room.`);
+function joinRoom(room) {
     console.log('Client join event.');
     
-    socket.emit('join', {'username': username, 'room': room});
+    // Removing need for passing username here; can assign random name on server side
+    // socket.emit('join', {'username': username, 'room': room});
+    
+    // Pass name of room to server
+    socket.emit('join', {'room': room});
 }
 
 // Leave room

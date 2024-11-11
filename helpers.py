@@ -9,6 +9,28 @@ User = namedtuple("User", ['name', 'sid'])
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude"]
 
 
+# Currently not working with flask socketio on_connect - says it needs to take exactly 0 args
+def name_required(f):
+    """
+    Decorate routes to require a username.
+
+    https://flask.palletsprojects.com/en/latest/patterns/viewdecorators/
+    """
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        print("Name required wrapper running")
+        if len(session.get("username", "")) == 0:
+            random_name = get_random_name()
+            print(f"random_name = {random_name}")
+            session["username"] = random_name
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+# Same as name_required but for accounts instead of just username
 def login_required(f):
     """
     Decorate routes to require login.
@@ -18,7 +40,7 @@ def login_required(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get("user_id") is None:
+        if session.get("user_id", 0) != 0:
             return redirect("/login")
         return f(*args, **kwargs)
 
@@ -26,10 +48,14 @@ def login_required(f):
 
 
 # Eventually change to pass in existing names so it can check for duplicates
-def get_random_name() -> str:
+def get_random_name(exclude: set=set()) -> str:
     """Get a random name if user doesn't have one."""
 
-    return NAMES[random.randint(0, len(NAMES) - 1)]
+    # Remove names in exclude from available names
+    rand_names_set = set(NAMES) - exclude
+
+    # Convert resulting set to list and access random index
+    return list(rand_names_set)[random.randint(0, len(rand_names_set) - 1)]
 
 
 def dict_factory(cursor, row):
