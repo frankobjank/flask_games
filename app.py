@@ -9,7 +9,7 @@ from flask_session import Session
 import flask_socketio as fio
 
 # Python files
-from helpers import dict_factory, to_percent, get_random_name
+from helpers import dict_factory, to_percent, get_random_name, login_required
 import minesweeper_game
 import thirty_one_game
 
@@ -34,7 +34,7 @@ socketio = fio.SocketIO(app)
 CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
 GAMEROOMS = ["thirty_one_room"]
-sid_to_user = {}
+# sid_to_user = {}
 room_clients = {r: set() for r in GAMEROOMS}
 active_games = {}  # {room_name: game_state}
 
@@ -79,16 +79,18 @@ def chat():
 
 # -- FlaskSocketIO -- #
 @socketio.on("join")
+@login_required
 def on_join(data):
     print(f"ON JOIN for {data['username']}")
-    print(data)
 
     # Create new game State object per room; add to dict, accessed by room name
     if not active_games.get(GAMEROOMS[0]):
         active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
 
-    # Add sid associated to user to be able to identify for removal on disconnect
-    sid_to_user[fl.request.sid] = data["username"]
+    # # Add sid associated to user to be able to identify for removal on disconnect
+    # sid_to_user[fl.request.sid] = data["username"]
+    # print(f"sid to user = {sid_to_user}")
+
     print(f"sid on JOIN = {fl.request.sid} for {data['username']}")
 
     print(f"{data['username']} has joined the {data['room']} room.")
@@ -112,16 +114,18 @@ def on_join(data):
 
 @socketio.on("leave")
 def on_leave(data):
+    # Disconnect handles leaving the page or disconnecting other ways;
+    # Leave can handle leaving the current room to go to the lobby
     # For debug:
     print("ON LEAVE")
     fio.send({"msg": f"Server callback to leave event."})
     print(f"{data['username']} has left the {data['room']} room.")
-    
+
     # Remove from server set
     room_clients[data["room"]].discard(fl.session["username"])
     
     fio.leave_room(data["room"])
-    fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
+    fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."})
 
     # Callback to send updated list of players
     fio.emit("update", {"action": "remove_players", "players": list(room_clients[data["room"]])}, broadcast=True)
@@ -151,28 +155,47 @@ def message(data):
 
 
 @socketio.on("connect")
-def on_connect():
-    
+@login_required
+def on_connect(data):
     # For debug:
-    print("ON CONNECT")
+    print(f"ON CONNECT for {fl.session['username']}")
     print(f"sid on CONNECT = {fl.request.sid}")
     fio.send({"msg": "Server callback to connect event."})
+    
+
+    # Problem --- when reconnecting after connection issues, client does not go through normal 'join'
+    # Therefore sid in sid_to_user becomes outdated. How to update sid without a username?
+    
+    # Solution? can check if username exists and update sid dict
+    username = fl.session.get("username", "")
+
+    # if len(username) > 0:
+    #     for 
+    #     len(username)
 
 
 @socketio.on("disconnect")
 def on_disconnect():
-    
+    # print(f"sid to user = {sid_to_user}")
     # For debug:
-    print("ON DISCONNECT")
+    print(f"ON DISCONNECT for {fl.session['username']}")
     print(f"sid on DISCONNECT = {fl.request.sid}")
     
     fio.send({"msg": "Server callback to disconnect event."}, broadcast=True)
     
+    username = ""
+
     # Get username with sid
-    username = sid_to_user.get(fl.request.sid, "")
+    try:
+        # Pop sid since they are one-time codes that change on every connect
+        username = sid_to_user.pop(fl.request.sid)
+        print(f"Username `{username}` found with sid")
     
+    except KeyError:
+        print("Username not found with sid")
+
+
     if len(username) > 0:
-        print("Username found with sid")
 
         # Room id is unavailable;
         # Remove player from every room since disconnect implies leaving all rooms
@@ -180,14 +203,10 @@ def on_disconnect():
             players.discard(username)
             
         # Must remove player with only the sid - convert sid to user and remove with update event
-        print(f"Sending update to client to remove {sid_to_user[fl.request.sid]}")
-        fio.emit("update", {"action": "remove_players", "players": sid_to_user[fl.request.sid]}, broadcast=True)
+        print(f"Sending update to client to remove {username}")
+        fio.emit("update", {"action": "remove_players", "players": username}, broadcast=True)
     
-    # Catch errors
-    else:
-        print("Username not found with sid")
-
-
+    
 # -- End FlaskSocketIO -- #
 
 
@@ -433,6 +452,8 @@ def minesweeper():
         return fl.render_template("minesweeper.html", data=fl.session["ms"].setup_packet())
 
 
+# Turn this into general stats page with buttons to select stats for each game
+# Or could spin off single-player games
 @app.route("/minesweeper/stats")
 def minesweeper_stats():
     

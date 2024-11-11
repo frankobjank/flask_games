@@ -250,14 +250,14 @@ socket.on('update', data => {
     update(data);
 });
 
-socket.on('connect', data => {
+socket.on('connect', () => {
     console.log('Client connect event.');
 });
 
 // On disconnect, add username
 socket.on('disconnect', () => {
     console.log('Client disconnect event.');
-    socket.emit('leave', {'username': username, 'room': room});
+    // socket.emit('leave', {'username': username, 'room': room});
 });
 
 // Debug msgs for now
