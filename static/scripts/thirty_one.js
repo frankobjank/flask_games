@@ -81,7 +81,7 @@ function createTable() {
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': room});
+        socket.emit('move', {'username': username, 'action': 'draw', 'room': room});
     }
 
     // Add deck button to container
@@ -98,7 +98,7 @@ function createTable() {
     const discard = document.createElement('button');
     discard.id = 'discard';
     discard.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': room});
+        socket.emit('move', {'username': username, 'action': 'pickup', 'room': room});
     }
     
     // Add discard button to container
@@ -124,7 +124,7 @@ function createStartButton() {
 
     start.onclick = () => {
         
-        socket.emit('move', {'action': 'start', 'room': room});
+        socket.emit('move', {'username': username, 'action': 'start', 'room': room});
     }
 
     // Disable start button when game in progress
@@ -184,11 +184,13 @@ function update(response) {
 
                 const playerContainer = document.createElement('p');
                 const br = document.createElement('br');
-                
+                const playerHand = document.createElement('div');
+
                 // Give container id of 'playerName-container'
                 playerContainer.id = player + '-container'
                 playerContainer.innerHTML = player + br.outerHTML;
-        
+
+                playerContainer.appendChild(playerHand);
                 document.querySelector('.player-panel').appendChild(playerContainer);
             }
         }

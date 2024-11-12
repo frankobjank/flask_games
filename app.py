@@ -71,7 +71,6 @@ def thirty_one():
 
 
 @app.route("/chat", methods=["GET", "POST"])
-@name_required
 def chat():
     username = fl.session.get("username")
     
@@ -149,17 +148,29 @@ def process_move(data):
     if data["action"] == "start":
         if not (2 <= len(room_clients[data["room"]]) <= 7):
             print("Invalid number of players.")
-            fio.send({"msg": f"Server callback to start request: Invalid number of players."})
+            fio.send({"msg": f"Server rejecting start request; Invalid number of players."})
             return
-
+    
+    # Check that username is current player if game has started
+    if fl.session.get("username", "") != game.current_player and game.in_progress:
+        print("Not accepting move from non-current player while game is in progress.")
+        fio.send({"msg": f"Server rejecting move request; Client not current player."})
+        return
+    
     # Update based on data.action, data.card
     game.update(data)
 
-    response = game.package_state(fl.session.get("username"))
-    
-    fio.emit("update", response)
-    
-    fio.send({"msg": f"Server callback to move event: {response}."})
+
+    # Send generic response to all; broadcast=True
+    response = game.package_state_generic(fl.session.get("username"))
+    fio.emit("update", response, broadcast = True)
+    fio.send({"msg": f"Generic callback to move event: {response}."})
+
+    # Send specific response to each player so they are updated on any move
+    for name in game.players.keys():
+        response = game.package_state_specific(name)
+        fio.emit("update", response)
+        fio.send({"msg": f"Specific callback to move event: {response}."})
 
 
 @socketio.on("message")

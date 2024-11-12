@@ -21,7 +21,7 @@ class Player:
         self.hand = []
         
         # Score starts at 3
-        self.score = 3
+        self.lives = 3
     
     
     def __repr__(self) -> str:
@@ -39,10 +39,10 @@ class Player:
         
         cards = []
         for c in self.hand:
-            cards.append(c.zip_self())
+            cards.append(c.zip_card())
         
         return cards
-
+    
 
 class Card:
     def __init__(self, rank: str, suit: str):
@@ -218,7 +218,7 @@ class State:
             for player in self.player_order:
                 if player != self.current_player:
                     print(f"{player} loses 1 extra life.")
-                    self.players[player].score -= 1
+                    self.players[player].lives -= 1
         else:
             hand_scores = [self.calc_hand_score(p_object) for p_object in self.players.values()]
             lowest_hand_score = min(hand_scores)
@@ -234,13 +234,13 @@ class State:
                 if lowest_hand_score_player != self.knocked:
                     print(f"{lowest_hand_score_player} loses 1 extra life.")
                     self.log.append(f"{lowest_hand_score_player} loses 1 extra life.")
-                    self.players[lowest_hand_score_player].score -= 1
+                    self.players[lowest_hand_score_player].lives -= 1
                 else:
                     print(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
                     self.log.append(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
-                    self.players[lowest_hand_score_player].score -= 2
+                    self.players[lowest_hand_score_player].lives -= 2
         
-        knocked_out = [p_name for p_name, p_object in self.players.items() if 0 > p_object.score]
+        knocked_out = [p_name for p_name, p_object in self.players.items() if 0 > p_object.lives]
         
         for p_name in knocked_out:
             self.log.append(f"{p_name} has been knocked out.")
@@ -259,9 +259,9 @@ class State:
             print("\nRemaining Players' Extra Lives:")
             self.log.append("\nRemaining Players' Extra Lives:")
             for p_name, p_object in self.players.items():
-                print(f"{p_name} - {p_object.score} extra lives")
-                self.log.append(f"{p_name} - {p_object.score} extra lives")
-                if p_object.score == 0:
+                print(f"{p_name} - {p_object.lives} extra lives")
+                self.log.append(f"{p_name} - {p_object.lives} extra lives")
+                if p_object.lives == 0:
                     self.log.append(f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}")
                     print(f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}")
 
@@ -299,10 +299,10 @@ class State:
 
     def update(self, packet: dict):
         # actions: start, add_player, draw, pickup, knock, discard, new_game, quit
-        
+        # Assuming packet is coming from current player; validate before this is called
+
         if not self.in_progress:
             if packet["action"] == "start":
-                # if 
                 self.start_game()
 
 
@@ -351,26 +351,49 @@ class State:
             self.end_turn()  
 
 
-    def package_state(self, player_name) -> dict:
+    # Have two package state functions - one for general and one for specific player info
+    def package_state_generic(self) -> dict:
         
         assert self.in_progress, "Only call once game has started"
 
         # Get discard card
         discard_card = None
         if len(self.discard) > 0:
-            discard_card = self.discard[-1].zip_self()
+            discard_card = self.discard[-1].zip_card()
+
+        # Build lists in order of player_order to make sure they're unpacked correctly
+        hand_sizes = []
+        lives = []
+
+        for p_name in self.player_order:
+            hand_sizes.append(len(self.players[p_name].hand))
+            lives.append(self.players[p_name].lives)
+            
+        # All data the client needs from server
+        return {
+            "response": "accepted",  # for client to 
+            "room": self.room_name,  # name of room
+            "player_order": self.player_order,  # list of player names in order
+            "current_player": self.current_player,  # current player's name
+            "hand_sizes": hand_sizes,  # number of cards in each players' hands
+            "lives": lives,  # self score only
+            "discard": discard_card,  # top card of discard pile
+            "mode": self.mode  # current game mode - might help restrict inputs on client side
+        }
+    
+
+    def package_state_specific(self, player_name) -> dict:
+        
+        assert self.in_progress, "Only call once game has started"
 
         # All data the client needs from server
         return {
             "room": self.room_name,  # name of room
             "username": player_name,  # self player
-            "all_players": self.player_order,  # list of player names in order
-            "current_player": self.current_player,  # current player's name
             "hand": self.players[player_name].zip_hand(),  # hand for self only
-            "score": self.calc_hand_score(self.players[player_name]),  # self score only
-            "discard": discard_card,  # top card of discard pile
+            "hand_score": self.calc_hand_score(self.players[player_name]),  # self score only
             "mode": self.mode  # current game mode - might help restrict inputs on client side
-        }    
+        }
 
 
 def unzip_card(self, card_str: str) -> Card:
