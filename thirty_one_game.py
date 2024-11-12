@@ -372,6 +372,7 @@ class State:
         # All data the client needs from server
         return {
             # Generic data
+            "action": "update_board",  # for client to know what type of update this is
             "room": self.room_name,  # name of room
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name

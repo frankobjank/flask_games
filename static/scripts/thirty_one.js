@@ -9,6 +9,8 @@ var username;
 var playerOrder = [];
 let room = 'thirty_one_room';
 let players = [];
+// Player object:
+const player = {username: '', order: 0, lives: 0, };
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -224,8 +226,10 @@ function update(response) {
         }
     }
 
-    // Update game pieces based on server response:
+    // Update board based on server response:
+
     // # Generic data
+    // "action": "update_board",  # for client to know what type of update this is
     // "room": self.room_name,  # name of room
     // "player_order": self.player_order,  # list of player names in order
     // "current_player": self.current_player,  # current player's name
@@ -237,6 +241,26 @@ function update(response) {
     // # Specific to player
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
+    
+    else if (response.action === 'update_board') {
+        if (!inProgress) {
+            console.log('Received update response but game is not active.');
+            return;
+        }
+
+        if (response.player_order === undefined) {
+            console.log('Player order missing from response.');
+            return;
+        }
+        playerOrder = response.player_order
+        
+        // Loop with `in` enumerates list, similar to range(len()) in python
+        for (i in playerOrder) {
+            if 
+        }
+
+
+    }
 
 }
 
