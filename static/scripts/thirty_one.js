@@ -30,9 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add table / Start button to container
     document.querySelector('.outer-container').appendChild(playerPanel);
-    // document.querySelector('.outer-container').appendChild(cardTable);
-    // document.querySelector('.outer-container').appendChild(chatLog);
-    // document.querySelector('.outer-container').appendChild(startButton);
+    document.querySelector('.outer-container').appendChild(cardTable);
+    document.querySelector('.outer-container').appendChild(chatLog);
+    document.querySelector('.outer-container').appendChild(startButton);
 });
 
 
@@ -81,7 +81,7 @@ function createTable() {
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        socket.emit('move', {'action': 'draw'});
+        socket.emit('move', {'action': 'draw', 'room': room});
     }
 
     // Add deck button to container
@@ -98,7 +98,7 @@ function createTable() {
     const discard = document.createElement('button');
     discard.id = 'discard';
     discard.onclick = () => {
-        socket.emit('move', {'action': 'pickup'});
+        socket.emit('move', {'action': 'pickup', 'room': room});
     }
     
     // Add discard button to container
@@ -119,12 +119,12 @@ function createStartButton() {
     // Start game button
     const start = document.createElement('button');
     
-    start.className = 'start-game-button';
+    start.className = 'start-button';
     start.innerHTML = 'start new game';
 
     start.onclick = () => {
         
-        socket.emit('move', {'action': 'start'});
+        socket.emit('move', {'action': 'start', 'room': room});
     }
 
     // Disable start button when game in progress
@@ -166,13 +166,13 @@ function update(response) {
     // On connect, add username, join room  - is this 
     if (response.action === 'add_username') {
         username = response.username;
-        console.log(`Adding username ${username}`)
+        console.log(`Adding username ${username}`);
     }
     
     // Add players to player panel on join
     else if (response.action === 'add_players') {
 
-        console.log(`Received action: add_players, players = ${response.players}`)
+        console.log(`Received action: add_players, players = ${response.players}`);
 
         // Save player list
         for (player of response.players) {
@@ -247,7 +247,7 @@ function leaveRoom(username, room) {
 // Custom 'update' event on action from server
 socket.on('update', data => {
     // For debug:
-    console.log(`Client received update event. Data = ${data}`);
+    console.log(`Client received update event: ${JSON.stringify(data)}.`);
 
     update(data);
 });
@@ -266,3 +266,16 @@ socket.on('disconnect', () => {
 socket.on('message', data => {
     console.log(`Client received: ${data.msg}`);
 });
+
+
+// // Submit chat message with 'Enter'
+// document.addEventListener('DOMContentLoaded', () => {
+//     // Make 'enter' key submit message
+//     let msg = document.querySelector('#user_message');
+//     msg.addEventListener('keyup', event => {
+//         event.preventDefault();
+//         if (event.keyCode === 13) {
+//             document.querySelector('#send_message').click();
+//         }
+//     })
+// })

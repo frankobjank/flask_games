@@ -82,7 +82,7 @@ class Deck:
 
 
 class State:
-    def __init__(self, room_name, hand_size=3, max_players=7) -> None:
+    def __init__(self, room_name) -> None:
         
         # modes : start, add_players, main_phase, discard 
             # HANDLE THESE MODES internally instead: end_turn, end_round, end_game
@@ -97,7 +97,7 @@ class State:
         # Game pieces
         self.deck = Deck()
         self.shuffled_cards = []
-        self.hand_size = hand_size
+        self.hand_size = 3
         self.players = {}
         self.player_order = []  # static
         self.dead_players = {}  # I think this can be removed without any consequences
@@ -302,6 +302,7 @@ class State:
         
         if not self.in_progress:
             if packet["action"] == "start":
+                # if 
                 self.start_game()
 
 

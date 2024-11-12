@@ -34,13 +34,15 @@ socketio = fio.SocketIO(app)
 CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
 GAMEROOMS = ["thirty_one_room"]
-room_clients = {r: set() for r in GAMEROOMS}
-active_games = {}  # {room_name: game_state}
+
+room_clients = {r: set() for r in GAMEROOMS}  # Room: set(players)
+active_games = {}  # Room: Game State
 
 # Users can set username without creating an account
 # To test existence of account, check `user_id`
 
 # Users: [frankobjank, burnt, AAAA, newuser, richard]
+
 
 @app.after_request
 def after_request(response):
@@ -56,19 +58,16 @@ def index():
     return fl.render_template("index.html")
 
 
-@app.route("/thirty_one", methods=["GET", "POST"])
+@app.route("/thirty_one") #, methods=["GET", "POST"])
 def thirty_one():
 
-
-    if fl.request.method == "GET":
+    # Load lobby?? Or drop into room and make lobby a separate route
+    username = fl.session.get("username", "")
+    if len(username) == 0:
+        username = get_random_name()
         
-        # Load lobby?? Or drop into room and make lobby a separate route
-        username = fl.session.get("username", "")
-        if len(username) == 0:
-            username = get_random_name()
-            
-        # Everything taken care of via web sockets
-        return fl.render_template("thirty_one.html", username=username)
+    # Everything taken care of via web sockets
+    return fl.render_template("thirty_one.html", username=username)
 
 
 @app.route("/chat", methods=["GET", "POST"])
@@ -85,8 +84,8 @@ def on_join(data):
 
     # Create new game State object per room - really should be part of room creation;
     # Add to active games dict, accessed by room name
-    if not active_games.get(GAMEROOMS[0]):
-        active_games[GAMEROOMS[0]] = thirty_one_game.State(GAMEROOMS[0])
+    if not active_games.get(data["room"]):
+        active_games[data["room"]] = thirty_one_game.State(data["room"])
 
     # If client has no name OR has a name already in the room, assign a random name
     if len(fl.session.get("username", "")) == 0 or fl.session.get("username", "") in room_clients[data["room"]]:
@@ -112,8 +111,7 @@ def on_join(data):
     fio.send({"msg": fl.session["username"] + " has joined the " + data["room"] + " room."}, room=data["room"])
 
     # Add player to game state
-    active_games[GAMEROOMS[0]].add_player(fl.session["username"])
-
+    active_games[data["room"]].add_player(fl.session["username"])
 
     # Callback to send updated list of players
     fio.emit("update", {"action": "add_players", "players": list(room_clients[data["room"]])}, broadcast=True)
@@ -141,15 +139,26 @@ def on_leave(data):
 # Make custom event bucket - "move"
 @socketio.on("move")
 def process_move(data):
+    # For debug:
+    print(f"Received move event `{data['action']}` from client `{fl.session.get('username')}`.")
+    
+    # Game state should be created on first join (room creation)
+    game = active_games[data["room"]]
+
+    # If client requests start, check number of players in room
+    if data["action"] == "start":
+        if not (2 <= len(room_clients[data["room"]]) <= 7):
+            print("Invalid number of players.")
+            fio.send({"msg": f"Server callback to start request: Invalid number of players."})
+            return
 
     # Update based on data.action, data.card
-    active_games[GAMEROOMS[0]].update(data)
+    game.update(data)
 
-    response = active_games[GAMEROOMS[0]].package_state(fl.session.get("username"))
+    response = game.package_state(fl.session.get("username"))
     
     fio.emit("update", response)
     
-    # For debug:
     fio.send({"msg": f"Server callback to move event: {response}."})
 
 
