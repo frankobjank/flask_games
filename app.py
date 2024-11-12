@@ -35,8 +35,14 @@ CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
 GAMEROOMS = ["thirty_one_room"]
 
+player_to_sid = {}  # Player: list of sids --- might need to move this to be 
+# room-specific because a user can be in more than one room at once. If separated 
+# by room, player should only be associated with one sid at a time
+
+# Maybe put User(username, sid) into room_clients instead of just names
 room_clients = {r: set() for r in GAMEROOMS}  # Room: set(players)
 active_games = {}  # Room: Game State
+
 
 # Users can set username without creating an account
 # To test existence of account, check `user_id`
@@ -184,6 +190,9 @@ def on_connect():
     print(f"ON CONNECT for {username}")
     print(f"sid on CONNECT = {fl.request.sid}")
     fio.send({"msg": "Server callback to connect event."})
+    
+    # Add to dict of sids
+    player_to_sid[username].append(fl.request.sid)
 
 
 @socketio.on("disconnect")
