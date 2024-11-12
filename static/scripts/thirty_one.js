@@ -6,6 +6,7 @@ let inProgress = false;
 
 // Client username - assign on connect
 var username;
+var playerOrder = [];
 let room = 'thirty_one_room';
 let players = [];
 
@@ -81,7 +82,7 @@ function createTable() {
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        socket.emit('move', {'username': username, 'action': 'draw', 'room': room});
+        socket.emit('move', {'action': 'draw', 'room': room});
     }
 
     // Add deck button to container
@@ -98,7 +99,7 @@ function createTable() {
     const discard = document.createElement('button');
     discard.id = 'discard';
     discard.onclick = () => {
-        socket.emit('move', {'username': username, 'action': 'pickup', 'room': room});
+        socket.emit('move', {'action': 'pickup', 'room': room});
     }
     
     // Add discard button to container
@@ -123,8 +124,7 @@ function createStartButton() {
     start.innerHTML = 'start new game';
 
     start.onclick = () => {
-        
-        socket.emit('move', {'username': username, 'action': 'start', 'room': room});
+        socket.emit('move', {'action': 'start', 'room': room});
     }
 
     // Disable start button when game in progress
@@ -163,7 +163,7 @@ function update(response) {
         return;
     }
     
-    // On connect, add username, join room  - is this 
+    // On connect, add username, join room
     if (response.action === 'add_username') {
         username = response.username;
         console.log(`Adding username ${username}`);
@@ -223,6 +223,21 @@ function update(response) {
             }
         }
     }
+
+    // Update game pieces based on server response:
+    // # Generic data
+    // "room": self.room_name,  # name of room
+    // "player_order": self.player_order,  # list of player names in order
+    // "current_player": self.current_player,  # current player's name
+    // "discard": discard_card,  # top card of discard pile
+    // "mode": self.mode,  # current game mode - might help restrict inputs on client side
+    // "hand_sizes": hand_sizes,  # number of cards in each players' hands
+    // "lives": lives,  # remaining lives of all players
+    
+    // # Specific to player
+    // "hand": self.players[player_name].zip_hand(),  # hand for self only
+    // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
+
 }
 
 // Socket functions / events

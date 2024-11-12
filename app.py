@@ -135,7 +135,7 @@ def on_leave(data):
     fio.emit("update", {"action": "remove_players", "players": list(room_clients[data["room"]])}, broadcast=True)
 
 
-# Make custom event bucket - "move"
+# Custom event bucket - "move"
 @socketio.on("move")
 def process_move(data):
     # For debug:
@@ -152,7 +152,7 @@ def process_move(data):
             return
     
     # Check that username is current player if game has started
-    if fl.session.get("username", "") != game.current_player and game.in_progress:
+    if game.in_progress and fl.session.get("username", "") != game.current_player:
         print("Not accepting move from non-current player while game is in progress.")
         fio.send({"msg": f"Server rejecting move request; Client not current player."})
         return
@@ -160,17 +160,13 @@ def process_move(data):
     # Update based on data.action, data.card
     game.update(data)
 
-
-    # Send generic response to all; broadcast=True
-    response = game.package_state_generic(fl.session.get("username"))
-    fio.emit("update", response, broadcast = True)
-    fio.send({"msg": f"Generic callback to move event: {response}."})
-
-    # Send specific response to each player so they are updated on any move
-    for name in game.players.keys():
-        response = game.package_state_specific(name)
+    # Send tailored response to each player
+    for username in game.players.keys():
+        response = game.package_state(username)
+        # have to specify the 'to' parameter of 'emit' to send to specific player
+        # is sid needed for this? Not sure how to get all the sids of everyone in room
         fio.emit("update", response)
-        fio.send({"msg": f"Specific callback to move event: {response}."})
+        fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."})
 
 
 @socketio.on("message")
@@ -178,7 +174,7 @@ def message(data):
     
     print(f"\n\n{data}\n\n")
     
-    fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+    fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room = data["room"])
 
 
 @socketio.on("connect")
@@ -197,7 +193,7 @@ def on_disconnect():
     # For debug:
     print(f"ON DISCONNECT for {fl.session['username']}")
     print(f"sid on DISCONNECT = {fl.request.sid}")
-    fio.send({"msg": "Server callback to disconnect event."}, broadcast=True)
+    fio.send({"msg": "Server callback to disconnect event."}, broadcast = True)
     
     # If username available, remove from rooms
     if len(username) > 0:

@@ -60,7 +60,7 @@ class Card:
         return f"{self.rank}{self.suit_display}"
     
 
-    def zip_self(self):
+    def zip_card(self):
         """Create portable string to send to client."""
         
         # Convert 10 to T to make all cards 2 chars long
@@ -352,7 +352,7 @@ class State:
 
 
     # Have two package state functions - one for general and one for specific player info
-    def package_state_generic(self) -> dict:
+    def package_state(self, player_name) -> dict:
         
         assert self.in_progress, "Only call once game has started"
 
@@ -371,30 +371,20 @@ class State:
             
         # All data the client needs from server
         return {
-            "response": "accepted",  # for client to 
+            # Generic data
             "room": self.room_name,  # name of room
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name
-            "hand_sizes": hand_sizes,  # number of cards in each players' hands
-            "lives": lives,  # self score only
             "discard": discard_card,  # top card of discard pile
-            "mode": self.mode  # current game mode - might help restrict inputs on client side
+            "mode": self.mode,  # current game mode - might help restrict inputs on client side
+            "hand_sizes": hand_sizes,  # number of cards in each players' hands
+            "lives": lives,  # remaining lives of all players
+            
+            # Specific to player
+            "hand": self.players[player_name].zip_hand(),  # hand for self only
+            "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
         }
     
-
-    def package_state_specific(self, player_name) -> dict:
-        
-        assert self.in_progress, "Only call once game has started"
-
-        # All data the client needs from server
-        return {
-            "room": self.room_name,  # name of room
-            "username": player_name,  # self player
-            "hand": self.players[player_name].zip_hand(),  # hand for self only
-            "hand_score": self.calc_hand_score(self.players[player_name]),  # self score only
-            "mode": self.mode  # current game mode - might help restrict inputs on client side
-        }
-
 
 def unzip_card(self, card_str: str) -> Card:
     """Decode portable string from client."""
