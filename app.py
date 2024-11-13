@@ -39,7 +39,7 @@ player_to_sid = {}  # Player: list of sids --- might need to move this to be
 # room-specific because a user can be in more than one room at once. If separated 
 # by room, player should only be associated with one sid at a time
 
-# Maybe put User(username, sid) into room_clients instead of just names
+# Maybe put User(username, sid) into room_clients instead of just names,
 room_clients = {r: set() for r in GAMEROOMS}  # Room: set(players)
 active_games = {}  # Room: Game State
 

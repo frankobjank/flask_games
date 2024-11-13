@@ -374,10 +374,11 @@ class State:
             # Generic data
             "action": "update_board",  # for client to know what type of update this is
             "room": self.room_name,  # name of room
+            "mode": self.mode,  # current game mode - might help restrict inputs on client side
+            "in_progress": self.in_progress,  # whether game is in progress
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name
             "discard": discard_card,  # top card of discard pile
-            "mode": self.mode,  # current game mode - might help restrict inputs on client side
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
             "lives": lives,  # remaining lives of all players
             

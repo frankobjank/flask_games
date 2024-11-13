@@ -1,16 +1,28 @@
+// Room, Socket Variables
 // Initializing socket
 const socket = io();
-
-// Game status
-let inProgress = false;
-
-// Client username - assign on connect
-var username;
-var playerOrder = [];
 let room = 'thirty_one_room';
-let players = [];
-// Player object:
-const player = {username: '', order: 0, lives: 0, };
+
+// Client username - assign on connect if not logged into account
+var username;
+
+// Keep track of player names connected
+let playersConnected = [];
+
+// Game state
+let inProgress = false;
+var mode;
+var currentPlayer;
+var discardCard;
+var playerOrder = [];
+
+// Multi-dimensional array of player `objects` that can be looked up by username
+    // Player objects should include:
+    // player = {name: '', order: 0, lives: 0, handSize: 0, hand: [], handScore: 0};
+let players = {};
+
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -37,33 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.outer-container').appendChild(chatLog);
     document.querySelector('.outer-container').appendChild(startButton);
 });
-
-
-// function serverRequest(input) {
-    
-//     // Set username in input
-//     input.username = username
-
-//     // Pad input to include all attributes [move, card]
-//     if (!('move' in input)) {
-//         input.move = '';
-//     }
-//     if (!('card' in input)) {
-//         input.card = '';
-//     }
-
-
-    
-//     let validMoves = ['draw', 'pickup', 'knock', 'discard'];
-
-//     // Validate move provided
-//     if (input.move.length > 0 && (!validMoves.includes(input.move))) {
-//         console.log(`Move ${input.move} is invalid.`)
-//         return
-//     }
-
-//     console.log(input)
-// }
 
 
 function createTable() {
@@ -99,7 +84,7 @@ function createTable() {
     
     // Create discard button
     const discard = document.createElement('button');
-    discard.id = 'discard';
+    discard.id = 'discard-button';
     discard.onclick = () => {
         socket.emit('move', {'action': 'pickup', 'room': room});
     }
@@ -179,10 +164,10 @@ function update(response) {
         // Save player list
         for (player of response.players) {
             // Check if player already in list
-            if (!(players.includes(player))) {
+            if (!(playersConnected.includes(player))) {
                 
                 // If player not in list, add to list and player panel
-                players.push(player);
+                playersConnected.push(player);
 
                 const playerContainer = document.createElement('p');
                 const br = document.createElement('br');
@@ -204,7 +189,7 @@ function update(response) {
         console.log(`Received action: remove_players, players = ${response.players}`)
 
         // Remove anyone on local list who isn't on server list
-        for (player of players) {
+        for (player of playersConnected) {
             // Check if player already in list
             if ((response.players.includes(player))) {
                 
@@ -231,35 +216,59 @@ function update(response) {
     // # Generic data
     // "action": "update_board",  # for client to know what type of update this is
     // "room": self.room_name,  # name of room
+    // "mode": self.mode,  # current game mode - might help restrict inputs on client side
+    // "in_progress": self.in_progress,  # whether game is in progress
     // "player_order": self.player_order,  # list of player names in order
     // "current_player": self.current_player,  # current player's name
     // "discard": discard_card,  # top card of discard pile
-    // "mode": self.mode,  # current game mode - might help restrict inputs on client side
     // "hand_sizes": hand_sizes,  # number of cards in each players' hands
     // "lives": lives,  # remaining lives of all players
-    
+
     // # Specific to player
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
     else if (response.action === 'update_board') {
+        
+        // Unpack general state
+        inProgress = response.in_progress;
+        mode = response.mode;
+        currentPlayer = response.currentPlayer;
+        discardCard = response.discard;
+        
         if (!inProgress) {
-            console.log('Received update response but game is not active.');
+            console.log('Received update response but game is not in progress.');
             return;
         }
 
+        // Add discard card to display on discard button
+        document.querySelector('#discard-button').innerHTML = discardCard;
+        
         if (response.player_order === undefined) {
             console.log('Player order missing from response.');
             return;
         }
+
+        // Unpack players
         playerOrder = response.player_order
         
-        // Loop with `in` enumerates list, similar to range(len()) in python
+        // Eventually want to rearrange players to be correct player order
+        
+        // The `in` keyword in loop produces indices (like enumerate)
         for (i in playerOrder) {
-            if 
+            // playerOrder[i] is the player name
+            players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i]};
+            
+            // If self, add hand to player object
+            if (username === playerOrder[i]) {
+                players[playerOrder[i]].hand = response.hand
+                players[playerOrder[i]].handScore = response.hand_score
+
+            }
         }
 
-
+        // Once player array is populated, add to player panel for display
+        // Turn each attribute (name, order, etc) into a <span> for display
     }
 
 }
