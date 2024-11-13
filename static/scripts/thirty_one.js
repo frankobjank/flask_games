@@ -136,6 +136,19 @@ function createPlayerPanel() {
     return playerPanel;
 }
 
+function createPlayerContainer(name) {
+    const playerContainer = document.createElement('p');
+    const br = document.createElement('br');
+    // Add all elements here - move up from update()
+    const playerHand = document.createElement('div');
+
+    // Give container id of 'playerName-container'
+    playerContainer.id = name + '-container'
+    playerContainer.innerHTML = name + br.outerHTML;
+
+    playerContainer.appendChild(playerHand);
+
+}
 
 function createChatLog() {
     const chatLog = document.createElement('div');
@@ -168,16 +181,9 @@ function update(response) {
                 
                 // If player not in list, add to list and player panel
                 playersConnected.push(player);
+                
+                playerContainer = createPlayerContainer(player);
 
-                const playerContainer = document.createElement('p');
-                const br = document.createElement('br');
-                const playerHand = document.createElement('div');
-
-                // Give container id of 'playerName-container'
-                playerContainer.id = player + '-container'
-                playerContainer.innerHTML = player + br.outerHTML;
-
-                playerContainer.appendChild(playerHand);
                 document.querySelector('.player-panel').appendChild(playerContainer);
             }
         }
@@ -250,9 +256,9 @@ function update(response) {
         }
 
         // Unpack players
+        // Eventually want to rearrange players to be correct player order
         playerOrder = response.player_order;
         
-        // Eventually want to rearrange players to be correct player order
         
         // The `in` keyword in loop produces indices (like enumerate)
         for (i in playerOrder) 
@@ -305,6 +311,13 @@ function update(response) {
                 handScore.innerHTML = response.hand_score;
                 
                 document.querySelector(containerID).appendChild(handScore);
+            }
+
+            // If current player, mark true
+            if (currentPlayer === playerOrder[i]) {
+                
+                // Make some visual change to show current player. Maybe bold the player name
+                document.querySelector('#' + currentPlayer + '-current-player').innerHTML = <b>current</b>;
             }
         
 
