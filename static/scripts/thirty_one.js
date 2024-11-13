@@ -250,25 +250,66 @@ function update(response) {
         }
 
         // Unpack players
-        playerOrder = response.player_order
+        playerOrder = response.player_order;
         
         // Eventually want to rearrange players to be correct player order
         
         // The `in` keyword in loop produces indices (like enumerate)
-        for (i in playerOrder) {
+        for (i in playerOrder) 
             // playerOrder[i] is the player name
             players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i]};
             
-            // If self, add hand to player object
+            // Once player array is populated, add to player panel for display
+            // Turn each attribute (name, order, etc) into a <span> for display
+            containerID = '#' + playerOrder[i] + '-container'
+            
+            // Put order into span
+            const order = document.createElement('span');
+            order.id = playerOrder[i] + '-order';
+            order.innerHTML = i;
+
+            // Add order to player-container
+            document.querySelector(containerID).appendChild(order);
+            
+            // Put lives into span
+            const lives = document.createElement('span');
+            lives.id = playerOrder[i] + '-lives';
+            lives.innerHTML = response.lives[i];
+
+            // Add lives to player-container
+            document.querySelector(containerID).appendChild(lives);
+            
+            // Put hand size into span
+            const handSize = document.createElement('span');
+            handSize.id = playerOrder[i] + '-hand-size';
+            handSize.innerHTML = response.hand_sizes[i];
+
+            // Add hand size to player-container
+            document.querySelector(containerID).appendChild(handSize);
+            
+            // If self, add hand to player object and player container
             if (username === playerOrder[i]) {
-                players[playerOrder[i]].hand = response.hand
-                players[playerOrder[i]].handScore = response.hand_score
-
+                players[playerOrder[i]].hand = response.hand;
+                players[playerOrder[i]].handScore = response.hand_score;
+                
+                // Add hand to container as div
+                const hand = document.createElement('div');
+                hand.id = playerOrder[i] + '-hand';
+                hand.innerHTML = response.hand;
+                
+                document.querySelector(containerID).appendChild(hand);
+                
+                // Add hand score to container as div
+                const handScore = document.createElement('div');
+                handScore.id = playerOrder[i] + '-hand-score';
+                handScore.innerHTML = response.hand_score;
+                
+                document.querySelector(containerID).appendChild(handScore);
             }
-        }
+        
 
-        // Once player array is populated, add to player panel for display
-        // Turn each attribute (name, order, etc) into a <span> for display
+
+        
     }
 
 }
