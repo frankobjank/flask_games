@@ -94,20 +94,7 @@ def on_join(data):
     if not active_games.get(data["room"]):
         active_games[data["room"]] = thirty_one_game.State(data["room"])
 
-    # If client has no name OR has a name already in the room, assign a random name
-    if len(fl.session.get("username", "")) == 0 or fl.session.get("username", "") in room_clients[data["room"]]:
-        # Pass in current room names to avoid duplicates
-        random_name = get_random_name(exclude = room_clients[data["room"]])
-        print(f"Random name chosen = {random_name}")
-        
-        # Store name in session
-        fl.session["username"] = random_name
-        
-        # Add sid to set --- this was already done for logged in users on connect
-        # Can create new set since this is a temporary username and won't be used to join any other rooms
-        # user_to_sid[fl.session["username"]] = set(fl.request.sid)
-        user_to_sid[fl.session["username"]] = fl.request.sid
-        sid_to_user[fl.request.sid] = fl.session["username"]
+
 
 
     # Print for debug
@@ -210,22 +197,31 @@ def on_connect():
    
     username = fl.session.get("username", "")
     fio.send({"msg": "Server callback to connect event."})
+
+    # Relocated from join - better to assign username on connect
+    # If client has no name 
+        # OR has a name already in the room - this cannot be checked for because no room associated with connect
+    if len(username) == 0:
+        # Pass in current room names to avoid duplicates
+        random_name = get_random_name()
+        print(f"Random name chosen = {random_name}")
+        
+        # Store name in session
+        fl.session["username"] = random_name
+    
+    # Set up client's username on their end
+    fio.emit("update", {"action": "add_username", "username": fl.session["username"]})
+        
+    # Add sid to set --- this was already done for logged in users on connect
+    # Can create new set since this is a temporary username and won't be used to join any other rooms
+    # ACTUALLY sids cannot be stored in sets because they need to be selected? maybe store by room
+    # user_to_sid[fl.session["username"]] = set(fl.request.sid)
+    user_to_sid[fl.session["username"]] = fl.request.sid
+    sid_to_user[fl.request.sid] = fl.session["username"]
     
     # # Initialize set to store sids if user not already logged
     # if username not in user_to_sid.keys():
     #     user_to_sid[username] = set()
-    
-
-    # IF LOGGED IN, add to dicts
-    # Add to dict of sids
-    if len(username) > 0:
-        # user_to_sid[username].add(fl.request.sid)
-        
-        # Set was not working for sending updates, using single sid for now
-        user_to_sid[username] = fl.request.sid
-        sid_to_user[fl.request.sid] = username
-
-    # IF NOT LOGGED IN, WILL NEED TO BE ADDED ON JOIN WHEN username is assigned --> see on_join
 
 
 @socketio.on("disconnect")

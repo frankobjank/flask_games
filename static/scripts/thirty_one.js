@@ -92,12 +92,12 @@ function createTable() {
     // Add discard button to container
     discardContainer.appendChild(discard);
     
-    // Create container for hand
-    const handContainer = document.createElement('div');
-    handContainer.className = 'hand-container';
-    
+    // Moved this to player container
+    // // Create container for hand
+    // const handContainer = document.createElement('div');
+    // handContainer.className = 'hand-container';
     // Add to table
-    cardTable.appendChild(handContainer);
+    // cardTable.appendChild(handContainer);
 
     return cardTable;
 }
@@ -310,15 +310,22 @@ function update(response) {
             
             // Update hand size
             document.querySelector(playerID + '-hand-size').innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
-            
+            console.log(`username = ${username}`)
+            console.log(`playerOrder[i] = ${playerOrder[i]}`)
             // If self, update hand with exact cards
             if (username === playerOrder[i]) {
+                // Unpack cards from python array
+                cardsUnpacked = []
+                for (card of response.hand) {
+                    cardsUnpacked.push(card);
+                }
+                
                 // Update `players` array
-                players[playerOrder[i]].hand = response.hand;
+                players[playerOrder[i]].hand = cardsUnpacked;
                 players[playerOrder[i]].handScore = response.hand_score;
                 
                 // Update hand/ hand score HTML
-                document.querySelector(playerID + '-hand').innerHTML = ' hand: ' + response.hand + ' ';
+                document.querySelector(playerID + '-hand').innerHTML = ' hand: ' + cardsUnpacked.toString() + ' ';
                 document.querySelector(playerID + '-hand-score').innerHTML = ' hand score: ' + response.hand_score + ' ';   
             }
             
