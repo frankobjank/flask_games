@@ -144,8 +144,8 @@ function createPlayerContainer(name) {
     playerContainer.innerHTML = name + br.outerHTML;
     
     // Add all elements here - move up from update()
-    // const playerHand = document.createElement('div');
-    // playerContainer.appendChild(playerHand);
+    const playerHand = document.createElement('div');
+    playerContainer.appendChild(playerHand);
     return playerContainer;
 
 }
@@ -231,6 +231,7 @@ function update(response) {
     // "lives": lives,  # remaining lives of all players
 
     // # Specific to player
+    // "recipient": player_name,
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
@@ -262,6 +263,7 @@ function update(response) {
         
         // The `in` keyword in loop produces indices (like enumerate)
         for (i in playerOrder) 
+            console.log(`unpacking ${i} index of player order ${playerOrder[i]}`)
             // playerOrder[i] is the player name
             players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i]};
             
@@ -272,7 +274,7 @@ function update(response) {
             // Put order into span
             const order = document.createElement('span');
             order.id = playerOrder[i] + '-order';
-            order.innerHTML = i;
+            order.innerHTML = ' order: ' + i + ' ';
 
             // Add order to player-container
             document.querySelector(containerID).appendChild(order);
@@ -280,7 +282,7 @@ function update(response) {
             // Put lives into span
             const lives = document.createElement('span');
             lives.id = playerOrder[i] + '-lives';
-            lives.innerHTML = response.lives[i];
+            lives.innerHTML = ' lives: ' + response.lives[i] + ' ';
 
             // Add lives to player-container
             document.querySelector(containerID).appendChild(lives);
@@ -288,7 +290,7 @@ function update(response) {
             // Put hand size into span
             const handSize = document.createElement('span');
             handSize.id = playerOrder[i] + '-hand-size';
-            handSize.innerHTML = response.hand_sizes[i];
+            handSize.innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
 
             // Add hand size to player-container
             document.querySelector(containerID).appendChild(handSize);
@@ -301,14 +303,14 @@ function update(response) {
                 // Add hand to container as div
                 const hand = document.createElement('div');
                 hand.id = playerOrder[i] + '-hand';
-                hand.innerHTML = response.hand;
+                hand.innerHTML = ' hand: ' + response.hand + ' ';
                 
                 document.querySelector(containerID).appendChild(hand);
                 
                 // Add hand score to container as div
                 const handScore = document.createElement('div');
                 handScore.id = playerOrder[i] + '-hand-score';
-                handScore.innerHTML = response.hand_score;
+                handScore.innerHTML = ' hand score: ' + response.hand_score + ' ';
                 
                 document.querySelector(containerID).appendChild(handScore);
             }

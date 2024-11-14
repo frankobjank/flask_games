@@ -105,7 +105,8 @@ def on_join(data):
         
         # Add sid to set --- this was already done for logged in users on connect
         # Can create new set since this is a temporary username and won't be used to join any other rooms
-        user_to_sid[fl.session["username"]] = set(fl.request.sid)
+        # user_to_sid[fl.session["username"]] = set(fl.request.sid)
+        user_to_sid[fl.session["username"]] = fl.request.sid
         sid_to_user[fl.request.sid] = fl.session["username"]
 
 
@@ -164,6 +165,7 @@ def process_move(data):
     
         # Add all players to game state since there are the correct number
         for user in list(room_clients[data["room"]]):
+            print(f"Adding {user} to game")
             active_games[data["room"]].add_player(user)
 
     
@@ -181,8 +183,10 @@ def process_move(data):
         response = game.package_state(username)
         # have to specify the 'to' parameter of 'emit' to send to specific player
         # is sid needed for this? Not sure how to get all the sids of everyone in room
-        fio.emit("update", response)
-        fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."})
+        print(f"Sending response: \n{response} \non {data['action']}")
+        
+        fio.emit("update", response, to = user_to_sid[username])
+        fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."}, to = user_to_sid[username])
 
 
 @socketio.on("message")
@@ -195,20 +199,30 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
-    username = fl.session.get("username", "")
     # For debug:
-    print(f"ON CONNECT for `{username}`")
-    print(f"sid on CONNECT = {fl.request.sid}")
+    # print(f"ON CONNECT for `{username}`")
+    # print(f"sid on CONNECT = {fl.request.sid}")
+
+    # Could use session cookie instead of sid because sid only lasts for ONE connection
+        # HOWEVER, private browser or turning cookies off will disable this
+    # print(f"\nsession cookie = {fl.request.cookies['session']}\n")
+    # print(f"\n cookies = {fl.request.cookies}\n")
+   
+    username = fl.session.get("username", "")
     fio.send({"msg": "Server callback to connect event."})
     
-    # Initialize set to store sids if user not already logged
-    if username not in user_to_sid.keys():
-        user_to_sid[username] = set()
+    # # Initialize set to store sids if user not already logged
+    # if username not in user_to_sid.keys():
+    #     user_to_sid[username] = set()
+    
 
     # IF LOGGED IN, add to dicts
     # Add to dict of sids
     if len(username) > 0:
-        user_to_sid[username].add(fl.request.sid)
+        # user_to_sid[username].add(fl.request.sid)
+        
+        # Set was not working for sending updates, using single sid for now
+        user_to_sid[username] = fl.request.sid
         sid_to_user[fl.request.sid] = username
 
     # IF NOT LOGGED IN, WILL NEED TO BE ADDED ON JOIN WHEN username is assigned --> see on_join
@@ -243,8 +257,8 @@ def on_disconnect():
     sid_to_user.pop(fl.request.sid)
     
     # For debug:
-    print(f"ON DISCONNECT for {username}")
-    print(f"sid on DISCONNECT = {fl.request.sid}")
+    # print(f"ON DISCONNECT for {username}")
+    # print(f"sid on DISCONNECT = {fl.request.sid}")
     fio.send({"msg": "Server callback to disconnect event."}, broadcast = True)
     
     

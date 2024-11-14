@@ -383,6 +383,7 @@ class State:
             "lives": lives,  # remaining lives of all players
             
             # Specific to player
+            "recipient": player_name,
             "hand": self.players[player_name].zip_hand(),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
         }
