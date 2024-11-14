@@ -129,7 +129,7 @@ function checkNumPlayers(numPlayers) {
 
 
 function createPlayerPanel() {
-    // Fill in this panel later
+    // Fill in this panel as players are added via createPlayerContainer
     const playerPanel = document.createElement('div');
     playerPanel.className = 'player-panel';
 
@@ -137,53 +137,45 @@ function createPlayerPanel() {
 }
 
 function createPlayerContainer(name) {
-    console.log(`creating container for ${name}`)
+    console.log(`creating container for ${name}`);
 
     const playerContainer = document.createElement('p');
     const br = document.createElement('br');
+
     // Give container id of 'playerName-container'
-    playerContainer.id = name + '-container'
+    playerContainer.id = name + '-container';
     playerContainer.innerHTML = name + br.outerHTML;
     
-    // Add all elements here - move up from update()
-    const playerHand = document.createElement('div');
-    
-    // Put order into span
-    const order = document.createElement('span');
-    order.id = playerOrder[i] + '-order';
-    
-
-    playerContainer.appendChild(playerHand);
-    playerContainer.appendChild(order);
-    
-    // Put lives into span
-    const lives = document.createElement('span');
-    lives.id = playerOrder[i] + '-lives';
-    lives.innerHTML = ' lives: ' + response.lives[i] + ' ';
-
-    // Add lives to player-container
-    document.querySelector(containerID).appendChild(lives);
+    // Put hand in div
+    const hand = document.createElement('div');
+    hand.id = name + '-hand';
     
     // Put hand size into span
     const handSize = document.createElement('span');
     handSize.id = name + '-hand-size';
-
-    // Add hand size to player-container
-    document.querySelector(containerID).appendChild(handSize);
     
-    // Add hand to container as div
-    const hand = document.createElement('div');
-    hand.id = name + '-hand';
-    
-    document.querySelector(containerID).appendChild(hand);
-        
-    // Add hand score to container as div
+    // Put hand score into div
     const handScore = document.createElement('div');
-    handScore.id = playerOrder[i] + '-hand-score';
-        
+    handScore.id = name + '-hand-score';
     
-    document.querySelector(containerID).appendChild(handScore);
-    document.querySelector('#' + currentPlayer + '-current-player').innerHTML = '<b>current</b>';
+    // Put order into span
+    const order = document.createElement('span');
+    order.id = name + '-order';
+    
+    // Put lives into span
+    const lives = document.createElement('span');
+    lives.id = name + '-lives';
+    
+    // Put current indicator into div
+    const current = document.createElement('div');
+    current.id = name + '-current';
+    
+    playerContainer.appendChild(hand);
+    playerContainer.appendChild(handSize);
+    playerContainer.appendChild(handScore);
+    playerContainer.appendChild(order);
+    playerContainer.appendChild(lives);
+    playerContainer.appendChild(current);
 
     return playerContainer;
 }
@@ -195,7 +187,7 @@ function createChatLog() {
 }
 
 
-function update(response) {
+function update(response) 
     if (response === undefined) {
         console.log('response = undefined');
         return;
@@ -273,7 +265,7 @@ function update(response) {
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
-    else if (response.action === 'update_board') {
+    else if (response.action === 'update_board') 
         
         // Unpack general state
         inProgress = response.in_progress;
@@ -307,65 +299,53 @@ function update(response) {
             
             // Once player array is populated, add to player panel for display
             // Turn each attribute (name, order, etc) into a <span> for display
-            containerID = '#' + playerOrder[i] + '-container'
+            containerID = '#' + playerOrder[i] + '-container';
+            playerID = '#' + playerOrder[i];
             
-            // Put order into span
-            const order = document.createElement('span');
-            order.id = playerOrder[i] + '-order';
-            order.innerHTML = ' order: ' + i + ' ';
-
-            // Add order to player-container
-            document.querySelector(containerID).appendChild(order);
+            // Update order
+            document.querySelector(playerID + '-order').innerHTML = ' order: ' + i + ' ';
             
-            // Put lives into span
-            const lives = document.createElement('span');
-            lives.id = playerOrder[i] + '-lives';
-            lives.innerHTML = ' lives: ' + response.lives[i] + ' ';
-
-            // Add lives to player-container
-            document.querySelector(containerID).appendChild(lives);
+            // Update lives
+            document.querySelector(playerID + '-lives').innerHTML = ' lives: ' + response.lives[i] + ' ';
             
-            // Put hand size into span
-            const handSize = document.createElement('span');
-            handSize.id = playerOrder[i] + '-hand-size';
-            handSize.innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
-
-            // Add hand size to player-container
-            document.querySelector(containerID).appendChild(handSize);
+            // Update hand size
+            document.querySelector(playerID + '-hand-size').innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
             
-            // If self, add hand to player object and player container
+            // If self, update hand with exact cards
             if (username === playerOrder[i]) {
+                // Update `players` array
                 players[playerOrder[i]].hand = response.hand;
                 players[playerOrder[i]].handScore = response.hand_score;
                 
-                // Add hand to container as div
-                const hand = document.createElement('div');
-                hand.id = playerOrder[i] + '-hand';
-                hand.innerHTML = ' hand: ' + response.hand + ' ';
-                
-                document.querySelector(containerID).appendChild(hand);
-                
-                // Add hand score to container as div
-                const handScore = document.createElement('div');
-                handScore.id = playerOrder[i] + '-hand-score';
-                handScore.innerHTML = ' hand score: ' + response.hand_score + ' ';
-                
-                document.querySelector(containerID).appendChild(handScore);
+                // Update hand/ hand score HTML
+                document.querySelector(playerID + '-hand').innerHTML = ' hand: ' + response.hand + ' ';
+                document.querySelector(playerID + '-hand-score').innerHTML = ' hand score: ' + response.hand_score + ' ';   
             }
+            
+            // Otherwise, set hand to empty
+            else {
+                // Update `players` array
+                players[playerOrder[i]].hand = [];
+                players[playerOrder[i]].handScore = 0;
 
+                // Update hand/ hand score HTML
+                document.querySelector(playerID + '-hand').innerHTML = 'hand hidden';
+                document.querySelector(playerID + '-hand-score').innerHTML = 'hand score hidden';
+            }
+            
             // If current player, mark true
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                document.querySelector('#' + currentPlayer + '-current-player').innerHTML = '<b>current</b>';
+                document.querySelector(playerID + '-current').innerHTML = '<b>current</b>';
             }
         
 
 
         
-    }
+    
 
-}
+
 
 // Socket functions / events
 
