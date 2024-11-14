@@ -139,14 +139,14 @@ function createPlayerPanel() {
 function createPlayerContainer(name) {
     const playerContainer = document.createElement('p');
     const br = document.createElement('br');
-    // Add all elements here - move up from update()
-    const playerHand = document.createElement('div');
-
     // Give container id of 'playerName-container'
     playerContainer.id = name + '-container'
     playerContainer.innerHTML = name + br.outerHTML;
-
-    playerContainer.appendChild(playerHand);
+    
+    // Add all elements here - move up from update()
+    // const playerHand = document.createElement('div');
+    // playerContainer.appendChild(playerHand);
+    return playerContainer;
 
 }
 
@@ -200,9 +200,9 @@ function update(response) {
             if ((response.players.includes(player))) {
                 
                 // Remove player from local list
-                const index = players.indexOf(player);
+                const index = playersConnected.indexOf(player);
                 if (index > -1) {
-                    players.splice(index, 1);
+                    playersConnected.splice(index, 1);
                     console.log(`Found ${player} at index ${index}, removing player ${player}`);
                 }
 
@@ -317,7 +317,7 @@ function update(response) {
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                document.querySelector('#' + currentPlayer + '-current-player').innerHTML = <b>current</b>;
+                document.querySelector('#' + currentPlayer + '-current-player').innerHTML = '<b>current</b>';
             }
         
 

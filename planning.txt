@@ -41,3 +41,33 @@ Client :
     Server receives data on move; either allows or denies it
     Update client
 
+
+
+Notes on sids:
+
+SCENARIO - user connects
+    logged in -> username is stored and can be used to identify user
+    sid_to_user
+    user_to_sid
+
+    not logged in -> sid cannot be associated with username on join
+
+SCENARIO - user joins room
+    logged in: no changes
+
+    not logged in -> sid_to_user, user_to_sid
+
+
+SCENARIO - user leaves room
+    no change because this does not affect session
+
+SCENARIO - user disconnects
+    username is not provided as it takes no arguments. must find username with sid
+    username = sid_to_user[sid]
+
+
+sid is particular to a window. Each new window/tab is a different session
+a player can join as many rooms as they want - if they are opened in a new window/tab, a new sid is assigned
+
+IF A PLAYER SWITCHES FROM ONE ROOM TO ANOTHER WITHIN THE SAME SESSION THE SID STAYS THE SAME
+
