@@ -137,6 +137,8 @@ function createPlayerPanel() {
 }
 
 function createPlayerContainer(name) {
+    console.log(`creating container for ${name}`)
+
     const playerContainer = document.createElement('p');
     const br = document.createElement('br');
     // Give container id of 'playerName-container'
@@ -145,9 +147,45 @@ function createPlayerContainer(name) {
     
     // Add all elements here - move up from update()
     const playerHand = document.createElement('div');
-    playerContainer.appendChild(playerHand);
-    return playerContainer;
+    
+    // Put order into span
+    const order = document.createElement('span');
+    order.id = playerOrder[i] + '-order';
+    
 
+    playerContainer.appendChild(playerHand);
+    playerContainer.appendChild(order);
+    
+    // Put lives into span
+    const lives = document.createElement('span');
+    lives.id = playerOrder[i] + '-lives';
+    lives.innerHTML = ' lives: ' + response.lives[i] + ' ';
+
+    // Add lives to player-container
+    document.querySelector(containerID).appendChild(lives);
+    
+    // Put hand size into span
+    const handSize = document.createElement('span');
+    handSize.id = name + '-hand-size';
+
+    // Add hand size to player-container
+    document.querySelector(containerID).appendChild(handSize);
+    
+    // Add hand to container as div
+    const hand = document.createElement('div');
+    hand.id = name + '-hand';
+    
+    document.querySelector(containerID).appendChild(hand);
+        
+    // Add hand score to container as div
+    const handScore = document.createElement('div');
+    handScore.id = playerOrder[i] + '-hand-score';
+        
+    
+    document.querySelector(containerID).appendChild(handScore);
+    document.querySelector('#' + currentPlayer + '-current-player').innerHTML = '<b>current</b>';
+
+    return playerContainer;
 }
 
 function createChatLog() {
