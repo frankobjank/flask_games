@@ -187,7 +187,7 @@ function createChatLog() {
 }
 
 
-function update(response) 
+function update(response) {
     if (response === undefined) {
         console.log('response = undefined');
         return;
@@ -265,7 +265,7 @@ function update(response)
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
-    else if (response.action === 'update_board') 
+    else if (response.action === 'update_board') {
         
         // Unpack general state
         inProgress = response.in_progress;
@@ -292,7 +292,7 @@ function update(response)
         
         
         // The `in` keyword in loop produces indices (like enumerate)
-        for (i in playerOrder) 
+        for (i in playerOrder) {
             console.log(`unpacking ${i} index of player order ${playerOrder[i]}`)
             // playerOrder[i] is the player name
             players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i]};
@@ -339,12 +339,9 @@ function update(response)
                 // Make some visual change to show current player. Maybe bold the player name
                 document.querySelector(playerID + '-current').innerHTML = '<b>current</b>';
             }
-        
-
-
-        
-    
-
+        }
+    }
+}
 
 
 // Socket functions / events
