@@ -22,8 +22,6 @@ var playerOrder = [];
 let players = {};
 
 
-
-
 document.addEventListener('DOMContentLoaded', () => {
 
     // Elements that need to be on screen
@@ -160,15 +158,29 @@ function createPlayerContainer(name) {
     
     // Put order into span
     const order = document.createElement('span');
+    order.className = name + '-player-order';
     order.id = name + '-order';
     
     // Put lives into span
     const lives = document.createElement('span');
+    lives.className = name + '-player-lives';
     lives.id = name + '-lives';
     
     // Put current indicator into div
     const current = document.createElement('div');
     current.id = name + '-current';
+    
+    // Add knock button
+    const knockButton = document.createElement('button');
+    knockButton.className = 'knock-button';
+    knockButton.id = name + '-knock';
+    knockButton.innerHTML = 'knock';
+    
+    // Send server request on click
+    knockButton.onclick = () => {
+        socket.emit('move', {'action': 'knock', 'room': room});
+        console.log(`Sending knock request to server.`)
+    }
     
     playerContainer.appendChild(hand);
     playerContainer.appendChild(handSize);
@@ -176,6 +188,7 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(order);
     playerContainer.appendChild(lives);
     playerContainer.appendChild(current);
+    playerContainer.appendChild(knockButton);
 
     return playerContainer;
 }

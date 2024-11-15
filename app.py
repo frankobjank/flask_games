@@ -139,6 +139,7 @@ def on_leave(data):
 def process_move(data):
     # For debug:
     print(f"Received move event `{data['action']}` from client `{fl.session.get('username')}`.")
+    # print(f"Received request from client: {data}")
     
     # Game state should be created on first join (room creation)
     game = active_games[data["room"]]
@@ -167,8 +168,6 @@ def process_move(data):
         print("Not accepting move from non-current player while game is in progress.")
         fio.send({"msg": f"Server rejecting move request; Client not current player."})
         return
-    
-    print(f"Received request from server: {data}")
     
     # Update based on data.action, data.card
     game.update(data)
