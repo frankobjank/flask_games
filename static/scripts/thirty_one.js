@@ -186,6 +186,41 @@ function createChatLog() {
     return chatLog;
 }
 
+function cardToDisplay(serverCard) {
+    /*
+        '\u2664': ♤,
+        '\u2665': ♥,
+        '\u2666': ♦,
+        '\u2667': ♧
+    */
+
+    if (serverCard === undefined) {
+        return 'No card';
+    }
+
+    rank = serverCard[0];
+    suit = serverCard[1];
+    
+    if (rank === 'T') {
+        rank = '10';
+    }
+
+    if (suit === 'S') {
+        suit = '\u2664';
+    }
+    else if (suit === 'H') {
+        suit = '\u2665';
+    }
+    else if (suit === 'D') {
+        suit = '\u2666';
+    }
+    else if (suit === 'C') {
+        suit = '\u2667';
+    }
+
+    return rank + suit;
+}
+
 
 function update(response) {
     if (response === undefined) {
@@ -279,7 +314,7 @@ function update(response) {
         }
 
         // Add discard card to display on discard button
-        document.querySelector('#discard-button').innerHTML = discardCard;
+        document.querySelector('#discard-button').innerHTML = cardToDisplay(discardCard);
         
         if (response.player_order === undefined) {
             console.log('Player order missing from response.');
@@ -315,17 +350,17 @@ function update(response) {
             // If self, update hand with exact cards
             if (username === playerOrder[i]) {
                 // Unpack cards from python array
-                cardsUnpacked = []
+                cardsDisplay = []
                 for (card of response.hand) {
-                    cardsUnpacked.push(card);
+                    cardsDisplay.push(cardToDisplay(card));
                 }
                 
                 // Update `players` array
-                players[playerOrder[i]].hand = cardsUnpacked;
+                players[playerOrder[i]].hand = cardsDisplay;
                 players[playerOrder[i]].handScore = response.hand_score;
                 
                 // Update hand/ hand score HTML
-                document.querySelector(playerID + '-hand').innerHTML = ' hand: ' + cardsUnpacked.toString() + ' ';
+                document.querySelector(playerID + '-hand').innerHTML = ' hand: ' + cardsDisplay.toString() + ' ';
                 document.querySelector(playerID + '-hand-score').innerHTML = ' hand score: ' + response.hand_score + ' ';   
             }
             
