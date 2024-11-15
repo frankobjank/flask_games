@@ -106,6 +106,7 @@ class State:
         self.mode = "start"
         self.in_progress = False
         self.log = []
+        self.temp_log = []
 
         # Rounds
         self.round_num = 0
@@ -149,6 +150,12 @@ class State:
 
     def add_player(self, name) -> None:
         self.players[name] = Player(name)
+
+
+    def print_and_log(self, msg) -> None:
+        print(msg)
+        self.log.append(msg)
+        self.temp_log.append(msg)
 
 
     def start_game(self) -> None:
@@ -195,10 +202,8 @@ class State:
         self.discard = [self.draw_card()]
         self.knocked = ""
         
-        print(f"\n--- ROUND {self.round_num} ---\n")
-        self.log.append(f"\n--- ROUND {self.round_num} ---\n")
-        print("\n--- DEALING ---")
-        self.log.append("\n--- DEALING ---")
+        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
+        self.print_and_log("\n--- DEALING ---")
 
         # Move on to turn
         self.start_turn()
@@ -284,6 +289,11 @@ class State:
         # If new current player has knocked, round should end
         if self.current_player == self.knocked:
             self.end_round()
+        
+        # If not, start next turn
+        else:
+            self.start_turn()
+
 
 
     def reset_game(self) -> None:
@@ -330,7 +340,10 @@ class State:
                 self.log.append(f"{self.current_player} drew a card from the deck.")
             
             self.players[self.current_player].hand.append(taken_card)
-            self.mode = "discard"
+            
+            # Check for >3 cards in hand before setting mode to discard
+            if len(self.players[self.current_player].hand) > 3:
+                self.mode = "discard"
 
             if self.check_for_blitz():
                 print(f"{self.current_player} BLITZED!!!")
@@ -372,7 +385,7 @@ class State:
         for p_name in self.player_order:
             hand_sizes.append(len(self.players[p_name].hand))
             lives.append(self.players[p_name].lives)
-            
+
         # All data the client needs from server
         return {
             # Generic data
@@ -385,6 +398,7 @@ class State:
             "discard": discard_card,  # top card of discard pile
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
             "lives": lives,  # remaining lives of all players
+            "log": self.temp_log,  # new log msgs - might split for each player
             
             # Specific to player
             "recipient": player_name,

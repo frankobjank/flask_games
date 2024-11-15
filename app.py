@@ -145,9 +145,15 @@ def process_move(data):
 
     # If client requests start, check number of players in room
     if data["action"] == "start":
+        # Reject if game has already started
+        if game.in_progress:
+            print("Game is already in progress.")
+            fio.send({"msg": f"Rejecting start request; Game is already in progress"})
+        
+        # Reject if invalid number of players
         if not (2 <= len(room_clients[data["room"]]) <= 7):
             print("Invalid number of players.")
-            fio.send({"msg": f"Server rejecting start request; Invalid number of players."})
+            fio.send({"msg": f"Rejecting start request; Invalid number of players."})
             return
     
         # Add all players to game state since there are the correct number
@@ -169,13 +175,19 @@ def process_move(data):
 
     # Send tailored response to each player
     for username in game.players.keys():
+        
         response = game.package_state(username)
+        
         # have to specify the 'to' parameter of 'emit' to send to specific player
         # is sid needed for this? Not sure how to get all the sids of everyone in room
         print(f"Sending response: \n{response} \non {data['action']}")
         
         fio.emit("update", response, to = user_to_sid[username])
         fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."}, to = user_to_sid[username])
+    
+    # Empty temp log after all players are updated
+    game.temp_log = []
+
 
 
 @socketio.on("message")
