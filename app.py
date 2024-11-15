@@ -162,6 +162,8 @@ def process_move(data):
         fio.send({"msg": f"Server rejecting move request; Client not current player."})
         return
     
+    print(f"Received request from server: {data}")
+    
     # Update based on data.action, data.card
     game.update(data)
 

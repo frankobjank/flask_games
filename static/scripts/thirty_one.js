@@ -148,7 +148,7 @@ function createPlayerContainer(name) {
     
     // Put hand in div
     const hand = document.createElement('div');
-    hand.id = name + '-hand';
+    hand.id = name + '-hand-container';
     
     // Put hand size into span
     const handSize = document.createElement('span');
@@ -182,6 +182,7 @@ function createPlayerContainer(name) {
 
 function createChatLog() {
     const chatLog = document.createElement('div');
+    chatLog.className = 'chat-log';
 
     return chatLog;
 }
@@ -194,7 +195,7 @@ function cardToDisplay(serverCard) {
         '\u2667': ♧
     */
 
-    if (serverCard === undefined) {
+    if (serverCard === null) {
         return 'No card';
     }
 
@@ -221,6 +222,20 @@ function cardToDisplay(serverCard) {
     return rank + suit;
 }
 
+function createHandButton(serverCard) {
+    // serverCard = 'KS', 'QH', 'TD', '9C', ...
+    const cardButton = document.createElement('button');
+    cardButton.className = 'hand-button';
+    cardButton.id = serverCard;
+    cardButton.innerHTML = cardToDisplay(serverCard);
+
+    // Send server request on click
+    cardButton.onclick = () => {
+        socket.emit('move', {'action': 'discard', 'room': room, 'card': cardButton.id});
+        console.log(`Requesting discard ${cardButton.id}`)
+    }
+    return cardButton;
+}
 
 function update(response) {
     if (response === undefined) {
@@ -232,6 +247,17 @@ function update(response) {
     if (response.action === 'add_username') {
         username = response.username;
         console.log(`Adding username ${username}`);
+        
+        // Check if username container already exists, if not create one
+        if (document.querySelector('.outer-container').querySelector('.username-container') === null) {
+            const usernameContainer = document.createElement('div');
+            usernameContainer.className = 'username-container';
+            document.querySelector('.outer-container').appendChild(usernameContainer);
+        }
+        
+        // Put username on screen to make it easier to track random names
+        document.querySelector('.username-container').innerHTML = 'Your name is: ' + username;
+
     }
     
     // Add players to player panel on join
@@ -347,20 +373,22 @@ function update(response) {
             document.querySelector(playerID + '-hand-size').innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
             console.log(`username = ${username}`)
             console.log(`playerOrder[i] = ${playerOrder[i]}`)
+            
             // If self, update hand with exact cards
             if (username === playerOrder[i]) {
-                // Unpack cards from python array
-                cardsDisplay = []
-                for (card of response.hand) {
-                    cardsDisplay.push(cardToDisplay(card));
-                }
-                
                 // Update `players` array
-                players[playerOrder[i]].hand = cardsDisplay;
+                players[playerOrder[i]].hand = response.hand;
                 players[playerOrder[i]].handScore = response.hand_score;
                 
-                // Update hand/ hand score HTML
-                document.querySelector(playerID + '-hand').innerHTML = ' hand: ' + cardsDisplay.toString() + ' ';
+                // Empty old hand to get ready for new hand - replaceChildren with no args
+                document.querySelector(playerID + '-hand-container').replaceChildren();
+
+                // Create buttons for hand with array from server
+                for (card of response.hand) {
+                    document.querySelector(playerID + '-hand-container').appendChild(createHandButton(card));
+                }
+                
+                // Update hand score HTML
                 document.querySelector(playerID + '-hand-score').innerHTML = ' hand score: ' + response.hand_score + ' ';   
             }
             
@@ -371,15 +399,18 @@ function update(response) {
                 players[playerOrder[i]].handScore = 0;
 
                 // Update hand/ hand score HTML
-                document.querySelector(playerID + '-hand').innerHTML = 'hand hidden';
-                document.querySelector(playerID + '-hand-score').innerHTML = 'hand score hidden';
+                document.querySelector(playerID + '-hand-container').innerHTML = 'hand: hidden';
+                document.querySelector(playerID + '-hand-score').innerHTML = 'hand score: hidden';
             }
             
             // If current player, mark true
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                document.querySelector(playerID + '-current').innerHTML = '<b>current</b>';
+                document.querySelector(playerID + '-current').innerHTML = 'current player';
+            }
+            else {
+                document.querySelector(playerID + '-current').innerHTML = '';
             }
         }
     }

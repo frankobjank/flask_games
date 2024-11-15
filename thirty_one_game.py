@@ -341,8 +341,12 @@ class State:
             # Unzip from client
             chosen_card = unzip_card(packet["card"])
             
-            # Remove from hand
-            self.players[self.current_player].hand.remove(chosen_card)
+            # Find in card in hand by comparing suit and rank
+            for card in self.players[self.current_player].hand:
+                if card.suit == chosen_card.suit and card.rank == chosen_card.rank:
+                    # Remove from hand
+                    self.players[self.current_player].hand.remove(card)
+                    break
             
             # Add to discard
             self.discard.append(chosen_card)
@@ -389,7 +393,7 @@ class State:
         }
     
 
-def unzip_card(self, card_str: str) -> Card:
+def unzip_card(card_str: str) -> Card:
     """Decode portable string from client."""
     assert len(card_str) == 2, f"Incorrect card data `{card_str}`"
     
@@ -405,6 +409,6 @@ def unzip_card(self, card_str: str) -> Card:
         if suit_letter in s:
             suit = s
 
-
+    print(f"Converted card {card_str} -> Card(rank, suit) {Card(rank, suit)}")
     # returns 2S, 3C, AH, etc.
     return Card(rank, suit)
