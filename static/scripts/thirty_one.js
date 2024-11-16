@@ -169,6 +169,9 @@ function createPlayerContainer(name) {
     // Put current indicator into div
     const current = document.createElement('div');
     current.id = name + '-current';
+    if (name === currentPlayer) {
+        current.textContent = 'current';
+    }
     
     // Add knock button
     const knockButton = document.createElement('button');
@@ -188,7 +191,11 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(order);
     playerContainer.appendChild(lives);
     playerContainer.appendChild(current);
-    playerContainer.appendChild(knockButton);
+    
+    // Only add knock button for self
+    if (name === username) {
+        playerContainer.appendChild(knockButton);
+    }
 
     return playerContainer;
 }
@@ -420,10 +427,10 @@ function update(response) {
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                document.querySelector(playerID + '-current').innerHTML = 'current player';
+                document.querySelector(playerID + '-current').textContent = 'current';
             }
             else {
-                document.querySelector(playerID + '-current').innerHTML = '';
+                document.querySelector(playerID + '-current').textContent = '';
             }
         }
     }

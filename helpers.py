@@ -3,10 +3,10 @@ from flask import request, session, redirect
 import random
 from collections import namedtuple
 
-User = namedtuple("User", ['name', 'sid'])
+User = namedtuple("User", ['name', 'session_id'])
 
 # Names to randomly assign
-NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude"]
+NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
 
 
 # Currently not working with flask socketio on_connect - says it needs to take exactly 0 args

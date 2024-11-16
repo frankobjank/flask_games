@@ -45,8 +45,9 @@ user_to_sid = {}  # Player: list of sids --- might need to move this to be
 # room-specific because a user can be in more than one room at once. If separated 
 # by room, player should only be associated with one sid at a time
 
-# Maybe put User(username, sid) into room_clients instead of just names,
+# Maybe put User(username, session_id) into room_clients instead of just names?
 room_clients = {r: set() for r in GAMEROOMS}  # Room: set(players)
+room_client_ids = {r: set() for r in GAMEROOMS}  # Room: set(players)
 active_games = {}  # Room: Game State
 
 
@@ -72,6 +73,7 @@ def index():
 
 @app.route("/thirty_one") #, methods=["GET", "POST"])
 def thirty_one():
+    fl.session["last_page"] = fl.url_for("thirty_one")
 
     # Load lobby?? Or drop into room and make lobby a separate route
     # username = fl.session.get("username", "")
@@ -80,6 +82,7 @@ def thirty_one():
 
     # Required to instantiate a session cookie for players with random names
     fl.session["session_id"] = fl.request.cookies.get("session")
+    fl.session["rooms"] = set()
         
     # Everything taken care of via web sockets
     return fl.render_template("thirty_one.html") #, username=username)
@@ -101,9 +104,48 @@ def on_join(data):
         active_games[data["room"]] = thirty_one_game.State(data["room"])
 
     # Print for debug
-    print(f"ON JOIN for {fl.session['username']}")
+    print(f"ON JOIN for {fl.session['username']} to the {data['room']} room.")
     print(f"sid on JOIN = {fl.request.sid} for {fl.session['username']}")
-    print(f"{fl.session['username']} has joined the {data['room']} room.")
+
+    # Keep track of rooms joined in flask session dict
+    fl.session["rooms"].add(data["room"])
+
+    username = fl.session.get("username", "")
+
+    # Assign username if not already chosen
+    # Eventually add input box for users to choose their names
+    if len(username) == 0:
+        
+        # Use session id to find username if username not found     
+        if (fl.request.cookies.get("session"), "") in room_client_ids[data["room"]]:
+            username
+
+        # Assign random name if session id not found
+        if len(username) == 0:
+            # Pass in current room names to avoid duplicates
+            username = get_random_name(exclude = room_clients[data["room"]])
+            print(f"Random name chosen = {username}")
+    
+    # Store username in session
+    fl.session["username"] = username
+    
+    # Store username in session to user lookup dict - will use to find
+    session_to_user[fl.session["session_id"]] = username
+
+    # Add session id to room dict
+    room_client_ids[data["room"]].add(fl.session["session_id"])
+    
+
+    # Set up client's username on their end
+    fio.emit("update", {"action": "add_username", "username": fl.session["username"]})
+        
+    user_to_sid[fl.session["username"]] = fl.request.sid
+    sid_to_user[fl.request.sid] = fl.session["username"]
+
+    # Check for dupe username in game room - 
+    # one user can have different names in different rooms - 
+    # maybe room can keep track of session ids
+    if fl.session["username"] in room_clients[data["room"]]
 
     # Similar to active_games but keeps track of rooms and who is where 
     room_clients[data["room"]].add(fl.session["username"])
@@ -204,49 +246,8 @@ def message(data):
 def on_connect():
     print(f"session dict on connect = {fl.session}")
     
-    
-    # For debug:
-    # print(f"ON CONNECT for `{username}`")
-    # print(f"sid on CONNECT = {fl.request.sid}")
     fio.send({"msg": "Server callback to connect event."})
-
-    # Use session cookie instead of websocket sid because sid only lasts for ONE connection
-    username = fl.session.get("username", "")
-
-    # Relocated from join - better to assign username on connect
-    # If client has no name 
-        # OR has a name already in the room - this cannot be checked for because no room associated with connect
-    if len(username) == 0:
-        
-        # Use session id to find username if username not found     
-        username = session_to_user.get(fl.request.cookies.get("session"), "")
-
-        # Assign random name if session id not found
-        if len(username) == 0:
-            # Pass in current room names to avoid duplicates
-            username = get_random_name()
-            print(f"Random name chosen = {username}")
     
-    # Store username in session
-    fl.session["username"] = username
-    
-    # Store username in session to user lookup dict
-    session_to_user[fl.session["session_id"]] = username
-
-    
-    # Set up client's username on their end
-    fio.emit("update", {"action": "add_username", "username": fl.session["username"]})
-        
-    # Add sid to set --- this was already done for logged in users on connect
-    # Can create new set since this is a temporary username and won't be used to join any other rooms
-    # ACTUALLY sids cannot be stored in sets because they need to be selected? maybe store by room
-    # user_to_sid[fl.session["username"]] = set(fl.request.sid)
-    user_to_sid[fl.session["username"]] = fl.request.sid
-    sid_to_user[fl.request.sid] = fl.session["username"]
-    
-    # # Initialize set to store sids if user not already logged
-    # if username not in user_to_sid.keys():
-    #     user_to_sid[username] = set()
     print(f"session dict after connect = {fl.session}")
 
 
@@ -331,7 +332,11 @@ def login():
         fl.session["user_id"] = user_id
         fl.session["username"] = username
 
-        # Redirect user to home page
+        # Redirect user to last page visited
+        if fl.session.get("last_page"):
+            return fl.redirect(fl.session["last_page"])
+        
+        # Redirect user to home page if no last page was set
         return fl.redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
@@ -346,7 +351,7 @@ def logout():
     # Forget any user_id
     fl.session.clear()
 
-    # Redirect user to login form
+    # Redirect user to home
     return fl.redirect("/")
 
 
@@ -520,6 +525,8 @@ def minesweeper():
 
     # GET - create board and send
     elif fl.request.method == "GET":
+        # Remember last page to redirect user after login
+        fl.session["last_page"] = fl.url_for("minesweeper")
 
         # Get difficulty from client; defaults to easy
         difficulty = fl.request.args.get("difficulty", "easy")
@@ -536,7 +543,9 @@ def minesweeper():
 # Or could spin off single-player games
 @app.route("/minesweeper/stats")
 def minesweeper_stats():
-    
+    # Remember last page to redirect user after login
+    fl.session["last_page"] = fl.url_for("minesweeper_stats")
+
     user_id = fl.session.get("user_id", 0)
     
     # If not logged in; user_id is stored as int
