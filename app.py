@@ -19,7 +19,7 @@ import thirty_one_game
 app = fl.Flask(__name__)
 
 # Still unclear if I need this/ what exactly it's used for
-# app.config["SECRET_KEY"] = "secret!"
+app.config["SECRET_KEY"] = "secret!"
 # or app.secret_key = "replace later"
 
 # Configure session to use filesystem (instead of signed cookies)
@@ -35,7 +35,10 @@ CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
 GAMEROOMS = ["thirty_one_room"]
 
-# Not sure if this or the dict below will be more useful, might as well have both for now
+# Uses session id - browser session cookie
+session_to_user = {}
+
+# Uses socketio sid - new sid on every reconnect
 sid_to_user = {}
 
 user_to_sid = {}  # Player: list of sids --- might need to move this to be 
@@ -71,12 +74,15 @@ def index():
 def thirty_one():
 
     # Load lobby?? Or drop into room and make lobby a separate route
-    username = fl.session.get("username", "")
-    if len(username) == 0:
-        username = get_random_name()
+    # username = fl.session.get("username", "")
+    # if len(username) == 0:
+    #     username = get_random_name()
+
+    # Required to instantiate a session cookie for players with random names
+    fl.session["session_id"] = fl.request.cookies.get("session")
         
     # Everything taken care of via web sockets
-    return fl.render_template("thirty_one.html", username=username)
+    return fl.render_template("thirty_one.html") #, username=username)
 
 
 @app.route("/chat", methods=["GET", "POST"])
@@ -93,9 +99,6 @@ def on_join(data):
     # Add to active games dict, accessed by room name
     if not active_games.get(data["room"]):
         active_games[data["room"]] = thirty_one_game.State(data["room"])
-
-
-
 
     # Print for debug
     print(f"ON JOIN for {fl.session['username']}")
@@ -199,28 +202,37 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
+    print(f"session dict on connect = {fl.session}")
+    
+    
     # For debug:
     # print(f"ON CONNECT for `{username}`")
     # print(f"sid on CONNECT = {fl.request.sid}")
-
-    # Could use session cookie instead of sid because sid only lasts for ONE connection
-        # HOWEVER, private browser or turning cookies off will disable this
-    # print(f"\nsession cookie = {fl.request.cookies['session']}\n")
-    # print(f"\n cookies = {fl.request.cookies}\n")
-   
-    username = fl.session.get("username", "")
     fio.send({"msg": "Server callback to connect event."})
+
+    # Use session cookie instead of websocket sid because sid only lasts for ONE connection
+    username = fl.session.get("username", "")
 
     # Relocated from join - better to assign username on connect
     # If client has no name 
         # OR has a name already in the room - this cannot be checked for because no room associated with connect
     if len(username) == 0:
-        # Pass in current room names to avoid duplicates
-        random_name = get_random_name()
-        print(f"Random name chosen = {random_name}")
         
-        # Store name in session
-        fl.session["username"] = random_name
+        # Use session id to find username if username not found     
+        username = session_to_user.get(fl.request.cookies.get("session"), "")
+
+        # Assign random name if session id not found
+        if len(username) == 0:
+            # Pass in current room names to avoid duplicates
+            username = get_random_name()
+            print(f"Random name chosen = {username}")
+    
+    # Store username in session
+    fl.session["username"] = username
+    
+    # Store username in session to user lookup dict
+    session_to_user[fl.session["session_id"]] = username
+
     
     # Set up client's username on their end
     fio.emit("update", {"action": "add_username", "username": fl.session["username"]})
@@ -235,6 +247,8 @@ def on_connect():
     # # Initialize set to store sids if user not already logged
     # if username not in user_to_sid.keys():
     #     user_to_sid[username] = set()
+    print(f"session dict after connect = {fl.session}")
+
 
 
 @socketio.on("disconnect")

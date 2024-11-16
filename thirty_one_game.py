@@ -344,6 +344,7 @@ class State:
             # Check for >3 cards in hand before setting mode to discard
             if len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
+                
 
             if self.check_for_blitz():
                 print(f"{self.current_player} BLITZED!!!")
