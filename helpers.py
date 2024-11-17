@@ -3,7 +3,11 @@ from flask import request, session, redirect
 import random
 from collections import namedtuple
 
-User = namedtuple("User", ['name', 'session_id'])
+class User:
+    def __init__(self, name: str="", session_id: str="", websocket_id: str=""):
+        self.name = name
+        self.session_id = session_id
+        self.websocket_id = websocket_id
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
@@ -76,3 +80,8 @@ def get_all_clients(room_clients) -> set:
         all_clients.union(s)
     
     return all_clients
+
+
+def is_full(room_users: list, max_players: int):
+    return max_players > len(room_users)
+        
