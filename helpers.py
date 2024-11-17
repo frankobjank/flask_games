@@ -8,6 +8,10 @@ class User:
         self.name = name
         self.session_id = session_id
         self.websocket_id = websocket_id
+    
+
+    def __repr__(self) -> str:
+        return f"User({self.name}, {self.session_id}, {self.websocket_id})"
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]

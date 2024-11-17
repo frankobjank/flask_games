@@ -316,7 +316,7 @@ class State:
         self.mode = "main_phase"
 
         # Add to log to print in client
-        self.log.append(f"It is {self.current_player}'s turn.")
+        self.print_and_log(f"It is {self.current_player}'s turn.")
 
 
     def end_turn(self):
@@ -334,9 +334,8 @@ class State:
 
     def check_for_blitz(self, player_object):
         if self.calc_hand_score(player_object) == 31:
-            self.print_and_log(f"{player_object} BLITZED!!!")
+            self.print_and_log(f"{player_object.name} BLITZED!!!")
             self.end_round(blitz_player = player_object.name)
-
 
 
     def update(self, packet: dict):
@@ -346,7 +345,6 @@ class State:
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
-
 
         elif self.mode == "main_phase":
             taken_card = None
@@ -372,11 +370,12 @@ class State:
             
             self.players[self.current_player].hand.append(taken_card)
             
+            self.check_for_blitz(self.players[self.current_player])
+            
             # Check for >3 cards in hand before setting mode to discard
             if len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
                 
-            self.check_for_blitz(self.players[self.current_player])
 
         elif self.mode == "discard" and packet["action"] == "discard":
             # Unzip from client

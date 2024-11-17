@@ -28,7 +28,7 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure socketio
-socketio = fio.SocketIO(app)
+socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 
 # # Predefined chatrooms; eventually want to enable users to create their own
 CHATROOMS = ["Lounge", "News", "Games", "Coding"]
@@ -78,7 +78,7 @@ def thirty_one():
     # username = fl.session.get("username", "")
     # if len(username) == 0:
     #     username = get_random_name()
-
+    print(f"session on thirty_one get request = {fl.session}")
     # Required to instantiate a session cookie for players with random names
     fl.session["session_id"] = fl.request.cookies.get("session")
     fl.session["rooms"] = set()
@@ -97,10 +97,12 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
+    fio.send({"msg": "Server callback to join event."})
+    
     # Check if room full
     if is_full(room_users = data["room"], max_players = 7):
         print(f"{data['room']} is full, redirecting.")
-        fio.send({"msg": "Server callback to connect event."})
+        fio.send({"msg": f"{data['room']} is full, redirecting."})
         # Change this to lobby when it exists
         fl.redirect("/")
     
@@ -108,6 +110,14 @@ def on_join(data):
     # Add to active games dict, accessed by room name
     if not active_games.get(data["room"]):
         active_games[data["room"]] = thirty_one_game.State(data["room"])
+    
+    # If game does exist, check that it is not in progress
+    else:
+        if active_games[data["room"]].in_progress:
+            print(f"Cannot join {data['room']}; Game is in progress.")
+            fio.send({"msg": f"Cannot join {data['room']}; Game is in progress."})
+            
+            fl.redirect("/")
 
     # Keep track of rooms joined in flask session dict
     fl.session["rooms"].add(data["room"])
@@ -118,7 +128,7 @@ def on_join(data):
         session_id = fl.session.get("session_id", ""), 
         websocket_id = fl.request.sid
     )
-
+    
     # At least session id should be assigned at this point
     assert len(user.session_id) > 0, "Session id should be assigned at this point"
     
@@ -130,15 +140,28 @@ def on_join(data):
         # session id 
         for connected_user in room_clients[data["room"]]:
             if user.session_id == connected_user.session_id:
-                user.name = connected_user.name
+                
+                # If user was in room clients already, assign new user to old user
+                # (instead of adding a new entry to room clients)
+                user = connected_user
+                # Copy new websocket instead of using old invalid sid
+                user.websocket_id = fl.request.sid
+                
+                # Remove old client and add new one
+                room_clients[data["room"]].remove(connected_user)
 
         # Assign random name if session id not found
         if len(user.name) == 0:
             # Pass in current room names to avoid duplicates
             user.name = get_random_name(exclude = {connected_user.name for connected_user in room_clients[data["room"]]})
             print(f"Random name chosen = {user.name}")
+
+    # Add new user to room clients
+    room_clients[data["room"]].append(user)
     
-    # TODO This persists through flask socketio disconnect events so a session can be recovered. However, this should be cleared every so often so it doesn't just grow endlessly. Maybe after 10 minutes of inactivity?
+    # TODO This persists through flask socketio disconnect events so a session can be
+    # recovered. However, this should be cleared every so often so it doesn't just grow
+    # endlessly. Maybe after 10 minutes of inactivity?
     session_to_user[user.session_id] = user.name
 
     # Store username in session
@@ -151,9 +174,6 @@ def on_join(data):
     # updated room clients dict
     user_to_sid[fl.session["username"]] = fl.request.sid
     sid_to_user[fl.request.sid] = fl.session["username"]
-
-    # Similar to active_games but keeps track of rooms and who is where 
-    room_clients[data["room"]].append(user)
     
     # Join the room
     fio.join_room(data["room"])
@@ -168,6 +188,7 @@ def on_join(data):
     print(f"ON JOIN for {user.name} to the {data['room']} room.")
     print(f"sid on JOIN = {user.websocket_id} for {user.name}")
 
+    print(f"room clients at end of JOIN {room_clients[data['room']]}")
 
 
 @socketio.on("leave")
@@ -181,8 +202,8 @@ def on_leave(data):
 
     # Remove user from room clients dict
     for user in room_clients[data["room"]]:
-        if fl.session["session_id"] == user.session_id:
-            room_clients[data["room"]].remove(fl.session["username"])
+        if fl.session["session_id"] == user.session_id and fl.session["username"] == user.name:
+            room_clients[data["room"]].remove(user)
             break
     
     fl.session["rooms"].discard(data["room"])
@@ -220,7 +241,7 @@ def process_move(data):
         # Add all players to game state since there are the correct number
         for user in room_clients[data["room"]]:
             print(f"Adding {user} to game")
-            active_games[data["room"]].add_player(user)
+            active_games[data["room"]].add_player(user.name)
 
     
     # Check that username is current player if game has started
@@ -261,6 +282,8 @@ def message(data):
 def on_connect():
     print(f"session dict on connect = {fl.session}")
     
+    fl.session["session_id"] = fl.request.cookies.get("session")
+
     fio.send({"msg": "Server callback to connect event."})
     
     print(f"session dict after connect = {fl.session}")
@@ -286,12 +309,20 @@ def on_disconnect():
 
         # Room id is unavailable;
         # Remove player from every room since disconnect implies leaving all rooms
-        for users in room_clients.values():
-            for user in users:
-                if user.name == username:
-                    users.remove(username)
-            
+        # DON'T REMOVE from room clients so client can reconnect
+        # for users in room_clients.values():
+        #     for user in users:
+        #         # Should probably change this because different users could have 
+        #         # the same username in different rooms - added another validation
+        #         # of session id to not remove the wrong user
+        #         if user.name == username and user.session_id == fl.session["session_id"]:
+        #             users.remove(user)
+        
         print(f"Sending update to client to remove `{username}`")
+        # I think this only emits to room currently open on disconnect 
+        # - need to test exact outcomes
+        # Maybe only remove from client's list of users in room if game has not yet started
+            # If started, can show some disconnect signal instead of removing player
         fio.emit("update", {"action": "remove_players", "players": username}, broadcast=True)
 
         # Remove user from user to sid dict
