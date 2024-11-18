@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cardTable = createTable();
     continueButton = createContinueButton();
     startButton = createStartButton();
+    userPanel = createUserPanel();
     chatLog = createChatLog();
     
     // Add all elements created to container
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.outer-container').appendChild(cardTable);
     document.querySelector('.outer-container').appendChild(continueButton);
     document.querySelector('.outer-container').appendChild(startButton);
+    document.querySelector('.outer-container').appendChild(userPanel);
     document.querySelector('.outer-container').appendChild(chatLog);
     
     // Need to add onclick for room buttons here after they've been added to document
@@ -85,6 +87,11 @@ function addOnClick() {
     document.querySelectorAll('.room-button').forEach(room => {
         room.onclick = () => {
             console.log(`Adding room button to ${room}`);
+
+            if (inProgress) {
+                console.log('Cannot switch rooms when game is in progress.');
+                return;
+            }
 
             // Check if already in selected room
             if (room.innerHTML === currentRoom) {
@@ -275,6 +282,29 @@ function createPlayerContainer(name) {
 }
 
 
+function createUserPanel() {
+    // Fill this in when users connect to room
+    const br = document.createElement('br');
+
+    const userPanel = document.createElement('div');
+    userPanel.className = 'user-panel';
+    userPanel.id = 'user-panel';
+    userPanel.innerHTML = 'Users connected:' + br.outerHTML;
+    
+    const leaveButton = document.createElement('button');
+    leaveButton.className = 'leave-room-button';
+    leaveButton.id = 'leave-room-button';
+    leaveButton.innerHTML = 'Leave room';
+    leaveButton.onclick = () => {
+        leaveRoom(username, currentRoom);
+    }
+
+    userPanel.appendChild(leaveButton);
+
+    return userPanel;
+}
+
+
 function addToLog(msg) {
     const p = document.createElement('p');
     p.innerHTML = msg;
@@ -380,7 +410,6 @@ function update(response) {
     else if (response.action === 'add_players') {
 
         console.log(`Received action: add_players, players = ${response.players}`);
-        addToLog(`Welcome, ${response.players}.`);
         
         // Update current room here because this is server confirmation
         currentRoom = response.room;
@@ -401,9 +430,14 @@ function update(response) {
                 // If player not in list, add to list and player panel
                 playersConnected.push(player);
                 
-                playerContainer = createPlayerContainer(player);
+                addToLog(`Welcome, ${player}.`);
 
-                document.querySelector('.player-panel').appendChild(playerContainer);
+                const p = document.createElement('p');
+                p.className = 'user-panel-name';
+                p.id = 'user-panel-' + player;
+                p.innerHTML = player;
+
+                document.querySelector('#user-panel').appendChild(p);
             }
         }
     }
@@ -412,27 +446,19 @@ function update(response) {
     else if (response.action === 'remove_players') {
 
         console.log(`Received action: remove_players, players = ${response.players}`)
-        addToLog(`Player ${response.players} has left.`)
-    
+        
         // Remove anyone on local list who isn't on server list
         for (player of playersConnected) {
             // Check if player already in list
             if ((response.players.includes(player))) {
                 
+                addToLog(`${player} has left.`)
+                
                 // Remove player from local list
                 const index = playersConnected.indexOf(player);
                 if (index > -1) {
                     playersConnected.splice(index, 1);
-                    console.log(`Found ${player} at index ${index}, removing player ${player}`);
                 }
-
-                // Remove player container 
-                containerID = '#' + player + '-container';
-                playerContainer = document.querySelector(containerID);
-                
-                console.log(`Found ${playerContainer} with id ${containerID}, removing player ${player}`);
-                
-                document.querySelector('.player-panel').removeChild(playerContainer);
             }
         }
     }
@@ -462,6 +488,11 @@ function update(response) {
         mode = response.mode;
         currentPlayer = response.currentPlayer;
         discardCard = response.discard;
+
+        // Fill log
+        for (msg of response.log) {
+            addToLog(msg);
+        }
         
         if (!inProgress) {
             console.log('Received update response but game is not in progress.');
@@ -488,12 +519,32 @@ function update(response) {
         // Eventually want to rearrange players to be correct player order
         playerOrder = response.player_order;
         
+        // First loop of player order to create containers
+        for (player of playerOrder) {
+            containerID = '#' + player + '-container';
+
+            // If container doesn't exist, create new container
+            if (document.querySelector(containerID) === null && playersConnected.includes(player)) {
+                console.log(`Creating container for ${player}.`)
+                playerContainer = createPlayerContainer(player);
+                document.querySelector('.player-panel').appendChild(playerContainer);
+            }
+            // If container exists but player is not in playersConnected array, remove container
+            else if (document.querySelector(containerID) !== null && !(playersConnected.includes(player))) {
+                playerContainer = document.querySelector(containerID);
+                document.querySelector('.player-panel').removeChild(playerContainer);
+
+                console.log(`Found ${playerContainer} with id ${containerID}, removing player ${player}`);
+            }
+
+        }
+        // Second loop of player order to fill containers
         // The `in` keyword in loop produces indices (like enumerate)
         for (i in playerOrder) {
-            console.log(`unpacking ${i} index of player order ${playerOrder[i]}`)
+            
             // playerOrder[i] is the player name
             players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i]};
-            
+
             // Once player array is populated, add to player panel for display
             // Turn each attribute (name, order, etc) into a <span> for display
             containerID = '#' + playerOrder[i] + '-container';
@@ -543,10 +594,10 @@ function update(response) {
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                document.querySelector(playerID + '-current').textContent = 'current';
+                document.querySelector(playerID + '-current').innerHTML = 'current';
             }
             else {
-                document.querySelector(playerID + '-current').textContent = '';
+                document.querySelector(playerID + '-current').innerHTML = '';
             }
         }
     }
@@ -565,10 +616,20 @@ function joinRoom(room) {
 
 // Leave room
 function leaveRoom(username, room) {
+    if (currentRoom === null || currentRoom === undefined) {
+        console.log('Leave room called but currently not in a room.');
+        return;
+    }
+    
     // For debug:
     console.log(`${username} has left the ${room} room.`);
-    
+
     socket.emit('leave', {'username': username, 'room': room});
+
+    // Reset game vars when leaving room? Like inProgress, player details
+
+    // Set current room to null - TODO move to post server response
+    currentRoom = null;
 }
 
 // Custom 'update' event on action from server

@@ -97,12 +97,12 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
-    fio.send({"msg": "Server callback to join event."}, room=data["room"])
+    fio.emit("debug_msg", "Server callback to join event.", room=data["room"])
     
     # Check if room full
     if is_full(room_users = data["room"], max_players = 7):
         print(f"{data['room']} is full, redirecting.")
-        fio.send({"msg": f"{data['room']} is full, redirecting."}, room=data["room"])
+        fio.emit("debug_msg", f"{data['room']} is full, redirecting.", room=data["room"])
         # Change this to lobby when it exists
         fl.redirect("/")
     
@@ -201,7 +201,9 @@ def on_leave(data):
     # Leave can handle leaving the current room to go to the lobby
     # For debug:
     print("ON LEAVE")
-    # fio.send({"msg": f"Server callback to leave event."})
+    
+    fio.emit("debug_msg", "Server callback to leave event.", to=fl.request.sid)
+    
     print(f"{data['username']} has left the {data['room']} room.")
 
     # Remove user from room clients dict
@@ -209,12 +211,12 @@ def on_leave(data):
         if fl.session["session_id"] == user.session_id and fl.session["username"] == user.name:
             # Set connected to False rather than removing from list
             user.connected = False
-            break
+            
     
     fl.session["rooms"].discard(data["room"])
     
     fio.leave_room(data["room"])
-    fio.send({"msg": data["username"] + " has left the " + data["room"] + " room."}, room=data["room"])
+    fio.send({"msg": data["username"] + " has left " + data["room"] + "."}, room=data["room"])
 
     # Callback to send updated list of players
     fio.emit("update", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if user.connected)}, room=user.room, broadcast=True)
