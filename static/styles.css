@@ -100,6 +100,8 @@ footer {
     vertical-align: middle;
 }
 
+/* Thirty One */
+
 /* Minesweeper */
 
 .board-container{
@@ -230,10 +232,4 @@ footer {
 /* Color of visible squares */
 .square-button:disabled {
     background-color: rgb(242, 242, 242);
-}
-
-/* 31 */
-
-.card-table {
-    /* background-color: darkgreen; */
 }

@@ -5,3 +5,4 @@ flask_session/
 .DS_Store
 scrap
 scratch.py
+flask_games.code-workspace

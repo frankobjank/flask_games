@@ -345,6 +345,15 @@ class State:
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
+                return
+
+        # Pause game before next round starts
+        if self.mode == "end_round":
+            if packet["action"] == "continue":
+                # Start a new round
+                self.new_round()
+            else:
+                return "reject"
 
         elif self.mode == "main_phase":
             taken_card = None
@@ -398,11 +407,6 @@ class State:
             
             self.end_turn()
         
-        # Pause game before next round starts
-        elif self.mode == "end_round" and packet["action"] == "continue":
-            # Start a new round
-            self.new_round()
-
 
     # Have two package state functions - one for general and one for specific player info
     def package_state(self, player_name) -> dict:

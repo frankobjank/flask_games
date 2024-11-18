@@ -170,7 +170,7 @@ def on_join(data):
     fio.join_room(data["room"])
     
     # Log msg that player has joined
-    fio.send({"msg": user.name + " has joined the " + data["room"] + " room."}, room=data["room"])
+    fio.send({"msg": user.name + " has joined " + data["room"] + "."}, room=data["room"])
 
     # Callback to send updated list of players
     fio.emit("update", {"action": "add_players", "room": data["room"], "players": [user.name for user in room_clients[data["room"]] if user.connected]}, room=data["room"], broadcast=True)
@@ -178,7 +178,7 @@ def on_join(data):
     # Store username in session
     fl.session["username"] = user.name
     # Set up client's username on their end
-    fio.emit("update", {"action": "add_username", "username": user.name}, room=data["room"])
+    fio.emit("update", {"action": "add_username", "username": user.name}, to=fl.request.sid)
         
     user_to_sid[fl.session["username"]] = fl.request.sid
     sid_to_user[fl.request.sid] = fl.session["username"]
