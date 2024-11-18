@@ -1,7 +1,8 @@
 // Room, Socket Variables
 // Initializing socket
 const socket = io();
-let room = 'thirty_one_room';
+let rooms = ['room1', 'room2'];
+var currentRoom;
 
 // Client username - assign on connect if not logged into account
 var username;
@@ -32,21 +33,59 @@ document.addEventListener('DOMContentLoaded', () => {
         // Chat / Log box
         // Navigation
 
-    // This actually happens before 'connect' event
-    joinRoom(room);
+    // Auto-join the first room
+    joinRoom(rooms[0]);
 
     // Creates card table and elements within it
+    roomPanel = createRoomPanel();
     playerPanel = createPlayerPanel();
     cardTable = createTable();
-    chatLog = createChatLog();
+    continueButton = createContinueButton();
     startButton = createStartButton();
+    chatLog = createChatLog();
 
-    // Add table / Start button to container
+    // Add all elements created to container
+    document.querySelector('.outer-container').appendChild(roomPanel);
     document.querySelector('.outer-container').appendChild(playerPanel);
     document.querySelector('.outer-container').appendChild(cardTable);
-    document.querySelector('.outer-container').appendChild(chatLog);
+    document.querySelector('.outer-container').appendChild(continueButton);
     document.querySelector('.outer-container').appendChild(startButton);
+    document.querySelector('.outer-container').appendChild(chatLog);
 });
+
+
+function createRoomPanel() {
+    const roomPanel = document.createElement('div');
+    roomPanel.className = 'room-panel';
+    
+    for (roomName of rooms) {
+        const roomButton = document.createElement('button');
+        roomButton.className = 'room-button';
+        roomButton.id = roomName + '-button';
+        roomButton.innerHTML = roomName;
+        
+        // Disable button if currently in room
+        roomButton.disabled = roomName === currentRoom;
+        
+        // Join room on click
+        roomButton.onclick = () => {
+            // Check if already in selected room
+            if (roomName === currentRoom) {
+                msg = `You are already in ${currentRoom} room.`;
+                addToLog(msg);
+            } else {
+                // Leave current room and join new one
+                leaveRoom(username, currentRoom);
+                joinRoom(roomName);
+                currentRoom = roomName;
+            }
+        }
+
+        roomPanel.appendChild(roomButton);
+    }
+    
+    return roomPanel;
+}
 
 
 function createTable() {
@@ -67,7 +106,7 @@ function createTable() {
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': room});
+        socket.emit('move', {'action': 'draw', 'room': currentRoom});
     }
 
     // Add deck button to container
@@ -84,7 +123,7 @@ function createTable() {
     const discard = document.createElement('button');
     discard.id = 'discard-button';
     discard.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': room});
+        socket.emit('move', {'action': 'pickup', 'room': currentRoom});
     }
     
     // Add discard button to container
@@ -105,19 +144,32 @@ function createStartButton() {
     // Start game button
     const start = document.createElement('button');
     
-    start.className = 'start-button';
-    start.innerHTML = 'start new game';
+    start.id = 'start-button';
+    start.className = 'game-button';
+    start.innerHTML = 'Start New Game';
 
     start.onclick = () => {
-        socket.emit('move', {'action': 'start', 'room': room});
-    }
-
-    // Disable start button when game in progress
-    if (inProgress) {
-        start.disabled;
+        socket.emit('move', {'action': 'start', 'room': currentRoom});
     }
 
     return start;
+}
+
+
+function createContinueButton() {
+    // Continue game button
+    const cont = document.createElement('button');
+    
+    cont.id = 'continue-button';
+    cont.className = 'game-button';
+    cont.innerHTML = 'Continue to Next Round';
+    cont.disabled = true;
+
+    cont.onclick = () => {
+        socket.emit('move', {'action': 'continue', 'room': currentRoom});
+    }
+
+    return cont;
 }
 
 
@@ -181,7 +233,7 @@ function createPlayerContainer(name) {
     
     // Send server request on click
     knockButton.onclick = () => {
-        socket.emit('move', {'action': 'knock', 'room': room});
+        socket.emit('move', {'action': 'knock', 'room': currentRoom});
         console.log(`Sending knock request to server.`)
     }
     
@@ -200,12 +252,43 @@ function createPlayerContainer(name) {
     return playerContainer;
 }
 
+
+function addToLog(msg) {
+    const p = document.createElement('p');
+    p.innerHTML = msg;
+    document.querySelector('#chat-log').append(p);
+}
+
+
 function createChatLog() {
     const chatLog = document.createElement('div');
     chatLog.className = 'chat-log';
+    chatLog.id = 'chat-log';
+    
+    const msgInput = document.createElement('input');
+    msgInput.type = 'text';
+    msgInput.className = 'chat-log-input';
+    msgInput.id = 'chat-log-input';
+    msgInput.placeholder = 'Type your message...';
+    msgInput.autocomplete = 'off';
+
+    const sendButton = document.createElement('button');
+    sendButton.id = 'chat-log-send-button';
+    sendButton.innerHTML = 'Send';
+    sendButton.onclick = () => {
+        // Send message
+        socket.send({'msg': msgInput.value, 'username': username, 'room': currentRoom});
+        
+        // Clear input area
+        msgInput.value = '';
+    };
+
+    chatLog.appendChild(msgInput);
+    chatLog.appendChild(sendButton);
 
     return chatLog;
 }
+
 
 function cardToDisplay(serverCard) {
     /*
@@ -242,6 +325,7 @@ function cardToDisplay(serverCard) {
     return rank + suit;
 }
 
+
 function createHandButton(serverCard) {
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
     const cardButton = document.createElement('button');
@@ -251,7 +335,7 @@ function createHandButton(serverCard) {
 
     // Send server request on click
     cardButton.onclick = () => {
-        socket.emit('move', {'action': 'discard', 'room': room, 'card': cardButton.id});
+        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'card': cardButton.id});
         console.log(`Requesting discard ${cardButton.id}`)
     }
     return cardButton;
@@ -284,6 +368,7 @@ function update(response) {
     else if (response.action === 'add_players') {
 
         console.log(`Received action: add_players, players = ${response.players}`);
+        addToLog(`Welcome, ${response.players}.`);
 
         // Save player list
         for (player of response.players) {
@@ -304,6 +389,7 @@ function update(response) {
     else if (response.action === 'remove_players') {
 
         console.log(`Received action: remove_players, players = ${response.players}`)
+        addToLog(`Player ${response.players} has left.`)
 
         // Remove anyone on local list who isn't on server list
         for (player of playersConnected) {
@@ -358,19 +444,26 @@ function update(response) {
             console.log('Received update response but game is not in progress.');
             return;
         }
-
-        // Add discard card to display on discard button
-        document.querySelector('#discard-button').innerHTML = cardToDisplay(discardCard);
         
         if (response.player_order === undefined) {
             console.log('Player order missing from response.');
             return;
         }
+        
+        // Disable start button when game in progress; Enable when not in progress
+        document.querySelector('#start-button').disabled = inProgress;
+        
+        // Enable continue button on round end (and NOT on game end)
+        if (mode === 'end_round') {
+            document.querySelector('#continue-button').disabled = false;
+        }
 
+        // Add discard card to display on discard button
+        document.querySelector('#discard-button').innerHTML = cardToDisplay(discardCard);
+        
         // Unpack players
         // Eventually want to rearrange players to be correct player order
         playerOrder = response.player_order;
-        
         
         // The `in` keyword in loop produces indices (like enumerate)
         for (i in playerOrder) {
@@ -443,11 +536,11 @@ function update(response) {
 function joinRoom(room) {
     console.log('Client join event.');
     
-    // Removing need for passing username here; can assign random name on server side
-    // socket.emit('join', {'username': username, 'room': room});
-    
     // Pass name of room to server
     socket.emit('join', {'room': room});
+    
+    // Keep track of current room in global variable
+    currentRoom = room;
 }
 
 // Leave room
@@ -476,20 +569,8 @@ socket.on('disconnect', () => {
     // socket.emit('leave', {'username': username, 'room': room});
 });
 
-// Debug msgs for now
+// Receiving log / chat messages
 socket.on('message', data => {
+    addToLog(data.msg);
     console.log(`Client received: ${data.msg}`);
 });
-
-
-// // Submit chat message with 'Enter'
-// document.addEventListener('DOMContentLoaded', () => {
-//     // Make 'enter' key submit message
-//     let msg = document.querySelector('#user_message');
-//     msg.addEventListener('keyup', event => {
-//         event.preventDefault();
-//         if (event.keyCode === 13) {
-//             document.querySelector('#send_message').click();
-//         }
-//     })
-// })

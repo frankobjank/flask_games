@@ -33,7 +33,7 @@ socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 # # Predefined chatrooms; eventually want to enable users to create their own
 CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 
-GAMEROOMS = ["thirty_one_room"]
+GAMEROOMS = ["room1", "room2"]
 
 # Uses session id - browser session cookie
 session_to_user = {}
@@ -197,7 +197,7 @@ def on_leave(data):
     # Leave can handle leaving the current room to go to the lobby
     # For debug:
     print("ON LEAVE")
-    fio.send({"msg": f"Server callback to leave event."})
+    # fio.send({"msg": f"Server callback to leave event."})
     print(f"{data['username']} has left the {data['room']} room.")
 
     # Remove user from room clients dict
@@ -230,12 +230,12 @@ def process_move(data):
         # Reject if game has already started
         if game.in_progress:
             print("Game is already in progress.")
-            fio.send({"msg": f"Rejecting start request; Game is already in progress"})
+            # fio.send({"msg": f"Rejecting start request; Game is already in progress"})
         
         # Reject if invalid number of players
         if not (2 <= len(room_clients[data["room"]]) <= 7):
             print("Invalid number of players.")
-            fio.send({"msg": f"Rejecting start request; Invalid number of players."})
+            # fio.send({"msg": f"Rejecting start request; Invalid number of players."})
             return
     
         # Add all players to game state since there are the correct number
@@ -245,25 +245,30 @@ def process_move(data):
 
     
     # Check that username is current player if game has started
-    if game.in_progress and fl.session.get("username", "") != game.current_player:
+    # Only allow input from all players to click continue during round ending
+    if game.in_progress and game.mode != "end_round" and fl.session.get("username", "") != game.current_player:
         print("Not accepting move from non-current player while game is in progress.")
-        fio.send({"msg": f"Server rejecting move request; Client not current player."})
+        # fio.send({"msg": f"Server rejecting move request; Client not current player."})
         return
     
     # Update based on data.action, data.card
-    game.update(data)
+    if game.update(data) == "reject":
+        # Send on server reject
+        print(f"Rejecting `{data['action']}` from `{fl.session.get('username')}`")
+        # fio.send({"msg": f"Server rejected move event `{data['action']}`"})
 
-    # Send tailored response to each player
-    for username in game.players.keys():
-        
-        response = game.package_state(username)
-        
-        # have to specify the 'to' parameter of 'emit' to send to specific player
-        # is sid needed for this? Not sure how to get all the sids of everyone in room
-        print(f"Sending response: \n{response} \non {data['action']}")
-        
-        fio.emit("update", response, to = user_to_sid[username])
-        fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."}, to = user_to_sid[username])
+    # Send on server accept; Tailored response to each player
+    else:
+        for username in game.players.keys():
+            
+            response = game.package_state(username)
+            
+            # have to specify the 'to' parameter of 'emit' to send to specific player
+            # is sid needed for this? Not sure how to get all the sids of everyone in room
+            print(f"Sending response: \n{response} \non {data['action']}")
+            
+            fio.emit("update", response, to = user_to_sid[username])
+            # fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."}, to = user_to_sid[username])
     
     # Empty temp log after all players are updated
     game.temp_log = []
@@ -273,20 +278,14 @@ def process_move(data):
 @socketio.on("message")
 def message(data):
     
-    print(f"\n\n{data}\n\n")
+    print(f"Received chat msg {data['msg']} from {data['username']}")
     
     fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room = data["room"])
 
 
 @socketio.on("connect")
 def on_connect():
-    print(f"session dict on connect = {fl.session}")
-    
     fl.session["session_id"] = fl.request.cookies.get("session")
-
-    fio.send({"msg": "Server callback to connect event."})
-    
-    print(f"session dict after connect = {fl.session}")
 
 
 
@@ -330,11 +329,6 @@ def on_disconnect():
     
     # Remove sid from sid to user dict
     sid_to_user.pop(fl.request.sid)
-    
-    # For debug:
-    # print(f"ON DISCONNECT for {username}")
-    # print(f"sid on DISCONNECT = {fl.request.sid}")
-    fio.send({"msg": "Server callback to disconnect event."}, broadcast = True)
     
     
 # -- End FlaskSocketIO -- #

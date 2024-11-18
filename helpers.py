@@ -87,5 +87,5 @@ def get_all_clients(room_clients) -> set:
 
 
 def is_full(room_users: list, max_players: int):
-    return max_players > len(room_users)
+    return len(room_users) >= max_players
         

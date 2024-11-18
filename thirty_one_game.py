@@ -252,6 +252,9 @@ class State:
         self.print_and_log(f"--- END OF ROUND {self.round_num} ---\n")
         self.print_and_log("---     SCORES     ---\n")
         
+        # Mode = end round; requires input from user to start next round
+        self.mode = "end_round"
+        
         # Blitz player is string of player's name who blitzed
         if blitz_player:
             for p_name in self.player_order:
@@ -303,9 +306,6 @@ class State:
                 self.print_and_log(f"{p_name} - {p_object.lives} extra lives")
                 if p_object.lives == 0:
                     self.print_and_log(f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}")
-            
-            # Start a new round
-            self.new_round()
 
 
     def start_turn(self):
@@ -350,23 +350,27 @@ class State:
             taken_card = None
             if packet["action"] == "knock":
                 if len(self.knocked) > 0:
-                    print(f"{self.knocked} has already knocked. You must pick a different move.")
+                    # TODO Personal log
+                    self.print_and_log(f"{self.knocked} has already knocked. You must pick a different move.")
                     return
                 self.knocked = self.current_player
-                print(f"{self.current_player} has knocked.")
-                self.log.append(f"{self.current_player} knocked.")
+                self.print_and_log(f"{self.current_player} knocked.")
                 self.end_turn()
                 return
 
             elif packet["action"] == "pickup":
                 # convert to str here for type consistency
                 taken_card = self.discard.pop()
-                print(f"\nYou pick up a {taken_card} from discard.")
-                self.log.append(f"{self.current_player} picked up a {taken_card} from discard.")
+                self.print_and_log(f"{self.current_player} picked up a {taken_card} from discard.")
 
             elif packet["action"] == "draw":
                 taken_card = self.draw_card()
                 self.print_and_log(f"{self.current_player} drew a card from the deck.")
+            
+            elif packet["action"] == "discard":
+                # TODO Personal log
+                self.print_and_log("Must have 4 cards to discard.")
+                return "reject"
             
             self.players[self.current_player].hand.append(taken_card)
             
@@ -392,7 +396,12 @@ class State:
             self.discard.append(chosen_card)
             self.print_and_log(f"{self.current_player} discarded: {chosen_card}")
             
-            self.end_turn()  
+            self.end_turn()
+        
+        # Pause game before next round starts
+        elif self.mode == "end_round" and packet["action"] == "continue":
+            # Start a new round
+            self.new_round()
 
 
     # Have two package state functions - one for general and one for specific player info
