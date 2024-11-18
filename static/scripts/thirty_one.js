@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Navigation
 
     // Auto-join the first room
-    joinRoom(rooms[0]);
+    // joinRoom(rooms[0]);
 
     // Creates card table and elements within it
     roomPanel = createRoomPanel();
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     continueButton = createContinueButton();
     startButton = createStartButton();
     chatLog = createChatLog();
-
+    
     // Add all elements created to container
     document.querySelector('.outer-container').appendChild(roomPanel);
     document.querySelector('.outer-container').appendChild(playerPanel);
@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.outer-container').appendChild(continueButton);
     document.querySelector('.outer-container').appendChild(startButton);
     document.querySelector('.outer-container').appendChild(chatLog);
+    
+    // Need to add onclick for room buttons here after they've been added to document
+    addOnClick()
 });
 
 
@@ -67,24 +70,39 @@ function createRoomPanel() {
         // Disable button if currently in room
         roomButton.disabled = roomName === currentRoom;
         
-        // Join room on click
-        roomButton.onclick = () => {
-            // Check if already in selected room
-            if (roomName === currentRoom) {
-                msg = `You are already in ${currentRoom} room.`;
-                addToLog(msg);
-            } else {
-                // Leave current room and join new one
-                leaveRoom(username, currentRoom);
-                joinRoom(roomName);
-                currentRoom = roomName;
-            }
-        }
+        // Adding onclick later with addOnClick()
 
         roomPanel.appendChild(roomButton);
     }
     
     return roomPanel;
+}
+
+
+function addOnClick() {
+    
+    // Onclick above was not working; Moving to end of function
+    document.querySelectorAll('.room-button').forEach(room => {
+        room.onclick = () => {
+            console.log(`Adding room button to ${room}`);
+
+            // Check if already in selected room
+            if (room.innerHTML === currentRoom) {
+                msg = `You are already in ${currentRoom} room.`;
+                addToLog(msg);
+
+            } else {
+                if (currentRoom === undefined) {
+                    joinRoom(room.innerHTML);
+                } else {
+                    // Leave current room and join new one
+                    leaveRoom(username, currentRoom);
+                    joinRoom(room.innerHTML);    
+                }
+            }
+
+        }
+    });
 }
 
 
@@ -186,6 +204,7 @@ function createPlayerPanel() {
     return playerPanel;
 }
 
+
 function createPlayerContainer(name) {
     console.log(`creating container for ${name}`);
 
@@ -247,6 +266,9 @@ function createPlayerContainer(name) {
     // Only add knock button for self
     if (name === username) {
         playerContainer.appendChild(knockButton);
+        
+        // Highlight self name and player info
+        playerContainer.style.color = 'purple';
     }
 
     return playerContainer;
@@ -256,7 +278,8 @@ function createPlayerContainer(name) {
 function addToLog(msg) {
     const p = document.createElement('p');
     p.innerHTML = msg;
-    document.querySelector('#chat-log').append(p);
+    // Put log in reverse order
+    document.querySelector('#chat-log').prepend(p);
 }
 
 
@@ -351,17 +374,6 @@ function update(response) {
     if (response.action === 'add_username') {
         username = response.username;
         console.log(`Adding username ${username}`);
-        
-        // Check if username container already exists, if not create one
-        if (document.querySelector('.outer-container').querySelector('.username-container') === null) {
-            const usernameContainer = document.createElement('div');
-            usernameContainer.className = 'username-container';
-            document.querySelector('.outer-container').appendChild(usernameContainer);
-        }
-        
-        // Put username on screen to make it easier to track random names
-        document.querySelector('.username-container').innerHTML = 'Your name is: ' + username;
-
     }
     
     // Add players to player panel on join
@@ -369,6 +381,17 @@ function update(response) {
 
         console.log(`Received action: add_players, players = ${response.players}`);
         addToLog(`Welcome, ${response.players}.`);
+        
+        // Update current room here because this is server confirmation
+        currentRoom = response.room;
+    
+        // Update rooms in room panel
+        for (room of rooms) {
+            roomButtonID = '#' + room + '-button';
+    
+            // Disable button if currently in room; Enable all others
+            document.querySelector(roomButtonID).disabled = room === currentRoom;
+        }
 
         // Save player list
         for (player of response.players) {
@@ -390,7 +413,7 @@ function update(response) {
 
         console.log(`Received action: remove_players, players = ${response.players}`)
         addToLog(`Player ${response.players} has left.`)
-
+    
         // Remove anyone on local list who isn't on server list
         for (player of playersConnected) {
             // Check if player already in list
@@ -537,10 +560,7 @@ function joinRoom(room) {
     console.log('Client join event.');
     
     // Pass name of room to server
-    socket.emit('join', {'room': room});
-    
-    // Keep track of current room in global variable
-    currentRoom = room;
+    socket.emit('join', {'room': room});    
 }
 
 // Leave room
@@ -573,4 +593,9 @@ socket.on('disconnect', () => {
 socket.on('message', data => {
     addToLog(data.msg);
     console.log(`Client received: ${data.msg}`);
+});
+
+// Receiving log / chat messages
+socket.on('debug_msg', data => {
+    console.log(`Client debug msg received: ${data.msg}`);
 });

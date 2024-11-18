@@ -4,14 +4,24 @@ import random
 from collections import namedtuple
 
 class User:
-    def __init__(self, name: str="", session_id: str="", websocket_id: str=""):
+    def __init__(self, name: str="", session_id: str="", websocket_id: str="", room: str=""):
         self.name = name
         self.session_id = session_id
+        
+        # Theoretically multiple rooms connects are possible; can handle this later
         self.websocket_id = websocket_id
-    
+        self.room = room
+
+        # Keep track of connection status to reconnect if user gets disconnected
+        self.connected = False
+
 
     def __repr__(self) -> str:
-        return f"User({self.name}, {self.session_id}, {self.websocket_id})"
+        return f"User({self.name}, {self.session_id}, {self.websocket_id}, {self.room}, {self.connected})"
+    
+
+    def __str__(self) -> str:
+        return f"User {self.name}, connected = {self.connected}"
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
