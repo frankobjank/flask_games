@@ -113,6 +113,17 @@ function addOnClick() {
 }
 
 
+function createGamePanel() {
+    const gamePanel = document.createElement('div');
+    gamePanel.className = 'game-panel';
+    gamePanel.id = 'game-panel';
+    
+    table = createTable();
+    
+    gamePanel.appendChild(table);
+}
+
+
 function createTable() {
 
     // Create div for card table

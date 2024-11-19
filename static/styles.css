@@ -101,6 +101,23 @@ footer {
 }
 
 /* Thirty One */
+.panel{
+    display: flex;
+    outline: black;
+}
+.room-panel{
+    text-align: left;
+    margin-left: 5%;
+}
+.user-panel{
+    text-align: right;
+    margin-right: 5%;
+}
+.chat-log{
+    text-align: right;
+    margin-right: 5%;
+}
+
 
 /* Minesweeper */
 
