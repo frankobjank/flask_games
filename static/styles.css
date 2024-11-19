@@ -101,7 +101,7 @@ footer {
 }
 
 /* Thirty One */
-.panel{
+/* .panel{
     display: flex;
     outline: black;
 }
@@ -116,6 +116,28 @@ footer {
 .chat-log{
     text-align: right;
     margin-right: 5%;
+} */
+
+/* Container styling */
+.outer-container {
+    display: flex;
+    justify-content: space-between; /* Adjust spacing between panels */
+    align-items: center; /* Align panels vertically in the middle */
+    padding: 10px;
+    background-color: #f4f4f4;
+    height: 100vh; /* Optional: Full height */
+}
+
+/* Individual panel styling */
+.panel {
+    flex: 1; /* Each panel takes up equal space */
+    margin: 0 10px; /* Space between panels */
+    padding: 20px;
+    text-align: center;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 

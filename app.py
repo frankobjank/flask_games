@@ -166,6 +166,10 @@ def on_join(data):
     # endlessly. Maybe after 10 minutes of inactivity?
     session_to_user[user.session_id] = user
 
+    # Set up client's username on their end
+    # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
+    fio.emit("update", {"action": "add_username", "username": user.name}, to=fl.request.sid)
+
     # Join the room
     fio.join_room(data["room"])
     
@@ -177,8 +181,6 @@ def on_join(data):
 
     # Store username in session
     fl.session["username"] = user.name
-    # Set up client's username on their end
-    fio.emit("update", {"action": "add_username", "username": user.name}, to=fl.request.sid)
         
     user_to_sid[fl.session["username"]] = fl.request.sid
     sid_to_user[fl.request.sid] = fl.session["username"]
