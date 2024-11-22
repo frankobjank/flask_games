@@ -1,8 +1,11 @@
 /* Use root to set global var grid size */
 :root {
+    /* Minesweeper square settings */
     --grid-width: 9;
     --grid-height: 9;
     --sq-size: 1.75rem;
+    
+    /* Makes all nav links white */
     --bs-nav-link-color: white;
 }
 
@@ -101,22 +104,7 @@ footer {
 }
 
 /* Thirty One */
-/* .panel{
-    display: flex;
-    outline: black;
-}
-.room-panel{
-    text-align: left;
-    margin-left: 5%;
-}
-.user-panel{
-    text-align: right;
-    margin-right: 5%;
-}
-.chat-log{
-    text-align: right;
-    margin-right: 5%;
-} */
+
 
 /* Container styling */
 .outer-container {
@@ -138,6 +126,20 @@ footer {
     color: white;
     border-radius: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+}
+
+.chat-log {
+    flex: 1; /* Each panel takes up equal space */
+    /* padding: 20px; */
+    text-align: left;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    border: 1px solid #0b0b0b;
+    overflow-y: scroll;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
 }
 
 

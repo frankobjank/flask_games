@@ -385,8 +385,8 @@ class State:
             
             self.check_for_blitz(self.players[self.current_player])
             
-            # Check for >3 cards in hand before setting mode to discard
-            if len(self.players[self.current_player].hand) > 3:
+            # Only set to discard if round has not ended Check for >3 cards in hand before setting mode to discard
+            if self.mode != "round_end" and len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
                 
 

@@ -36,7 +36,8 @@ CHATROOMS = ["Lounge", "News", "Games", "Coding"]
 GAMEROOMS = ["room1", "room2"]
 
 # Uses session id - browser session cookie
-session_to_user = {}
+# If there's nothing in flask or socketio that tracks when users join, can add timestamp session was created to User class
+session_to_user = {}  # Session id: User class
 
 # Uses socketio sid - new sid on every reconnect
 sid_to_user = {}
@@ -298,6 +299,7 @@ def on_connect():
     
     check_user = session_to_user.get(fl.session["session_id"])
     if check_user:
+        print(f"Found user in session dict; Calling join room on {check_user.room}")
         fio.join_room(check_user.room)
 
 
