@@ -381,13 +381,15 @@ class State:
                 self.print_and_log("Must have 4 cards to discard.")
                 return "reject"
             
+            # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
-            
-            self.check_for_blitz(self.players[self.current_player])
-            
+
             # Check for >3 cards in hand before setting mode to discard
             if len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
+            
+            # Check for blitz, which will override mode to be end_round instead of discard
+            self.check_for_blitz(self.players[self.current_player])
                 
 
         elif self.mode == "discard" and packet["action"] == "discard":

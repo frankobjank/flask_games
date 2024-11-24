@@ -17,7 +17,7 @@ class User:
 
 
     def __repr__(self) -> str:
-        return f"User({self.name}, {self.session_id}, {self.websocket_id}, {self.room}, {self.connected})"
+        return f"User(name={self.name}, session_id={self.session_id}, websocket_id={self.websocket_id}, room={self.room}, connected={self.connected})"
     
 
     def __str__(self) -> str:

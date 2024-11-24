@@ -7,6 +7,9 @@ var currentRoom;
 // Client username - assign on connect if not logged into account
 var username;
 
+// Number of entries in chat log
+var chatLogCount = 0;
+
 // Keep track of player names connected
 let playersConnected = [];
 
@@ -38,16 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Creates card table and elements within it
     roomPanel = createRoomPanel();
-    gamePanel = createGamePanel();
-    playerPanel = createPlayerPanel();
     
-    chatLog = createChatLog();
     
     // Add all elements created to container
     document.querySelector('.outer-container').appendChild(roomPanel);
-    document.querySelector('.outer-container').appendChild(gamePanel);
-    document.querySelector('.outer-container').appendChild(playerPanel);
-    document.querySelector('.outer-container').appendChild(chatLog);
     
     // Need to add onclick for room buttons here after they've been added to document
     addOnClick()
@@ -295,44 +292,131 @@ function createPlayerContainer(name) {
     return playerContainer;
 }
 
-
-
-function addToLog(msg) {
-    const p = document.createElement('p');
-    p.innerHTML = msg;
-    // Put log in reverse order
-    document.querySelector('#chat-log').prepend(p);
-}
-
-
-function createChatLog() {
-    const chatLog = document.createElement('div');
-    chatLog.className = 'chat-log';
-    chatLog.id = 'chat-log';
+// ADDED FROM SANDBOX
+// Add message to chat log
+function addToLog(msg, username="") {
+    chatLogCount++;
     
-    const msgInput = document.createElement('input');
-    msgInput.type = 'text';
-    msgInput.className = 'chat-log-input';
-    msgInput.id = 'chat-log-input';
-    msgInput.placeholder = 'Type your message...';
-    msgInput.autocomplete = 'off';
+    const msgElement = document.createElement('div');
+    msgElement.className = 'chat-log-message';
+    msgElement.id = 'chat-log-message-' + chatLogCount;
+    
+    // Add username to msg only if username is given; otherwise system message
+    if (username.length > 0) {
+        const usernameSpan = document.createElement('span');
+        usernameSpan.className = 'player-name chat message';
+        usernameSpan.id = 'username-span-' + username;
+        // Can set color by username !
+        // usernameSpan.style.color = 'blue';
+        usernameSpan.innerHTML = username + ': ';
 
-    const sendButton = document.createElement('button');
-    sendButton.id = 'chat-log-send-button';
-    sendButton.innerHTML = 'Send';
-    sendButton.onclick = () => {
-        // Send message
-        socket.send({'msg': msgInput.value, 'username': username, 'room': currentRoom});
-        
-        // Clear input area
-        msgInput.value = '';
+        msgElement.append(usernameSpan);
+    }
+    else {
+        // Set username to 'system' if no username provided
+        username = 'system';
+    }
+
+    msgElement.innerHTML += msg;
+    
+    // Set custom attribute 'sender' for all msgs
+    msgElement.setAttribute('sender', username);
+    // Could add time received to custom attribute and use that to separate if over certain time
+    
+    // Check sender of previous msg and add line break to beginning of msg if different sender
+    if (chatLogCount > 1) {
+        previousMsgId = 'chat-log-message-' + (chatLogCount - 1);
+    
+        if (document.querySelector('#' + previousMsgId).getAttribute('sender') !== msgElement.getAttribute('sender')) {
+            const br = document.createElement('br');
+            msgElement.innerHTML = br.outerHTML + msgElement.innerHTML;
+        }
+    }
+    
+    const messageArea = document.querySelector('#chat-log-messages');
+    messageArea.append(msgElement);
+    
+    // Scroll to bottom when new msg received
+    messageArea.scrollTop = messageArea.scrollHeight;
+};
+
+
+// Create chat log / panel
+function createChatLogPanel(username) {
+
+    const chatLogPanel = document.createElement('div');
+    chatLogPanel.className = 'chat log panel';
+    chatLogPanel.id = 'chat-log-panel';
+    
+    const chatLogContainer = document.createElement('div');
+    chatLogContainer.className = 'chat log container rounded-0';
+    chatLogContainer.id = 'chat-log-container';
+
+    const chatLogMessages = document.createElement('div');
+    chatLogMessages.className = 'chat log messages';
+    chatLogMessages.id = 'chat-log-messages';
+    
+    // input start
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'chat input container';
+    inputContainer.id = 'chat-input-container';
+    
+    const usernameSpan = document.createElement('div');
+    usernameSpan.className = 'chat-span input';
+    usernameSpan.id = 'chat-input-username';
+    // `&nbsp;` adds a space before input box
+    usernameSpan.innerHTML = username + ': &nbsp;';
+    
+    const messageInput = document.createElement('input');
+    messageInput.className = 'chat input';
+    messageInput.id = 'chat-input-box';
+    messageInput.type = 'text';
+    messageInput.autocomplete = 'off';
+    
+    const paddingSpan = document.createElement('span');
+    paddingSpan.className = 'chat input padding span'
+    paddingSpan.id = 'chat-input-padding-span'
+    paddingSpan.innerHTML = ' &nbsp;';
+    
+    const sendMessageButton = document.createElement('button');
+    sendMessageButton.className = 'chat-button input';
+    sendMessageButton.id = 'chat-input-send-button';
+    sendMessageButton.innerHTML = '>';
+    
+    // Button onclick behavior
+    sendMessageButton.onclick = () => {
+        // Prevent sending blank messages
+        if (messageInput.value.length > 0) {
+            socket.send({'msg': messageInput.value, 'username': username, 'room': currentRoom});
+            
+            // Clear input area
+            messageInput.value = '';
+        };
     };
 
-    chatLog.appendChild(msgInput);
-    chatLog.appendChild(sendButton);
+    // Set `enter` to send message
+    messageInput.addEventListener('keyup', (event) => {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            sendMessageButton.click();
+        };
+    });
+    
+    inputContainer.appendChild(usernameSpan);
+    inputContainer.appendChild(messageInput);
+    inputContainer.appendChild(paddingSpan);
+    inputContainer.appendChild(sendMessageButton);
+    // input end
 
-    return chatLog;
-}
+    // Add messages & input to container
+    chatLogContainer.appendChild(chatLogMessages);
+    chatLogContainer.appendChild(inputContainer);
+
+    // Add container to panel
+    chatLogPanel.appendChild(chatLogContainer);
+
+    return chatLogPanel;
+};
 
 
 function cardToDisplay(serverCard) {
@@ -396,6 +480,20 @@ function update(response) {
     if (response.action === 'add_username') {
         username = response.username;
         console.log(`Adding username ${username}`);
+        if (username.length > 0) {
+
+            const chatLogPanel = createChatLogPanel(username);
+            
+            const gamePanel = createGamePanel();
+            // Move playerpanel into game panel?
+            const playerPanel = createPlayerPanel();
+
+            document.querySelector('.outer-container').appendChild(gamePanel);
+            document.querySelector('.outer-container').appendChild(playerPanel);
+            document.querySelector('.outer-container').appendChild(chatLogPanel);
+
+        };
+
     }
     
     // Add players to player panel on join
@@ -423,7 +521,7 @@ function update(response) {
                 // If player not in list, add to list and player panel
                 playersConnected.push(player);
                 
-                addToLog(`Welcome, ${player}.`);
+                // addToLog(`Welcome, ${player}.`);
 
                 // Create new container
                 console.log(`Creating container for ${player}.`);
@@ -623,7 +721,7 @@ socket.on('disconnect', () => {
 
 // Receiving log / chat messages
 socket.on('message', data => {
-    addToLog(data.msg);
+    addToLog(data.msg, data.username);
     console.log(`Client received: ${data.msg}`);
 });
 

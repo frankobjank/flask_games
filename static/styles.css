@@ -101,44 +101,53 @@ footer {
 }
 
 /* Thirty One */
-/* .panel{
-    display: flex;
-    outline: black;
-}
-.room-panel{
-    text-align: left;
-    margin-left: 5%;
-}
-.user-panel{
-    text-align: right;
-    margin-right: 5%;
-}
-.chat-log{
-    text-align: right;
-    margin-right: 5%;
-} */
-
-/* Container styling */
 .outer-container {
     display: flex;
     justify-content: space-between; /* Adjust spacing between panels */
     align-items: center; /* Align panels vertically in the middle */
-    padding: 10px;
-    background-color: #f4f4f4;
     height: 100vh; /* Optional: Full height */
+    padding: 2rem;
 }
 
-/* Individual panel styling */
 .panel {
-    flex: 1; /* Each panel takes up equal space */
-    margin: 0 10px; /* Space between panels */
-    padding: 20px;
-    text-align: center;
-    background-color: #007bff;
-    color: white;
-    border-radius: 5px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid black;
+    padding: 1rem;
+    margin: 1rem;
 }
+
+#chat-log-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+    text-align: left;
+    background-color: #c8d5e3;
+    color: rgb(46, 45, 45);
+    border-radius: 5px;
+    border: 3px solid #0b0b0b;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);   
+}
+
+#chat-log-messages {
+    width: 25rem;
+    height: 25rem;
+    border-top: 2px solid #5c5a5a;
+    border-bottom: 2px solid #5c5a5a;
+    overflow-y: scroll;
+    margin-bottom: .5rem;
+    overflow-wrap: break-word;
+    scrollbar-width: auto;
+}
+
+.chat-log-message {
+    margin: .4rem;
+}
+
+#chat-input-container {
+    position: static;
+    display: flex;
+}
+
 
 
 /* Minesweeper */
