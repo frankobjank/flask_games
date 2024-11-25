@@ -98,12 +98,12 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
-    fio.emit("debug_msg", "Server callback to join event.", room=data["room"])
+    fio.emit("debug_msg", "Server callback to join event.", to=fl.request.sid)
     
     # Check if room full
     if is_full(room_users = data["room"], max_players = 7):
         print(f"{data['room']} is full, redirecting.")
-        fio.emit("debug_msg", f"{data['room']} is full, redirecting.", room=data["room"])
+        fio.emit("debug_msg", f"{data['room']} is full, redirecting.", to=fl.request.sid)
         # Change this to lobby when it exists
         fl.redirect("/")
     
@@ -116,7 +116,7 @@ def on_join(data):
     else:
         if active_games[data["room"]].in_progress:
             print(f"Cannot join {data['room']}; Game is in progress.")
-            fio.send({"msg": f"Cannot join {data['room']}; Game is in progress."}, room=data["room"])
+            fio.send({"msg": f"Cannot join {data['room']}; Game is in progress.", "username": ""}, to=fl.request.sid)
             
             fl.redirect("/")
 
@@ -175,7 +175,7 @@ def on_join(data):
     fio.join_room(data["room"])
     
     # Log msg that player has joined
-    fio.send({"msg": user.name + " has joined " + data["room"] + "."}, room=data["room"])
+    fio.send({"msg": f"{user.name} has joined {data['room']}.", "username": ""}, room=data["room"])
 
     # Callback to send updated list of players
     fio.emit("update", {"action": "add_players", "room": data["room"], "players": [user.name for user in room_clients[data["room"]] if user.connected]}, room=data["room"], broadcast=True)
@@ -219,10 +219,12 @@ def on_leave(data):
     fl.session["rooms"].discard(data["room"])
     
     fio.leave_room(data["room"])
-    fio.send({"msg": data["username"] + " has left " + data["room"] + "."}, room=data["room"])
+    fio.send({"msg": f"{data['username']} has left {data['room']}.", "username": ""}, room=data["room"])
 
     # Callback to send updated list of players
-    fio.emit("update", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if user.connected)}, room=user.room, broadcast=True)
+    fio.emit("update", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if user.connected)}, room=user.room)  
+        #, broadcast=True)
+        # Broadcast removed since I don't think it's necessary if room is specified
 
 
 # Custom event bucket - "move"
@@ -239,18 +241,21 @@ def process_move(data):
     if data["action"] == "start":
         # Reject if game has already started
         if game.in_progress:
+            fio.emit({"debug_msg": "Game is already in progress; Cannot start game."}, to=fl.request.sid)
             print("Game is already in progress.")
-            # fio.send({"msg": f"Rejecting start request; Game is already in progress"})
         
         # Reject if invalid number of players
         if not (2 <= len([user for user in room_clients[data["room"]] if user.connected]) <= 7):
+            fio.emit({"debug_msg": "Invalid number of players."}, to=fl.request.sid)
             print("Invalid number of players.")
-            # fio.send({"msg": f"Rejecting start request; Invalid number of players."})
+            
+            fio.send({"msg": f"Must have between 2 and 7 people to start game.", "username": ""}, to=fl.request.sid)
             return
     
         # Add all players to game state since there are the correct number
         for user in room_clients[data["room"]]:
             if user.connected:
+                fio.emit({"debug_msg": f"Adding {user} to game"}, to=fl.request.sid)
                 print(f"Adding {user} to game")
                 active_games[data["room"]].add_player(user.name)
 
@@ -259,14 +264,14 @@ def process_move(data):
     # Only allow input from all players to click continue during round ending
     if game.in_progress and game.mode != "end_round" and fl.session.get("username", "") != game.current_player:
         print("Not accepting move from non-current player while game is in progress.")
-        fio.emit({"debug_msg": f"Server rejecting move request; Client not current player."}, room=data["room"])
+        fio.emit({"debug_msg": f"Server rejecting move request; Client not current player."}, to=fl.request.sid)
         return
     
     # Update based on data.action, data.card
     if game.update(data) == "reject":
         # Send on server reject
         print(f"Rejecting `{data['action']}` from `{fl.session.get('username')}`")
-        # fio.send({"msg": f"Server rejected move event `{data['action']}`"})
+        fio.emit({"debug_msg": f"Server rejected move event `{data['action']}`"}, to=fl.request.sid)
 
     # Send on server accept; Tailored response to each player
     else:
@@ -278,8 +283,9 @@ def process_move(data):
             # is sid needed for this? Not sure how to get all the sids of everyone in room
             print(f"Sending response: \n{response} \non {data['action']}")
             
-            fio.emit("update", response, to = user_to_sid[username], room=data["room"])
-            # fio.send({"msg": f"Server accepted move event `{data['action']}`. Server response: {response}."}, to = user_to_sid[username])
+            fio.emit("update", response, to=user_to_sid[username], room=data["room"])
+            
+            fio.emit({"debug_msg": f"Server accepted move event `{data['action']}`. Server response: {response}."}, to=user_to_sid[username])
     
     # Empty temp log after all players are updated
     game.temp_log = []

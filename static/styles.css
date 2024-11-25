@@ -118,6 +118,12 @@ footer {
     margin: 1rem;
 }
 
+/* Current player */
+.player-container[current='1'] {
+    border: #000000;
+    /* background-color: rgba(128, 0, 128, 0.624); */
+}
+
 #chat-log-container {
     padding-left: 1rem;
     padding-right: 1rem;

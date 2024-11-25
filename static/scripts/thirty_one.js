@@ -223,9 +223,11 @@ function createPlayerPanel() {
 
 function createPlayerContainer(name) {
     console.log(`creating container for ${name}`);
-
-    const playerContainer = document.createElement('p');
+    
     const br = document.createElement('br');
+    
+    const playerContainer = document.createElement('p');
+    playerContainer.className = 'player-container';
 
     // Give container id of 'playerName-container'
     playerContainer.id = name + '-container';
@@ -481,17 +483,24 @@ function update(response) {
         username = response.username;
         console.log(`Adding username ${username}`);
         if (username.length > 0) {
-
-            const chatLogPanel = createChatLogPanel(username);
+            // Create center game panel
+            if (document.querySelector('#game-panel') === null) {
+                const gamePanel = createGamePanel();
+                document.querySelector('.outer-container').appendChild(gamePanel);
+            }
             
-            const gamePanel = createGamePanel();
-            // Move playerpanel into game panel?
-            const playerPanel = createPlayerPanel();
-
-            document.querySelector('.outer-container').appendChild(gamePanel);
-            document.querySelector('.outer-container').appendChild(playerPanel);
-            document.querySelector('.outer-container').appendChild(chatLogPanel);
-
+            // Create player panel - maybe combine with game panel?
+            if (document.querySelector('.player-panel') === null) {
+                const playerPanel = createPlayerPanel();
+                document.querySelector('.outer-container').appendChild(playerPanel);
+            }
+            
+            // Create chat log panel
+            if (document.querySelector('#chat-log-panel') === null) {
+                const chatLogPanel = createChatLogPanel(username);
+                document.querySelector('.outer-container').appendChild(chatLogPanel);
+            }
+            
         };
 
     }
@@ -543,10 +552,13 @@ function update(response) {
                 
                 addToLog(`${player} has left.`)
 
+                let containerID = '#' + player + '-container'
+
                 // Remove player from player panel
-                console.log(`Found ${playerContainer} with id ${containerID}, removing ${player} from panel`);
                 playerContainer = document.querySelector(containerID);
                 document.querySelector('.player-panel').removeChild(playerContainer);
+                
+                console.log(`Found ${playerContainer} with id ${containerID}, removing ${player} from panel`);
 
                 // Remove player from local list
                 const index = playersConnected.indexOf(player);
@@ -624,7 +636,6 @@ function update(response) {
 
             // Once player array is populated, add to player panel for display
             // Turn each attribute (name, order, etc) into a <span> for display
-            containerID = '#' + playerOrder[i] + '-container';
             playerID = '#' + playerOrder[i];
 
 
@@ -667,9 +678,13 @@ function update(response) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
                 document.querySelector(playerID + '-current').innerHTML = 'current';
+                
+                // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
+                document.querySelector(playerID + '-container').setAttribute('current', '1');
             }
             else {
                 document.querySelector(playerID + '-current').innerHTML = '';
+                document.querySelector(playerID + '-container').setAttribute('current', '0');
             }
         }
     }
