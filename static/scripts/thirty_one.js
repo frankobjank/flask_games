@@ -604,6 +604,9 @@ function update(response) {
         // Enable continue button on round end (and NOT on game end)
         if (mode === 'end_round') {
             document.querySelector('#continue-button').disabled = false;
+            
+            // TODO figure out how to delay display of winner by ~3 seconds to make reveal more realistic to a real game
+            // Maybe use roundEnd flag that gets reset every round start. Or can go by specific log messages but that seems more fragile
         }
 
         // Add discard card to display on discard button

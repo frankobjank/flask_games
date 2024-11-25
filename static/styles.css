@@ -1,8 +1,11 @@
 /* Use root to set global var grid size */
 :root {
+    /* Minesweeper square settings */
     --grid-width: 9;
     --grid-height: 9;
     --sq-size: 1.75rem;
+    
+    /* Makes all nav links white */
     --bs-nav-link-color: white;
 }
 
