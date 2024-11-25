@@ -118,10 +118,9 @@ footer {
     margin: 1rem;
 }
 
-/* Current player */
+/* Visual marker for current player */
 .player-container[current='1'] {
-    border: #000000;
-    /* background-color: rgba(128, 0, 128, 0.624); */
+    border: 1px solid #000000;
 }
 
 #chat-log-container {
@@ -133,7 +132,7 @@ footer {
     background-color: #c8d5e3;
     color: rgb(46, 45, 45);
     border-radius: 5px;
-    border: 3px solid #0b0b0b;
+    /* border: 3px solid #0b0b0b; */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);   
 }
 

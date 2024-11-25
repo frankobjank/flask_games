@@ -296,33 +296,33 @@ function createPlayerContainer(name) {
 
 // ADDED FROM SANDBOX
 // Add message to chat log
-function addToLog(msg, username="") {
+function addToLog(msg, sender="") {
     chatLogCount++;
     
     const msgElement = document.createElement('div');
     msgElement.className = 'chat-log-message';
     msgElement.id = 'chat-log-message-' + chatLogCount;
     
-    // Add username to msg only if username is given; otherwise system message
-    if (username.length > 0) {
-        const usernameSpan = document.createElement('span');
-        usernameSpan.className = 'player-name chat message';
-        usernameSpan.id = 'username-span-' + username;
-        // Can set color by username !
-        // usernameSpan.style.color = 'blue';
-        usernameSpan.innerHTML = username + ': ';
+    // Add sender to msg only if sender is given; otherwise system message
+    if (sender.length > 0) {
+        const senderSpan = document.createElement('span');
+        senderSpan.className = 'player-name chat message';
+        senderSpan.id = 'sender-span-' + sender;
+        // Can set color by sender !
+        // senderSpan.style.color = 'blue';
+        senderSpan.innerHTML = sender + ': ';
 
-        msgElement.append(usernameSpan);
+        msgElement.append(senderSpan);
     }
     else {
-        // Set username to 'system' if no username provided
-        username = 'system';
+        // Set sender to 'system' if no sender provided
+        sender = 'system';
     }
 
     msgElement.innerHTML += msg;
     
     // Set custom attribute 'sender' for all msgs
-    msgElement.setAttribute('sender', username);
+    msgElement.setAttribute('sender', sender);
     // Could add time received to custom attribute and use that to separate if over certain time
     
     // Check sender of previous msg and add line break to beginning of msg if different sender
@@ -619,6 +619,11 @@ function update(response) {
             
             // TODO figure out how to delay display of winner by ~3 seconds to make reveal more realistic to a real game
             // Maybe use roundEnd flag that gets reset every round start. Or can go by specific log messages but that seems more fragile
+        }
+        
+        // Disable continue button on every other mode
+        else {
+            document.querySelector('#continue-button').disabled = true;
         }
 
         // Add discard card to display on discard button

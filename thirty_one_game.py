@@ -345,8 +345,8 @@ class State:
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
-                return
-
+                return "accept"
+            
         # Pause game before next round starts
         if self.mode == "end_round":
             if packet["action"] == "continue":
@@ -361,11 +361,11 @@ class State:
                 if len(self.knocked) > 0:
                     # TODO Personal log
                     self.print_and_log(f"{self.knocked} has already knocked. You must pick a different move.")
-                    return
+                    return "accept"
                 self.knocked = self.current_player
                 self.print_and_log(f"{self.current_player} knocked.")
                 self.end_turn()
-                return
+                return "accept"
 
             elif packet["action"] == "pickup":
                 # convert to str here for type consistency
@@ -381,17 +381,26 @@ class State:
                 self.print_and_log("Must have 4 cards to discard.")
                 return "reject"
             
+            # Catch all other moves with `else`; Hitting continue on main phase was breaking game
+            else:
+                self.print_and_log(f"Move {packet['action']} is not allowed during the main phase.")
+                return "reject"
+            
+            # If taken card has not been set at this point, will raise exception
+            if not taken_card:
+                print("taken_card not set in server update() function")
+                return "reject"
+            
             # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
             
+            # Check for blitz, which will override mode to be end_round instead of discard
             self.check_for_blitz(self.players[self.current_player])
             
             # Only set to discard if round has not ended Check for >3 cards in hand before setting mode to discard
-            if self.mode != "round_end" and len(self.players[self.current_player].hand) > 3:
+            if self.mode != "end_round" and len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
             
-            # Check for blitz, which will override mode to be end_round instead of discard
-            self.check_for_blitz(self.players[self.current_player])
                 
 
         elif self.mode == "discard" and packet["action"] == "discard":
@@ -407,9 +416,15 @@ class State:
             
             # Add to discard
             self.discard.append(chosen_card)
-            self.print_and_log(f"{self.current_player} discarded: {chosen_card}")
+            # 'debug' log the actual card discarded; don't send to players
+            print(f"{self.current_player} discarded: {chosen_card}")
+            # Send general message to player
+            self.print_and_log(f"{self.current_player} discarded.")
             
             self.end_turn()
+        
+        # If not returned early, move was accepted
+        return "accept"
         
 
     # Have two package state functions - one for general and one for specific player info
