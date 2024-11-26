@@ -21,7 +21,7 @@ class User:
     
 
     def __str__(self) -> str:
-        return f"User {self.name}, connected = {self.connected}"
+        return f"{self.name}"
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]

@@ -1,3 +1,5 @@
+// https://socket.io/docs/v4/client-api/
+
 // Room, Socket Variables
 // Initializing socket
 const socket = io();
@@ -25,7 +27,7 @@ var playerOrder = [];
     // player = {name: '', order: 0, lives: 0, handSize: 0, hand: [], handScore: 0};
 let players = {};
 
-
+// On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
 
     // Elements that need to be on screen
@@ -78,8 +80,6 @@ function addOnClick() {
     // Onclick above was not working; Moving to end of function
     document.querySelectorAll('.room-button').forEach(room => {
         room.onclick = () => {
-            console.log(`Adding room button to ${room}`);
-
             if (inProgress) {
                 console.log('Cannot switch rooms when game is in progress.');
                 return;
@@ -216,13 +216,14 @@ function createPlayerPanel() {
     // Fill in this panel as players are added via createPlayerContainer
     const playerPanel = document.createElement('div');
     playerPanel.className = 'player-panel';
+    playerPanel.id = 'player-panel';
 
     return playerPanel;
 }
 
 
 function createPlayerContainer(name) {
-    console.log(`creating container for ${name}`);
+    console.log(`Creating container for ${name}.`);
     
     const br = document.createElement('br');
     
@@ -260,7 +261,6 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(lives);
     playerContainer.appendChild(current);
     
-    console.log(`WHILE CREATING CONTAINER name ${name} === username ${username}`);
     // Only add hand, hand score, knock button for self
     if (name === username) {
         // Put hand in div
@@ -472,103 +472,157 @@ function createHandButton(serverCard) {
     return cardButton;
 }
 
-function update(response) {
+
+function addPlayers(players) {
+    console.log(`Adding players: ${players}`);
+
+    // Save player list
+    for (player of players) {
+        // Check if player already in list
+        if (!(playersConnected.includes(player))) {
+            
+            // If player not in list, add to list and player panel
+            playersConnected.push(player);
+            
+            // Create new container
+            playerContainer = createPlayerContainer(player);
+            document.querySelector('.player-panel').appendChild(playerContainer);
+        }
+    }
+
+}
+
+
+// Opposite of addPlayers
+function removePlayers(players) {
+    console.log(`Removing players: ${players}`)
+        
+    // Remove anyone on local list who isn't on server list
+    for (player of playersConnected) {
+        // Check if player already in list
+        if ((players.includes(player))) {
+            
+            addToLog(`${player} has left.`)
+
+            let containerID = '#' + player + '-container'
+
+            // Remove player from player panel
+            playerContainer = document.querySelector(containerID);
+            document.querySelector('.player-panel').removeChild(playerContainer);
+            
+            console.log(`Found ${playerContainer} with id ${containerID}, removing ${player} from panel`);
+
+            // Remove player from local list
+            const index = playersConnected.indexOf(player);
+            if (index > -1) {
+                playersConnected.splice(index, 1);
+            }
+        }
+    }
+
+}
+
+
+function updateRoom(response) {
     if (response === undefined) {
         console.log('response = undefined');
         return;
     }
     
+    // Add event - setup room to call on join, 
+    //           - teardown room to call on leave
+    
     // On connect, add username, join room
-    if (response.action === 'add_username') {
-        username = response.username;
-        console.log(`Adding username ${username}`);
+    if (response.action === 'setup_room') {
+        // Update global var `currentRoom`
+        currentRoom = response.room;
+        
+        // Disable current room button in room panel
+        for (room of rooms) {
+            roomButtonID = '#' + room + '-button';
+
+            // Disable button if currently in room; Enable all others
+            document.querySelector(roomButtonID).disabled = room === currentRoom;
+        }
+
+        // Assign username if not yet defined
+        if (username === undefined) {
+            username = response.username;
+            console.log(`Adding username ${username}`);
+        }
+
+        // Create game, player, chat panels if username is assigned
         if (username.length > 0) {
-            // Create center game panel
-            if (document.querySelector('#game-panel') === null) {
-                const gamePanel = createGamePanel();
-                document.querySelector('.outer-container').appendChild(gamePanel);
-            }
+            // Create center game panel from scratch on EVERY join 
             
-            // Create player panel - maybe combine with game panel?
-            if (document.querySelector('.player-panel') === null) {
-                const playerPanel = createPlayerPanel();
-                document.querySelector('.outer-container').appendChild(playerPanel);
-            }
+            // Game / player panels are removed on leave
+                        
+            // Create new game panel
+            const gamePanel = createGamePanel();
+            document.querySelector('.outer-container').appendChild(gamePanel);
             
+            
+            // Create new player panel
+            const playerPanel = createPlayerPanel();
+            document.querySelector('.outer-container').appendChild(playerPanel);
+            
+            // Need to decide if new chat log should be created on new join or if old one should persist
             // Create chat log panel
             if (document.querySelector('#chat-log-panel') === null) {
                 const chatLogPanel = createChatLogPanel(username);
                 document.querySelector('.outer-container').appendChild(chatLogPanel);
             }
-            
         };
-
     }
-    
+
+    // On leave
+    else if (response.action === 'teardown_room') {
+        // Set current room to null
+        currentRoom = null;
+
+        // Remove game panel if it exists
+        if (document.querySelector('#game-panel') !== null) {
+            
+            document.querySelector('.outer-container').removeChild(
+                document.querySelector('#game-panel')
+            );
+        }
+
+        // Maybe combine player panel with game panel?
+        // Remove old player panel
+        if (document.querySelector('#player-panel') !== null) {
+            
+            document.querySelector('.outer-container').removeChild(
+                document.querySelector('#player-panel')
+            );
+        }
+        
+        // Reset game vars when leaving room
+        inProgress = false;
+        mode = '';
+        currentPlayer = '';
+        discardCard = '';
+        playerOrder = [];
+        playersConnected = [];
+    }
+
     // Add players to player panel on join
     else if (response.action === 'add_players') {
-
-        console.log(`Received action: add_players, players = ${response.players}`);
-        
-        // Update current room here because this is server confirmation
-        currentRoom = response.room;
-    
-        // Update rooms in room panel
-        for (room of rooms) {
-            roomButtonID = '#' + room + '-button';
-    
-            // Disable button if currently in room; Enable all others
-            document.querySelector(roomButtonID).disabled = room === currentRoom;
-        }
-
-        // Save player list
-        for (player of response.players) {
-            console.log(`PLAYER = ${player}`);
-            // Check if player already in list
-            if (!(playersConnected.includes(player))) {
-                
-                // If player not in list, add to list and player panel
-                playersConnected.push(player);
-                
-                // addToLog(`Welcome, ${player}.`);
-
-                // Create new container
-                console.log(`Creating container for ${player}.`);
-                playerContainer = createPlayerContainer(player);
-                document.querySelector('.player-panel').appendChild(playerContainer);
-            }
-        }
+        addPlayers(response.players);
     }
-
+    
     // Remove players on leave
     else if (response.action === 'remove_players') {
-
-        console.log(`Received action: remove_players, players = ${response.players}`)
-        
-        // Remove anyone on local list who isn't on server list
-        for (player of playersConnected) {
-            // Check if player already in list
-            if ((response.players.includes(player))) {
-                
-                addToLog(`${player} has left.`)
-
-                let containerID = '#' + player + '-container'
-
-                // Remove player from player panel
-                playerContainer = document.querySelector(containerID);
-                document.querySelector('.player-panel').removeChild(playerContainer);
-                
-                console.log(`Found ${playerContainer} with id ${containerID}, removing ${player} from panel`);
-
-                // Remove player from local list
-                const index = playersConnected.indexOf(player);
-                if (index > -1) {
-                    playersConnected.splice(index, 1);
-                }
-            }
-        }
+        removePlayers(response.players);
     }
+}
 
+function updateGame(response) {
+    if (response === undefined) {
+        console.log('response = undefined');
+        return;
+    }
+    
     // Update board based on server response:
 
     // # Generic data
@@ -587,7 +641,7 @@ function update(response) {
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
-    else if (response.action === 'update_board') {
+    if (response.action === 'update_board') {
         
         // Unpack general state
         inProgress = response.in_progress;
@@ -703,44 +757,77 @@ function joinRoom(room) {
     console.log('Client join event.');
     
     // Pass name of room to server
-    socket.emit('join', {'room': room});    
+    socket.emit('join', {'room': room});
+
+    // Prompt server for game state if game is in progress
+    socket.emit('')
 }
 
 // Leave room
 function leaveRoom(username, room) {
     if (currentRoom === null || currentRoom === undefined) {
-        console.log('Leave room called but currently not in a room.');
+        console.log('Leave room called but not in room.');
         return;
     }
     
     // For debug:
-    console.log(`${username} has left the ${room} room.`);
+    console.log(`${username} has left ${room}.`);
 
     socket.emit('leave', {'username': username, 'room': room});
-
-    // Reset game vars when leaving room? Like inProgress, player details
-
-    // Set current room to null - TODO move to post server response
-    currentRoom = null;
 }
 
-// Custom 'update' event on action from server
-socket.on('update', data => {
+// Updating room state
+socket.on('update_room', data => {
     // For debug:
-    console.log(`Client received update event: ${JSON.stringify(data)}.`);
-
-    update(data);
+    console.log(`Client received update_room event: ${JSON.stringify(data)}.`);
+    
+    updateRoom(data);
 });
+
+// Updating game state
+socket.on('update_game', data => {
+    // For debug:
+    console.log(`Client received update game event: ${JSON.stringify(data)}.`);
+    
+    updateGame(data);
+});
+
+// Example from socket.io using socket.recovered
+// socket.on("connect", () => {
+//     if (socket.recovered) {
+//       // any event missed during the disconnection period will be received now
+//     } else {
+//       // new or unrecoverable session
+//     }
+//   });
 
 socket.on('connect', () => {
     console.log('Client connect event.');
+    // Incorporate `socket.recovered`?
 });
 
 // On disconnect, add username
 socket.on('disconnect', () => {
     console.log('Client disconnect event.');
-    // socket.emit('leave', {'username': username, 'room': room});
 });
+
+// Might have to make custom leave / join callbacks 
+// OR can add await to join and leave
+socket.on('join', () => {
+});
+
+// Might have to make custom leave / join callbacks 
+// OR can add await to join and leave
+socket.on('on_leave', () => {
+});
+
+
+// Use this for reloading the page on reconnect - should ping server to reload page? or at least fill in missing info
+socket.on("reconnect", (attempt) => {
+    console.log('ON RECONNECT')
+    // attempt = number of attempts to reconnect
+    // ...
+  });
 
 // Receiving log / chat messages
 socket.on('message', data => {
