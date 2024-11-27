@@ -169,13 +169,13 @@ def on_join(data):
 
     # Set up client's username on their end
     # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
-    fio.emit("update_room", {"action": "setup_room", "username": user.name}, to=fl.request.sid)
+    fio.emit("update_room", {"action": "setup_room", "room": data["room"], "username": user.name}, to=fl.request.sid)
 
     # Join the room
     fio.join_room(data["room"])
     
     # Log msg that player has joined. Username set to empty string since it's a system msg
-    fio.send({"msg": f"{user.name} has joined.", "username": ""}, room=data["room"])
+    fio.send({"msg": f"{user.name} has joined {data['room']}.", "username": ""}, room=data["room"])
 
     # Callback to send updated list of players
     fio.emit("update_room", {"action": "add_players", "room": data["room"], "players": [user.name for user in room_clients[data["room"]] if user.connected]}, room=data["room"], broadcast=True)
@@ -238,6 +238,9 @@ def on_leave(data):
     
     fio.leave_room(data["room"])
     fio.send({"msg": f"{data['username']} has left.", "username": ""}, room=data["room"])
+
+    # Room is implied since a single request sid is only linked to one room (I think)
+    fio.emit("update_room", {"action": "teardown_room"}, to=fl.request.sid)
 
     # Callback to send updated list of players
     fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room)  

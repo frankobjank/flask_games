@@ -536,7 +536,7 @@ function updateRoom(response) {
     if (response.action === 'setup_room') {
         // Update global var `currentRoom`
         currentRoom = response.room;
-        
+
         // Disable current room button in room panel
         for (room of rooms) {
             roomButtonID = '#' + room + '-button';
@@ -566,12 +566,10 @@ function updateRoom(response) {
             const playerPanel = createPlayerPanel();
             document.querySelector('.outer-container').appendChild(playerPanel);
             
-            // Need to decide if new chat log should be created on new join or if old one should persist
             // Create chat log panel
-            if (document.querySelector('#chat-log-panel') === null) {
-                const chatLogPanel = createChatLogPanel(username);
-                document.querySelector('.outer-container').appendChild(chatLogPanel);
-            }
+            const chatLogPanel = createChatLogPanel(username);
+            document.querySelector('.outer-container').appendChild(chatLogPanel);
+            
         };
     }
 
@@ -583,18 +581,19 @@ function updateRoom(response) {
         // Remove game panel if it exists
         if (document.querySelector('#game-panel') !== null) {
             
-            document.querySelector('.outer-container').removeChild(
-                document.querySelector('#game-panel')
-            );
+            // .remove() removes element without having to know parent
+            document.querySelector('#game-panel').remove();
         }
 
         // Maybe combine player panel with game panel?
         // Remove old player panel
         if (document.querySelector('#player-panel') !== null) {
-            
-            document.querySelector('.outer-container').removeChild(
-                document.querySelector('#player-panel')
-            );
+            document.querySelector('#player-panel').remove();
+        }
+        
+        // Remove chat panel
+        if (document.querySelector('#chat-log-panel') !== null) {
+            document.querySelector('#chat-log-panel').remove();
         }
         
         // Reset game vars when leaving room
