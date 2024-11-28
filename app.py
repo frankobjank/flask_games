@@ -98,6 +98,9 @@ def chat():
 # -- FlaskSocketIO -- #
 @socketio.on("join")
 def on_join(data):
+    # Change to unique url room solution?
+        # potentially with option of making public and being added to a lobby
+
     fio.emit("debug_msg", {"msg": "Server callback to join event."}, to=fl.request.sid)
     
     # Check if room full
@@ -106,19 +109,6 @@ def on_join(data):
         fio.emit("debug_msg", {"msg": f"{data['room']} is full, redirecting."}, to=fl.request.sid)
         # Change this to lobby when it exists
         fl.redirect("/")
-    
-    # Create new game State object per room - could be part of room creation?
-    # Add to active games dict, accessed by room name
-    if not active_games.get(data["room"]):
-        active_games[data["room"]] = thirty_one_game.State(data["room"])
-    
-    # If game does exist, check that it is not in progress
-    else:
-        if active_games[data["room"]].in_progress:
-            print(f"Cannot join {data['room']}; Game is in progress.")
-            fio.send({"msg": f"Cannot join {data['room']}; Game is in progress.", "username": ""}, to=fl.request.sid)
-            
-            fl.redirect("/")
 
     # Keep track of rooms joined in flask session dict
     fl.session["rooms"].add(data["room"])
@@ -162,8 +152,8 @@ def on_join(data):
     user.room = data["room"]
     user.connected = True
     
-    # TODO This persists through flask socketio disconnect events so a session can be
-    # recovered. However, this should be cleared every so often so it doesn't just grow
+    # TODO session_to_user dict persists through flask socketio disconnect events so a session 
+    # can be recovered. However, this should be cleared every so often so it doesn't just grow
     # endlessly. Maybe after 12 hours of inactivity?
     session_to_user[user.session_id] = user
 
@@ -199,14 +189,13 @@ def on_join(data):
 
     # Send game data if game in progress
     game = active_games.get(data["room"])
-    if game and game.in_progress:
+
+    if game and game.in_progress and user.name in game.players.keys():
         
         response = game.package_state(user.name)
                     
-        print(f"Sending game state to {user.name} on join: \n{response}")
-        
+        print(f"Sending game state to {user.name} on join: \n{response}")    
         fio.emit("update_game", response, to=fl.request.sid, room=data["room"])
-        
         fio.emit("debug_msg", {"msg": f"Server sent game state on join: {response}."}, to=fl.request.sid)
     
         # Can't empty temp log for one player;
@@ -237,33 +226,28 @@ def on_leave(data):
     fl.session["rooms"].discard(data["room"])
     
     fio.leave_room(data["room"])
-    fio.send({"msg": f"{data['username']} has left.", "username": ""}, room=data["room"])
+    # Sender is empty string - signifies system message
+    fio.send({"msg": f"{data['username']} has left.", "sender": ""}, room=data["room"])
 
     # Room is implied since a single request sid is only linked to one room (I think)
     fio.emit("update_room", {"action": "teardown_room"}, to=fl.request.sid)
 
-    # Callback to send updated list of players
-    fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room)  
-        #, broadcast=True)
-        # Broadcast removed since I don't think it's necessary if room is specified
+    # If game is not in progress - remove leaving player from list of players
+    game = active_games.get(data["room"])
+    if game and not game.in_progress:
+        fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room, include_self=False)
+        # Include self = False since player who is leaving does not need the remove players event
 
 
-# Custom event bucket - "move"
+# Custom event - "move"
 @socketio.on("move")
 def process_move(data):
+
     # For debug:
     print(f"Received move event `{data['action']}` from client `{fl.session.get('username')}`.")
-    # print(f"Received request from client: {data}")
     
-    # Game state should be created on first join (room creation)
-    game = active_games[data["room"]]
-
     # If client requests start, check number of players in room
     if data["action"] == "start":
-        # Reject if game has already started
-        if game.in_progress:
-            fio.emit("debug_msg", {"msg": "Game is already in progress; Cannot start game."}, to=fl.request.sid)
-            print("Game is already in progress.")
         
         # Reject if invalid number of players
         if not (2 <= len([user for user in room_clients[data["room"]] if user.connected]) <= 7):
@@ -272,14 +256,29 @@ def process_move(data):
             
             fio.send({"msg": f"Must have between 2 and 7 people to start game.", "username": ""}, to=fl.request.sid)
             return
-    
+        
+        # Create new game if no game in active games dict
+        if not active_games.get(data["room"]):
+            active_games[data["room"]] = thirty_one_game.State(data["room"])
+        
+        # Reject if game has already started
+        if active_games.get(data["room"]).in_progress:
+            fio.emit("debug_msg", {"msg": "Game is already in progress; Cannot start game."}, to=fl.request.sid)
+            print("Game is already in progress.")
+        
         # Add all players to game state since there are the correct number
         for user in room_clients[data["room"]]:
             if user.connected:
-                fio.emit("debug_msg", {"msg": f"Adding {user} to game"}, to=fl.request.sid)
-                print(f"Adding {user} to game")
-                active_games[data["room"]].add_player(user.name)
+                fio.emit("debug_msg", {"msg": f"Adding {user} to game."}, to=fl.request.sid)
+                print(f"Adding {user} to game.")
+                active_games.get(data["room"]).add_player(user.name)
 
+    game = active_games.get(data["room"])
+    
+    # Exit early if game does not yet exist
+    if not game:
+        fio.emit("debug_msg", {"msg": "Game has not been initialized yet."}, to=fl.request.sid)
+        return
     
     # Check that username is current player if game has started
     # Only allow input from all players to click continue during round ending

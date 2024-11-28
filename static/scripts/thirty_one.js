@@ -223,7 +223,6 @@ function createPlayerPanel() {
 
 
 function createPlayerContainer(name) {
-    console.log(`Creating container for ${name}.`);
     
     const br = document.createElement('br');
     
@@ -474,7 +473,6 @@ function createHandButton(serverCard) {
 
 
 function addPlayers(players) {
-    console.log(`Adding players: ${players}`);
 
     // Save player list
     for (player of players) {
@@ -528,7 +526,7 @@ function updateRoom(response) {
         console.log('response = undefined');
         return;
     }
-    
+
     // Add event - setup room to call on join, 
     //           - teardown room to call on leave
     
@@ -548,53 +546,61 @@ function updateRoom(response) {
         // Assign username if not yet defined
         if (username === undefined) {
             username = response.username;
-            console.log(`Adding username ${username}`);
         }
 
         // Create game, player, chat panels if username is assigned
         if (username.length > 0) {
-            // Create center game panel from scratch on EVERY join 
             
-            // Game / player panels are removed on leave
-                        
+            // Create panels from scratch on EVERY join
+            // Game, player, chat panels are removed on leave
+            
             // Create new game panel
             const gamePanel = createGamePanel();
             document.querySelector('.outer-container').appendChild(gamePanel);
-            
             
             // Create new player panel
             const playerPanel = createPlayerPanel();
             document.querySelector('.outer-container').appendChild(playerPanel);
             
-            // Create chat log panel
-            const chatLogPanel = createChatLogPanel(username);
-            document.querySelector('.outer-container').appendChild(chatLogPanel);
+            if (document.querySelector('#chat-log-panel') === null) {
+                const chatLogPanel = createChatLogPanel(username);
+                document.querySelector('.outer-container').appendChild(chatLogPanel);
+            }
+            else {
+                // If chat log exists it should persist;
+                // Remove and then append to end of outer-container div
+                const chatLogPanel = document.querySelector('.outer-container').removeChild(document.querySelector('#chat-log-panel'));
+
+                document.querySelector('.outer-container').appendChild(chatLogPanel);
+            }
+
             
         };
     }
 
     // On leave
     else if (response.action === 'teardown_room') {
-        // Set current room to null
-        currentRoom = null;
-
+        
         // Remove game panel if it exists
         if (document.querySelector('#game-panel') !== null) {
             
             // .remove() removes element without having to know parent
             document.querySelector('#game-panel').remove();
         }
-
+        
         // Maybe combine player panel with game panel?
         // Remove old player panel
         if (document.querySelector('#player-panel') !== null) {
             document.querySelector('#player-panel').remove();
         }
         
-        // Remove chat panel
-        if (document.querySelector('#chat-log-panel') !== null) {
-            document.querySelector('#chat-log-panel').remove();
-        }
+        // Remove chat panel - or persist chat panel
+        // if (document.querySelector('#chat-log-panel') !== null) {
+        //     document.querySelector('#chat-log-panel').remove();
+        // }
+
+        // Set current room to null
+        currentRoom = null;
         
         // Reset game vars when leaving room
         inProgress = false;
@@ -757,13 +763,14 @@ function joinRoom(room) {
     
     // Pass name of room to server
     socket.emit('join', {'room': room});
-
-    // Prompt server for game state if game is in progress
-    socket.emit('')
+    
+    // Server should check for game state on join and load game if game is in progress
 }
 
 // Leave room
 function leaveRoom(username, room) {
+    console.log('Client leave event.');
+    
     if (currentRoom === null || currentRoom === undefined) {
         console.log('Leave room called but not in room.');
         return;
@@ -830,7 +837,7 @@ socket.on("reconnect", (attempt) => {
 
 // Receiving log / chat messages
 socket.on('message', data => {
-    addToLog(data.msg, data.username);
+    addToLog(data.msg, data.sender);
     console.log(`Client received: ${data.msg}`);
 });
 
