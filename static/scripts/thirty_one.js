@@ -817,16 +817,6 @@ socket.on('disconnect', () => {
     console.log('Client disconnect event.');
 });
 
-// Might have to make custom leave / join callbacks 
-// OR can add await to join and leave
-socket.on('join', () => {
-});
-
-// Might have to make custom leave / join callbacks 
-// OR can add await to join and leave
-socket.on('on_leave', () => {
-});
-
 
 // Use this for reloading the page on reconnect - should ping server to reload page? or at least fill in missing info
 socket.on("reconnect", (attempt) => {
