@@ -154,7 +154,7 @@ def on_join(data):
 
     # Add new user to room clients
     room_clients[data["room"]].append(user)
-    print(f"ADDING {user} from {data['room']}")
+    print(f"ADDING {user} to {data['room']}")
     
     user.room = data["room"]
     user.connected = True
@@ -206,7 +206,7 @@ def on_join(data):
         fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
         
         # If player is rejoining, update connection status for all other clients
-        fio.emit("update_room", {"action": "conn_status", "room": room, "players": user.name, "connected": True}, room=room, broadcast=True)
+        fio.emit("update_room", {"action": "conn_status", "room": room, "players": [user.name], "connected": True}, room=room, broadcast=True)
         
         # Can't empty temp log for one player;
         # This will probably result in duplicate messages coming to the joined player
@@ -229,27 +229,31 @@ def on_leave(data):
     
     print(f"{data['username']} has left the {data['room']} room.")
 
-    # Remove user from room clients dict
+    # In lieu of removing user from room clients dict:
+    # Set connected to False so that user persists
     for user in room_clients[data["room"]]:
         if fl.session["session_id"] == user.session_id and fl.session["username"] == user.name:
-            # Set connected to False rather than removing from list
             user.connected = False
             
     
     fl.session["rooms"].discard(data["room"])
     
     fio.leave_room(data["room"])
+
     # Sender is empty string - signifies system message
-    fio.send({"msg": f"{data['username']} has left.", "sender": ""}, room=data["room"])
+    # This is logged on client side on removePlayers function
+    # fio.send({"msg": f"{data['username']} has left.", "sender": ""}, room=data["room"])
 
     # Room is implied since a single request sid is only linked to one room (I think)
     fio.emit("update_room", {"action": "teardown_room"}, to=fl.request.sid)
 
-    # If game is not in progress - remove leaving player from list of players
     game = active_games.get(data["room"])
-    if game and not game.in_progress:
-        fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room, include_self=False)
-        # Include self = False since player who is leaving does not need the remove players event
+
+    # If not game OR if game AND game is not in progress:
+    # Remove leaving player from list of players
+    if not game or (game and not game.in_progress):
+        # Broadbast = True since notification should go to all other players in room
+        fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room, broadcast=True)
     
     return "Server callback: leave fully processed."
 
@@ -342,11 +346,14 @@ def on_connect():
     # This may be handled by socketio `reconnect` - check documentation
     # Can probably remove the below code as it did not seem to work
 
-    check_user = session_to_user.get(fl.session["session_id"])
-    if check_user:
-        print(f"Found user in session dict; Calling join room on {check_user.room}")
-        fio.join_room(check_user.room)
-        fio.emit("update_room", {"action": "conn_status", "room": check_user.room, "players": check_user.name, "connected": True}, room=check_user.room, broadcast=True)
+    # Connect happens on lobby so connect doesn't actually mean reconnecting to a room
+    # Re-join is covered in on_join
+    
+    # check_user = session_to_user.get(fl.session["session_id"])
+    # if check_user:
+    #     print(f"Found user in session dict; Calling join room on {check_user.room}")
+    #     fio.join_room(check_user.room)
+    #     fio.emit("update_room", {"action": "conn_status", "room": check_user.room, "players": [check_user.name], "connected": True}, room=check_user.room, broadcast=True)
 
 
 
@@ -403,7 +410,7 @@ def on_disconnect():
                             # However, let other clients in room know that the player has disconnected so they are aware. 
                             # Can add visual indicator on client-side.
                             else:
-                                fio.emit("update_room", {"action": "conn_status", "room": room, "players": user.name, "connected": False}, room=room, broadcast=True)                        
+                                fio.emit("update_room", {"action": "conn_status", "room": room, "players": [user.name], "connected": False}, room=room, broadcast=True)                        
         
         # End of loop
 

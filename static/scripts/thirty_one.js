@@ -644,14 +644,25 @@ function updateRoom(response) {
         
         // Response player should only contain 1 player for conn_status messages
         for (player of response.players) {
+            
+            // Check if player exists - player may not have been added yet
+            if (document.querySelector('#' + player + '-container') ===  null) {
+                continue;
+            }
+
+            console.log(`Update conn status for ${player}: ${response.connected}`);
 
             // Set `connected` attribute; 1 for true and 0 for false
             // Update local `players` object
             if (response.connected) {
+                console.log('Connected eval to true');
+
                 document.querySelector('#' + player + '-container').setAttribute('connected', '1');
                 players[player].connected = true;
             }
             else {
+                console.log('Connected eval to false');
+                
                 document.querySelector('#' + player + '-container').setAttribute('connected', '0');
                 players[player].connected = false;
             }
