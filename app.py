@@ -1,4 +1,5 @@
 # Python official modules
+import logging
 import sqlite3
 from time import time, localtime, strftime
 import werkzeug.security as ws
@@ -26,6 +27,10 @@ app.config["SECRET_KEY"] = "secret!"
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+# Sets flask logging to Error only
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 # Configure socketio
 socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
@@ -101,14 +106,16 @@ def on_join(data):
     # Change to unique url room solution?
         # potentially with option of making public and being added to a lobby
 
-    fio.emit("debug_msg", {"msg": "Server callback to join event."}, to=fl.request.sid)
+    fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
     # Check if room full
     if is_full(room_users = data["room"], max_players = 7):
+        
         print(f"{data['room']} is full, redirecting.")
         fio.emit("debug_msg", {"msg": f"{data['room']} is full, redirecting."}, to=fl.request.sid)
-        # Change this to lobby when it exists
-        fl.redirect("/")
+        
+        # Redirect to lobby
+        fl.redirect("/thirty_one")
 
     # Keep track of rooms joined in flask session dict
     fl.session["rooms"].add(data["room"])
@@ -196,13 +203,18 @@ def on_join(data):
                     
         print(f"Sending game state to {user.name} on join: \n{response}")    
         fio.emit("update_game", response, to=fl.request.sid, room=data["room"])
-        fio.emit("debug_msg", {"msg": f"Server sent game state on join: {response}."}, to=fl.request.sid)
-    
+        fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
+        
+        # If player is rejoining, update connection status for all other clients
+        fio.emit("update_room", {"action": "conn_status", "room": room, "players": user.name, "connected": True}, room=room, broadcast=True)
+        
         # Can't empty temp log for one player;
         # This will probably result in duplicate messages coming to the joined player
-        # Probably have to create individual logs
+        # Will probably have to create individual logs
         
         # game.temp_log = []
+    
+    return "Server callback: join fully processed"
         
 
 @socketio.on("leave")
@@ -239,7 +251,7 @@ def on_leave(data):
         fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room, include_self=False)
         # Include self = False since player who is leaving does not need the remove players event
     
-    return "Server accepted leave event."
+    return "Server callback: leave fully processed."
 
 
 # Custom event - "move"
@@ -330,10 +342,12 @@ def on_connect():
     # This may be handled by socketio `reconnect` - check documentation
     # Can probably remove the below code as it did not seem to work
 
-    # check_user = session_to_user.get(fl.session["session_id"])
-    # if check_user:
-    #     print(f"Found user in session dict; Calling join room on {check_user.room}")
-    #     fio.join_room(check_user.room)
+    check_user = session_to_user.get(fl.session["session_id"])
+    if check_user:
+        print(f"Found user in session dict; Calling join room on {check_user.room}")
+        fio.join_room(check_user.room)
+        fio.emit("update_room", {"action": "conn_status", "room": check_user.room, "players": check_user.name, "connected": True}, room=check_user.room, broadcast=True)
+
 
 
 @socketio.on("disconnect")
@@ -363,11 +377,35 @@ def on_disconnect():
                 # of session id to not remove the wrong user
                 if user.name == username and user.session_id == fl.session["session_id"]:
                     user.connected = False
-                    
-                    fio.emit("update_room", {"action": "remove_players", "players": username}, room=user.room, broadcast=True)
+
+                    # fio.rooms returns all rooms a client is in
+                    for room in fio.rooms():
+
+                        game = active_games.get(room)
+                        
+                        # Remove player if no game
+                        if not game:
+                            fio.emit("update_room", {"action": "remove_players", "room": room, "players": user.name}, room=room, broadcast=True)
+                            print(f"Sending update to room {room} to remove `{user.name}`")
+
+                        # If game, check if game is in progress
+                        elif game:
+                            
+                            # If game is not running, remove player. Otherwise keep player until game is officially reset
+                            if not game.in_progress:
+
+                                # I think broadcast = True is equivalent to include self = False in this case
+                                # Player who is leaving does not need the remove players event
+                                fio.emit("update_room", {"action": "remove_players", "room": room, "players": user.name}, room=room, broadcast=True)
+
+                                print(f"Sending update to room {room} to remove `{user.name}`")
+                            
+                            # However, let other clients in room know that the player has disconnected so they are aware. 
+                            # Can add visual indicator on client-side.
+                            else:
+                                fio.emit("update_room", {"action": "conn_status", "room": room, "players": user.name, "connected": False}, room=room, broadcast=True)                        
         
-                    print(f"Sending update to room {user.room} to remove `{username}`")
-                    
+        # End of loop
 
         # Remove user from user to sid dict
         user_to_sid.pop(username)

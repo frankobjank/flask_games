@@ -91,19 +91,21 @@ function addOnClick() {
                 addToLog(msg);
 
             } else {
+                // Join room if not in room
                 if (currentRoom === undefined) {
                     joinRoom(room.innerHTML);
                 } else {
-                    // Process leaveRoom as a promise
+
+                    // Else leave current room and join new room
                     const promise = leaveRoom(username, currentRoom);
-                            
+                    
+                    // Process leaveRoom as a promise
                     promise
                         .then(() => {
-                            console.log('~ Post-leave, Pre-join: Insert room teardown here ~');
+                            // On successful leave, teardown will be requested by server
+                            console.log('Successfully left room.');
+
                             joinRoom(room.innerHTML);
-                            console.log('~ Post-join: Insert room setup here ~');
-                            // Need another blocking function for room setup?
-                            console.log('~ Post-room setup: Game setup ~');
                         })
                         .catch((error) => {
                             console.log(`Could not leave ${currentRoom}: ${error}`);
@@ -362,6 +364,13 @@ function createChatLogPanel(username) {
     const chatLogContainer = document.createElement('div');
     chatLogContainer.className = 'chat log container rounded-0';
     chatLogContainer.id = 'chat-log-container';
+    
+    const chatLogHeader = document.createElement('div');
+    chatLogHeader.className = 'chat log header';
+    chatLogHeader.id = 'chat-log-header';
+    // Header should display room name - and player name?
+    chatLogHeader.innerHTML = '<h4>' + username + ' - ' + currentRoom + '</h4>';
+    
 
     const chatLogMessages = document.createElement('div');
     chatLogMessages.className = 'chat log messages';
@@ -420,6 +429,7 @@ function createChatLogPanel(username) {
     // input end
 
     // Add messages & input to container
+    chatLogContainer.appendChild(chatLogHeader);
     chatLogContainer.appendChild(chatLogMessages);
     chatLogContainer.appendChild(inputContainer);
 
@@ -536,11 +546,8 @@ function updateRoom(response) {
         console.log('response = undefined');
         return;
     }
-
-    // Add event - setup room to call on join, 
-    //           - teardown room to call on leave
     
-    // On connect, add username, join room
+    // Called on join. Client adds username, builds room.
     if (response.action === 'setup_room') {
         // Update global var `currentRoom`
         currentRoom = response.room;
@@ -582,13 +589,11 @@ function updateRoom(response) {
                 const chatLogPanel = document.querySelector('.outer-container').removeChild(document.querySelector('#chat-log-panel'));
 
                 document.querySelector('.outer-container').appendChild(chatLogPanel);
-            }
-
-            
+            }         
         };
     }
 
-    // On leave
+    // Called on leave. Removes panels so they can be re-added with new data.
     else if (response.action === 'teardown_room') {
         
         // Remove game panel if it exists
@@ -605,9 +610,12 @@ function updateRoom(response) {
         }
         
         // Remove chat panel - or persist chat panel
-        // if (document.querySelector('#chat-log-panel') !== null) {
-        //     document.querySelector('#chat-log-panel').remove();
-        // }
+        if (document.querySelector('#chat-log-panel') !== null) {
+            document.querySelector('#chat-log-panel').remove();
+            
+            // Reset msg count to 0 if chat is not persisting
+            chatLogCount = 0;
+        }
 
         // Set current room to null
         currentRoom = null;
@@ -629,6 +637,26 @@ function updateRoom(response) {
     // Remove players on leave
     else if (response.action === 'remove_players') {
         removePlayers(response.players);
+    }
+
+    // Update player connection
+    else if (response.action === 'conn_status') {
+        
+        // Response player should only contain 1 player for conn_status messages
+        for (player of response.players) {
+
+            // Set `connected` attribute; 1 for true and 0 for false
+            // Update local `players` object
+            if (response.connected) {
+                document.querySelector('#' + player + '-container').setAttribute('connected', '1');
+                players[player].connected = true;
+            }
+            else {
+                document.querySelector('#' + player + '-container').setAttribute('connected', '0');
+                players[player].connected = false;
+            }
+
+        }
     }
 }
 
@@ -706,7 +734,7 @@ function updateGame(response) {
         for (let i = 0; i < playerOrder.length; i++) {
             
             // playerOrder[i] is the player name
-            players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i]};
+            players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i], 'connected': true};
 
             // Once player array is populated, add to player panel for display
             // Turn each attribute (name, order, etc) into a <span> for display
@@ -751,15 +779,18 @@ function updateGame(response) {
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                document.querySelector(playerID + '-current').innerHTML = 'current';
+                // document.querySelector(playerID + '-current').innerHTML = 'current';
                 
                 // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
                 document.querySelector(playerID + '-container').setAttribute('current', '1');
             }
             else {
-                document.querySelector(playerID + '-current').innerHTML = '';
+                // document.querySelector(playerID + '-current').innerHTML = '';
                 document.querySelector(playerID + '-container').setAttribute('current', '0');
             }
+
+            // Set connected status to True when creating player
+            document.querySelector(playerID + '-container').setAttribute('connected', '1');
         }
     }
 }
@@ -777,7 +808,7 @@ function joinRoom(room) {
     // Server should check for game state on join and load game if game is in progress
 }
 
-// Leave room
+// Leave room - async function so it blocks join from running until room teardown
 async function leaveRoom(username, room) {
     
     console.log('Requesting leave event.')
