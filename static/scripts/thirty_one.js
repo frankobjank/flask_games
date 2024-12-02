@@ -94,12 +94,22 @@ function addOnClick() {
                 if (currentRoom === undefined) {
                     joinRoom(room.innerHTML);
                 } else {
-                    // Leave current room and join new one
-                    leaveRoom(username, currentRoom);
-                    joinRoom(room.innerHTML);    
+                    // Process leaveRoom as a promise
+                    const promise = leaveRoom(username, currentRoom);
+                            
+                    promise
+                        .then(() => {
+                            console.log('~ Post-leave, Pre-join: Insert room teardown here ~');
+                            joinRoom(room.innerHTML);
+                            console.log('~ Post-join: Insert room setup here ~');
+                            // Need another blocking function for room setup?
+                            console.log('~ Post-room setup: Game setup ~');
+                        })
+                        .catch((error) => {
+                            console.log(`Could not leave ${currentRoom}: ${error}`);
+                        });
                 }
             }
-
         }
     });
 }
@@ -768,18 +778,25 @@ function joinRoom(room) {
 }
 
 // Leave room
-function leaveRoom(username, room) {
-    console.log('Client leave event.');
+async function leaveRoom(username, room) {
     
+    console.log('Requesting leave event.')
+
     if (currentRoom === null || currentRoom === undefined) {
         console.log('Leave room called but not in room.');
         return;
     }
-    
-    // For debug:
-    console.log(`${username} has left ${room}.`);
 
-    socket.emit('leave', {'username': username, 'room': room});
+    try {
+        // Using emitWithAck - has a callback and is blocking
+        const response = await socket.emitWithAck('leave', {'username': username, 'room': room});
+        console.log(`Response = ${response}`);
+        return response;        
+    } 
+    catch (err) {
+        throw new Error(`Leave error: ${err}`);
+    }
+
 }
 
 // Updating room state
@@ -812,7 +829,6 @@ socket.on('connect', () => {
     // Incorporate `socket.recovered`?
 });
 
-// On disconnect, add username
 socket.on('disconnect', () => {
     console.log('Client disconnect event.');
 });

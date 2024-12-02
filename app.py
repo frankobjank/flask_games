@@ -212,7 +212,8 @@ def on_leave(data):
     # For debug:
     print("ON LEAVE")
     
-    fio.emit("debug_msg", {"msg": "Server callback to leave event."}, to=fl.request.sid)
+    # Replacing callbacks with return statements
+    # fio.emit("debug_msg", {"msg": "Server callback to leave event."}, to=fl.request.sid)
     
     print(f"{data['username']} has left the {data['room']} room.")
 
@@ -237,6 +238,8 @@ def on_leave(data):
     if game and not game.in_progress:
         fio.emit("update_room", {"action": "remove_players", "room": data["room"], "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, room=user.room, include_self=False)
         # Include self = False since player who is leaving does not need the remove players event
+    
+    return "Server accepted leave event."
 
 
 # Custom event - "move"
@@ -323,10 +326,14 @@ def message(data):
 def on_connect():
     fl.session["session_id"] = fl.request.cookies.get("session")
     
-    check_user = session_to_user.get(fl.session["session_id"])
-    if check_user:
-        print(f"Found user in session dict; Calling join room on {check_user.room}")
-        fio.join_room(check_user.room)
+    # Automatically re-join room if session cookie is stored on server
+    # This may be handled by socketio `reconnect` - check documentation
+    # Can probably remove the below code as it did not seem to work
+
+    # check_user = session_to_user.get(fl.session["session_id"])
+    # if check_user:
+    #     print(f"Found user in session dict; Calling join room on {check_user.room}")
+    #     fio.join_room(check_user.room)
 
 
 @socketio.on("disconnect")
