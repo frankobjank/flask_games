@@ -147,6 +147,9 @@ def on_join(data):
 
     # Assign random name if session id not found
     if len(user.name) == 0:
+        
+        # ALLOW USER TO CREATE THEIR OWN USERNAME - will have to implement on client side
+
         # Pass in current room names to avoid duplicates
         user.name = get_random_name(exclude = {connected_user.name for connected_user in room_clients[data["room"]]})
         print(f"Random name chosen = {user.name}")
