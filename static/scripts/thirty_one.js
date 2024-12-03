@@ -494,49 +494,43 @@ function createHandButton(serverCard) {
 
 
 function addPlayers(players) {
-    console.log(`Adding players: ${players}`);
 
     // Save player list
     for (let i = 0; i < players.length; i++) {
-
-        console.log(`Now adding players[i]: ${players[i]}`)
 
         // Check if player already in list
         if (!(playersConnected.includes(players[i]))) {
             
             // If player not in list, add to list and player panel
-            playersConnected.push(players[i])
-        };
+            playersConnected.push(players[i]);
+        }
 
         // Check if container exists already
         if (document.querySelector('#' + players[i] + '-container') === null) {
             
             // Create new container if one does not exist
-            playerContainer = createPlayerContainer(players[i])
-            document.querySelector('.player-panel').appendChild(playerContainer)
+            playerContainer = createPlayerContainer(players[i]);
+            document.querySelector('.player-panel').appendChild(playerContainer);
         }
 
         // If container already exists, set their connection status to connected
         else {
-            document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1')
-            players[i].connected = true
-        };
-    };
+            document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1');
+            players[i].connected = true;
+        }
+    }
 
 }
 
 
 // Opposite of addPlayers
 function removePlayers(players) {
-    console.log(`Removing players: ${players}`)
         
     // Remove anyone on local list who isn't on server list
     for (let i = 0; i < playersConnected.length; i++) {
         // Check if player already in list
         if ((players.includes(playersConnected[i]))) {
             
-            addToLog(`${playersConnected[i]} has left.`)
-
             let containerID = '#' + playersConnected[i] + '-container'
 
             // Remove player from player panel
@@ -545,16 +539,8 @@ function removePlayers(players) {
             
             console.log(`Found ${playerContainer} with id ${containerID}, removing ${playersConnected[i]} from panel`);
             
-            
-            // Since using index to loop, can just splice at i (I think)
             // Remove player from local list
             playersConnected.splice(i, 1);
-            
-            // Old method
-            // const index = playersConnected.indexOf(playersConnected[i]);
-            // if (index > -1) {
-            //     playersConnected.splice(index, 1);
-            // }
         }
     }
 
@@ -709,11 +695,15 @@ function updateGame(response) {
     // "discard": discard_card,  # top card of discard pile
     // "hand_sizes": hand_sizes,  # number of cards in each players' hands
     // "lives": lives,  # remaining lives of all players
+    // "dealer": self.dealer,  # dealer of round
+    // "knocked": self.knocked,  # player who knocked (empty string until a knock)
 
     // # Specific to player
     // "recipient": player_name,
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
+
+    // Add markers for dealer and knocked
     
     if (response.action === 'update_board') {
         
@@ -895,16 +885,16 @@ socket.on('disconnect', () => {
 
 
 // Use this for reloading the page on reconnect - should ping server to reload page? or at least fill in missing info
-socket.on("reconnect", (attempt) => {
+socket.on('reconnect', (attempt) => {
     console.log('ON RECONNECT')
     // attempt = number of attempts to reconnect
     // ...
   });
 
 // Receiving log / chat messages
-socket.on('message', data => {
+socket.on('chat_log', data => {
     addToLog(data.msg, data.sender);
-    console.log(`Client received: ${data.msg}`);
+    console.log(`Client received: ${data.msg} from ${data.sender}`);
 });
 
 // Receiving log / chat messages

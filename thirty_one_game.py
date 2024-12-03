@@ -454,9 +454,11 @@ class State:
             "in_progress": self.in_progress,  # whether game is in progress
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name
+            "dealer": self.dealer,  # dealer of round
+            "knocked": self.knocked,  # player who knocked (empty string until a knock)
+            "lives": lives,  # remaining lives of all players
             "discard": discard_card,  # top card of discard pile
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
-            "lives": lives,  # remaining lives of all players
             "log": self.temp_log,  # new log msgs - might split for each player
             
             # Specific to player

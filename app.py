@@ -170,7 +170,7 @@ def on_join(data):
     fio.join_room(data["room"])
     
     # Log msg that player has joined. Username set to empty string since it's a system msg
-    fio.send({"msg": f"{user.name} has joined {data['room']}.", "username": ""}, room=data["room"])
+    fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
     # Callback to send updated list of players
     fio.emit("update_room", {"action": "add_players", "room": data["room"], "players": [user.name for user in room_clients[data["room"]] if user.connected]}, room=data["room"], broadcast=True)
@@ -239,8 +239,7 @@ def on_leave(data):
     fio.leave_room(data["room"])
 
     # Sender is empty string - signifies system message
-    # This is logged on client side on removePlayers function
-    # fio.send({"msg": f"{data['username']} has left.", "sender": ""}, room=data["room"])
+    fio.emit("chat_log", {"msg": f"{data['username']} has left.", "sender": "", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
     # Room is implied since a single request sid is only linked to one room (I think)
     fio.emit("update_room", {"action": "teardown_room"}, to=fl.request.sid)
@@ -271,7 +270,7 @@ def process_move(data):
             fio.emit("debug_msg", {"msg": "Invalid number of players."}, to=fl.request.sid)
             print("Invalid number of players.")
             
-            fio.send({"msg": f"Must have between 2 and 7 people to start game.", "username": ""}, to=fl.request.sid)
+            fio.emit("chat_log", {"msg": f"Must have between 2 and 7 people to start game.", "sender": "", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
             return
         
         # Create new game if no game in active games dict
@@ -333,7 +332,7 @@ def message(data):
     
     print(f"Received chat msg {data['msg']} from {data['username']}")
     
-    fio.send({"msg": data["msg"], "username": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+    fio.emit("chat_log", {"msg": data["msg"], "sender": data["username"], "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
 
 @socketio.on("connect")
