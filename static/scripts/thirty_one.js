@@ -505,24 +505,23 @@ function addPlayers(players) {
         if (!(playersConnected.includes(players[i]))) {
             
             // If player not in list, add to list and player panel
-            playersConnected.push(players[i]);
-            
-        }
+            playersConnected.push(players[i])
+        };
 
         // Check if container exists already
         if (document.querySelector('#' + players[i] + '-container') === null) {
             
             // Create new container if one does not exist
-            playerContainer = createPlayerContainer(players[i]);
-            document.querySelector('.player-panel').appendChild(playerContainer);
+            playerContainer = createPlayerContainer(players[i])
+            document.querySelector('.player-panel').appendChild(playerContainer)
         }
 
         // If container already exists, set their connection status to connected
         else {
-            document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1');
-            players[players[i]].connected = true;
-        }
-    }
+            document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1')
+            players[i].connected = true
+        };
+    };
 
 }
 
