@@ -57,7 +57,7 @@ function createRoomPanel() {
     const roomPanel = document.createElement('div');
     roomPanel.className = 'room-panel';
     
-    for (roomName of rooms) {
+    for (const roomName of rooms) {
         const roomButton = document.createElement('button');
         roomButton.className = 'room-button';
         roomButton.id = roomName + '-button';
@@ -305,7 +305,6 @@ function createPlayerContainer(name) {
     return playerContainer;
 }
 
-// ADDED FROM SANDBOX
 // Add message to chat log
 function addToLog(msg, sender="") {
     chatLogCount++;
@@ -314,6 +313,8 @@ function addToLog(msg, sender="") {
     msgElement.className = 'chat-log-message';
     msgElement.id = 'chat-log-message-' + chatLogCount;
     
+    console.log(`Sender on message = ${sender}`);
+
     // Add sender to msg only if sender is given; otherwise system message
     if (sender.length > 0) {
         const senderSpan = document.createElement('span');
@@ -493,18 +494,33 @@ function createHandButton(serverCard) {
 
 
 function addPlayers(players) {
+    console.log(`Adding players: ${players}`);
 
     // Save player list
-    for (player of players) {
+    for (let i = 0; i < players.length; i++) {
+
+        console.log(`Now adding players[i]: ${players[i]}`)
+
         // Check if player already in list
-        if (!(playersConnected.includes(player))) {
+        if (!(playersConnected.includes(players[i]))) {
             
             // If player not in list, add to list and player panel
-            playersConnected.push(player);
+            playersConnected.push(players[i]);
             
-            // Create new container
-            playerContainer = createPlayerContainer(player);
+        }
+
+        // Check if container exists already
+        if (document.querySelector('#' + players[i] + '-container') === null) {
+            
+            // Create new container if one does not exist
+            playerContainer = createPlayerContainer(players[i]);
             document.querySelector('.player-panel').appendChild(playerContainer);
+        }
+
+        // If container already exists, set their connection status to connected
+        else {
+            document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1');
+            players[players[i]].connected = true;
         }
     }
 
@@ -516,25 +532,30 @@ function removePlayers(players) {
     console.log(`Removing players: ${players}`)
         
     // Remove anyone on local list who isn't on server list
-    for (player of playersConnected) {
+    for (let i = 0; i < playersConnected.length; i++) {
         // Check if player already in list
-        if ((players.includes(player))) {
+        if ((players.includes(playersConnected[i]))) {
             
-            addToLog(`${player} has left.`)
+            addToLog(`${playersConnected[i]} has left.`)
 
-            let containerID = '#' + player + '-container'
+            let containerID = '#' + playersConnected[i] + '-container'
 
             // Remove player from player panel
             playerContainer = document.querySelector(containerID);
             document.querySelector('.player-panel').removeChild(playerContainer);
             
-            console.log(`Found ${playerContainer} with id ${containerID}, removing ${player} from panel`);
-
+            console.log(`Found ${playerContainer} with id ${containerID}, removing ${playersConnected[i]} from panel`);
+            
+            
+            // Since using index to loop, can just splice at i (I think)
             // Remove player from local list
-            const index = playersConnected.indexOf(player);
-            if (index > -1) {
-                playersConnected.splice(index, 1);
-            }
+            playersConnected.splice(i, 1);
+            
+            // Old method
+            // const index = playersConnected.indexOf(playersConnected[i]);
+            // if (index > -1) {
+            //     playersConnected.splice(index, 1);
+            // }
         }
     }
 
@@ -553,7 +574,7 @@ function updateRoom(response) {
         currentRoom = response.room;
 
         // Disable current room button in room panel
-        for (room of rooms) {
+        for (const room of rooms) {
             roomButtonID = '#' + room + '-button';
 
             // Disable button if currently in room; Enable all others
@@ -643,7 +664,7 @@ function updateRoom(response) {
     else if (response.action === 'conn_status') {
         
         // Response player should only contain 1 player for conn_status messages
-        for (player of response.players) {
+        for (const player of response.players) {
             
             // Check if player exists - player may not have been added yet
             if (document.querySelector('#' + player + '-container') ===  null) {
@@ -704,7 +725,7 @@ function updateGame(response) {
         discardCard = response.discard;
 
         // Fill log
-        for (msg of response.log) {
+        for (const msg of response.log) {
             addToLog(msg);
         }
         
@@ -760,8 +781,6 @@ function updateGame(response) {
             
             // Update hand size
             document.querySelector(playerID + '-hand-size').innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
-            console.log(`username = ${username}`)
-            console.log(`playerOrder[i] = ${playerOrder[i]}`)
             
             // If self, update hand with exact cards
             if (username === playerOrder[i]) {
@@ -777,7 +796,7 @@ function updateGame(response) {
                 }
 
                 // Create buttons for hand with array from server
-                for (card of response.hand) {
+                for (const card of response.hand) {
                     playerHandContainer.appendChild(createHandButton(card));
                 }
                 

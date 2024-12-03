@@ -53,7 +53,7 @@ user_to_sid = {}  # Player: list of sids --- might need to move this to be
 
 # Maybe put User(username, session_id) into room_clients instead of just names?
 room_clients = {r: [] for r in GAMEROOMS}  # Room: set(players)
-active_games = {}  # Room: Game State
+room_to_game = {}  # Room: Game State
 
 
 # Users can set username without creating an account
@@ -144,7 +144,6 @@ def on_join(data):
             
             # Remove old copy of client, will append new client later
             room_clients[data["room"]].remove(old_user)
-            print(f"REMOVING {old_user} from {data['room']}")
 
     # Assign random name if session id not found
     if len(user.name) == 0:
@@ -154,7 +153,6 @@ def on_join(data):
 
     # Add new user to room clients
     room_clients[data["room"]].append(user)
-    print(f"ADDING {user} to {data['room']}")
     
     user.room = data["room"]
     user.connected = True
@@ -195,7 +193,7 @@ def on_join(data):
         print(f"room {room} clients at end of JOIN \n{users}")
 
     # Send game data if game in progress
-    game = active_games.get(data["room"])
+    game = room_to_game.get(data["room"])
 
     if game and game.in_progress and user.name in game.players.keys():
         
@@ -247,7 +245,7 @@ def on_leave(data):
     # Room is implied since a single request sid is only linked to one room (I think)
     fio.emit("update_room", {"action": "teardown_room"}, to=fl.request.sid)
 
-    game = active_games.get(data["room"])
+    game = room_to_game.get(data["room"])
 
     # If not game OR if game AND game is not in progress:
     # Remove leaving player from list of players
@@ -277,11 +275,11 @@ def process_move(data):
             return
         
         # Create new game if no game in active games dict
-        if not active_games.get(data["room"]):
-            active_games[data["room"]] = thirty_one_game.State(data["room"])
+        if not room_to_game.get(data["room"]):
+            room_to_game[data["room"]] = thirty_one_game.State(data["room"])
         
         # Reject if game has already started
-        if active_games.get(data["room"]).in_progress:
+        if room_to_game.get(data["room"]).in_progress:
             fio.emit("debug_msg", {"msg": "Game is already in progress; Cannot start game."}, to=fl.request.sid)
             print("Game is already in progress.")
         
@@ -290,9 +288,9 @@ def process_move(data):
             if user.connected:
                 fio.emit("debug_msg", {"msg": f"Adding {user} to game."}, to=fl.request.sid)
                 print(f"Adding {user} to game.")
-                active_games.get(data["room"]).add_player(user.name)
+                room_to_game.get(data["room"]).add_player(user.name)
 
-    game = active_games.get(data["room"])
+    game = room_to_game.get(data["room"])
     
     # Exit early if game does not yet exist
     if not game:
@@ -377,7 +375,7 @@ def on_disconnect():
         # Room id is unavailable;
         # Remove player from every room since disconnect implies leaving all rooms
         # DON'T REMOVE from room clients so client can reconnect
-        for users in room_clients.values():
+        for room, users in room_clients.items():
             for user in users:
                 # Should probably change this because different users could have 
                 # the same username in different rooms - added another validation
@@ -385,40 +383,41 @@ def on_disconnect():
                 if user.name == username and user.session_id == fl.session["session_id"]:
                     user.connected = False
 
-                    # fio.rooms returns all rooms a client is in
-                    for room in fio.rooms():
+                    game = room_to_game.get(room)
+                    
+                    # Remove player if no game
+                    if not game:
+                        print("No game exists; removing player.")
+                        fio.emit("update_room", {"action": "remove_players", "room": room, "players": [user.name]}, room=room, broadcast=True)
+                        print(f"Sending update to room {room} to remove `{user.name}`")
 
-                        game = active_games.get(room)
+                    # If game, check if game is in progress
+                    else:
                         
-                        # Remove player if no game
-                        if not game:
-                            fio.emit("update_room", {"action": "remove_players", "room": room, "players": user.name}, room=room, broadcast=True)
+                        # If game is not running, remove player. Otherwise keep player until game is officially reset
+                        if not game.in_progress:
+                            print("Game exists but is not in progress; removing player.")
+
+                            # Broadcast = True; i.e. player who is leaving does not need the remove players event
+                            fio.emit("update_room", {"action": "remove_players", "room": room, "players": [user.name]}, room=room, broadcast=True)
+
                             print(f"Sending update to room {room} to remove `{user.name}`")
+                        
+                        # If game is in progress, let other clients in room know that the player has disconnected 
+                        # Can add visual indicator on client-side
+                        else:
+                            print("Game exists and is in progress; sending disconnect notice to other clients.")
 
-                        # If game, check if game is in progress
-                        elif game:
-                            
-                            # If game is not running, remove player. Otherwise keep player until game is officially reset
-                            if not game.in_progress:
-
-                                # I think broadcast = True is equivalent to include self = False in this case
-                                # Player who is leaving does not need the remove players event
-                                fio.emit("update_room", {"action": "remove_players", "room": room, "players": user.name}, room=room, broadcast=True)
-
-                                print(f"Sending update to room {room} to remove `{user.name}`")
-                            
-                            # However, let other clients in room know that the player has disconnected so they are aware. 
-                            # Can add visual indicator on client-side.
-                            else:
-                                fio.emit("update_room", {"action": "conn_status", "room": room, "players": [user.name], "connected": False}, room=room, broadcast=True)                        
+                            fio.emit("update_room", {"action": "conn_status", "room": room, "players": [user.name], "connected": False}, room=room, broadcast=True)                        
         
         # End of loop
 
         # Remove user from user to sid dict
         user_to_sid.pop(username)
     
-    # Remove sid from sid to user dict
-    sid_to_user.pop(fl.request.sid)
+        # Remove sid from sid to user dict - this must be within `if username` conditional since will only exist if there is a username 
+        sid_to_user.pop(fl.request.sid)
+    
     
     
 # -- End FlaskSocketIO -- #
