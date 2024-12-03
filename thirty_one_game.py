@@ -295,6 +295,7 @@ class State:
         if len(self.players) == 1:
             winner = [p for p in self.players.keys()][0]
             self.print_and_log(f"\n{winner} wins!")
+            self.mode = "end_game"
             self.in_progress = False
 
             # Give clients time to view the ending score/ board, then reset
@@ -430,7 +431,7 @@ class State:
     # Have two package state functions - one for general and one for specific player info
     def package_state(self, player_name) -> dict:
         
-        assert self.in_progress, "Only call once game has started"
+        assert self.mode == "end_game" or self.in_progress, "Only call once game has started or between games"
 
         # Get discard card
         discard_card = None

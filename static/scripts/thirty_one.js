@@ -313,8 +313,6 @@ function addToLog(msg, sender="") {
     msgElement.className = 'chat-log-message';
     msgElement.id = 'chat-log-message-' + chatLogCount;
     
-    console.log(`Sender on message = ${sender}`);
-
     // Add sender to msg only if sender is given; otherwise system message
     if (sender.length > 0) {
         const senderSpan = document.createElement('span');
@@ -661,14 +659,10 @@ function updateRoom(response) {
             // Set `connected` attribute; 1 for true and 0 for false
             // Update local `players` object
             if (response.connected) {
-                console.log('Connected eval to true');
-
                 document.querySelector('#' + player + '-container').setAttribute('connected', '1');
                 players[player].connected = true;
             }
             else {
-                console.log('Connected eval to false');
-                
                 document.querySelector('#' + player + '-container').setAttribute('connected', '0');
                 players[player].connected = false;
             }
