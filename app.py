@@ -314,7 +314,7 @@ def process_move(data):
 
     # Send on server accept; Tailored response to each player
     else:
-        for username in game.players.keys():
+        for username in game.all_players:
             
             response = game.package_state(username)
             
