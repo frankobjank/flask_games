@@ -1,6 +1,10 @@
+from flask import session, redirect
 from functools import wraps
-from flask import request, session, redirect
 import random
+
+# Names to randomly assign
+NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
+
 
 class User:
     def __init__(self, name: str="", session_id: str="", websocket_id: str="", room: str=""):
@@ -22,32 +26,7 @@ class User:
     def __str__(self) -> str:
         return f"{self.name}"
 
-# Names to randomly assign
-NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
 
-
-# Currently not working with flask socketio on_connect - says it needs to take exactly 0 args
-def name_required(f):
-    """
-    Decorate routes to require a username.
-
-    https://flask.palletsprojects.com/en/latest/patterns/viewdecorators/
-    """
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        print("Name required wrapper running")
-        if len(session.get("username", "")) == 0:
-            random_name = get_random_name()
-            print(f"random_name = {random_name}")
-            session["username"] = random_name
-
-        return f(*args, **kwargs)
-
-    return decorated_function
-
-
-# Same as name_required but for accounts instead of just username
 def login_required(f):
     """
     Decorate routes to require login.

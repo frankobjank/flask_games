@@ -11,7 +11,6 @@ import flask_socketio as fio
 
 # Python files
 from helpers import *
-import minesweeper_game
 import thirty_one_game
 
 # link to access app for debug http://127.0.0.1:5001
@@ -73,7 +72,8 @@ def after_request(response):
 
 @app.route("/")
 def index():
-    return fl.render_template("index.html")
+    redirect
+    return fl.render_template("lobby.html")
 
 
 @app.route("/thirty_one") #, methods=["GET", "POST"])
@@ -423,9 +423,7 @@ def on_disconnect():
     user_to_sid.pop(username)
 
     # Remove sid from sid to user dict - this must be within `if username` conditional since will only exist if there is a username 
-    sid_to_user.pop(fl.request.sid)
-    
-    
+    sid_to_user.pop(fl.request.sid)    
     
 # -- End FlaskSocketIO -- #
 
@@ -599,152 +597,6 @@ def apology(message, code=400):
     """Render message as an apology to user."""
     return fl.render_template("apology.html", top=code, bottom=message), code
 # -- End Account Management -- #
-
-
-# -- Minesweeper -- #
-@app.route("/minesweeper", methods=["GET", "POST"])
-def minesweeper():
-    
-    # POST - receive requests and update board
-    if fl.request.method == "POST":
-
-        # Redirect to initial `get` request on reset
-        if fl.request.form.get("reset"):
-            fl.redirect("/minesweeper")
-
-        # Retrieve minesweeper state from session
-        ms = fl.session.get("ms")
-
-        # Prevents accessing from `None`
-        if not ms:
-            return ("", 204)
-
-        # Square index from client
-        square_idx = fl.request.form.get("square", "")
-
-        # Only return data if game not over
-        if len(square_idx) > 0 and not (ms.win or ms.lose):
-            ms.update_server(square_idx)
-            
-            # Connect to database on gameover; should only happen once
-            if ms.game_over:
-                
-                # Validate score received from client to prevent cheating
-                server_score = int(ms.score)
-                client_score = int(fl.request.form.get("score", 0))
-
-                # Test if margin of error is less than 20%
-                if abs(server_score - client_score) < (0.2 * server_score):
-                    server_score = client_score
-
-                # Update database only if logged in
-                if fl.session.get("user_id", 0) != 0:
-                    with sqlite3.connect("database.db") as conn:
-                        conn.execute(
-                            """
-                            INSERT INTO ms_stats (mode, score, win, date, user_id)
-                            VALUES (?, ?, ?, ?, ?)
-                            """, (
-                                ms.difficulty,         # mode
-                                client_score,          # score
-                                ms.win,                # win
-                                int(time()),           # date
-                                fl.session["user_id"]  # user_id
-                            )
-                        )
-                    
-            # Return mines, visible squares to client
-            response = ms.update_packet()
-            
-            return response
-
-        # flask requires a return value; 204 status will keep browser on current page
-        return ("", 204)
-
-    # GET - create board and send
-    elif fl.request.method == "GET":
-        # Remember last page to redirect user after login
-        fl.session["last_page"] = fl.url_for("minesweeper")
-
-        # Get difficulty from client; defaults to easy
-        difficulty = fl.request.args.get("difficulty", "easy")
-
-        # Create new minesweeper State object; add to flask session to access later
-        fl.session["ms"] = minesweeper_game.State()
-        fl.session["ms"].create_board(difficulty=difficulty)  # , fixed_mines=True)
-
-        # Send to client as dict
-        return fl.render_template("minesweeper.html", data=fl.session["ms"].setup_packet())
-
-
-# Turn this into general stats page with buttons to select stats for each game
-# Or could spin off single-player games
-@app.route("/minesweeper/stats")
-def minesweeper_stats():
-    # Remember last page to redirect user after login
-    fl.session["last_page"] = fl.url_for("minesweeper_stats")
-
-    user_id = fl.session.get("user_id", 0)
-    
-    # If not logged in; user_id is stored as int
-    if user_id == 0:
-        return fl.render_template("minesweeper_stats.html", data=None)
-    
-    # Display stats if logged in
-    db_responses = {}  # {"easy": [], "medium": [], "hard": []}
-    
-    # Query database and retrieve the stats
-    with sqlite3.connect("database.db") as conn:
-        conn.row_factory = dict_factory
-        modes = ["easy", "medium", "hard"]
-
-        # To do in one transaction, could sort into mode as 
-        for mode in modes:
-            db_responses[mode] = conn.execute(
-                "SELECT score, win, date FROM ms_stats WHERE user_id = ? AND mode = ? AND score != 0", (user_id, mode)
-            )
-
-    # Calculate win rate and average time for win, best time for all modes
-    data = {"easy": {}, "medium": {}, "hard": {}}  # {"easy": {win_rate: 0, ...} ...}
-
-    for mode in data.keys():
-        games_won = 0.0
-        total_scores = 0.0
-        total_games = 0.0
-        best_time = 0
-        
-        for row in db_responses[mode]:
-            
-            # Get stats from non-trash rounds (5 or more seconds)
-            if row["score"] > 5:
-                total_games += 1
-                total_scores += row["score"]
-
-                # Count wins
-                if row["win"]:
-                    games_won += row["win"]
-               
-                    # Get lowest non-zero value for best_time
-                    if best_time == 0 or best_time > row["score"]:
-                        best_time = row["score"]
-                    
-        data[mode]["games_won"] = int(games_won)
-        data[mode]["total_games"] = int(total_games)
-
-        if total_games != 0:
-            data[mode]["win_rate"] = to_percent(games_won / total_games)
-            data[mode]["average_score"] = round(total_scores / total_games)
-        else:
-            data[mode]["win_rate"] = "-"
-            data[mode]["average_score"] = "-"
-
-        if games_won != 0:
-            data[mode]["best_time"] = best_time
-        else:
-            data[mode]["best_time"] = "-"
-
-    return fl.render_template("minesweeper_stats.html", data=data)
-# -- End Minesweeper -- #
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+<!-- Might be able to change this to just `game.html` and let
+ any game use this HTML and be populated with different games via js -->
+
 {% extends "layout.html" %}
 
 {% block title %}
@@ -9,12 +12,6 @@
 {% endblock %}
 
 {% block main %}
-
-
-    <!-- <script type="text/javascript">
-        // Get username with initial GET request
-        username = `{{ username }}`
-    </script> -->
 
     <!-- SocketIO JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.0/socket.io.js"></script>
