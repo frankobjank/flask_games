@@ -1,7 +1,6 @@
 from functools import wraps
 from flask import request, session, redirect
 import random
-from collections import namedtuple
 
 class User:
     def __init__(self, name: str="", session_id: str="", websocket_id: str="", room: str=""):

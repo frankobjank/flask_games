@@ -30,19 +30,13 @@ let players = {};
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Elements that need to be on screen
-        // Deck (not all the cards, just a button representating the whole deck)
-        // Hand
-        // Discard pile (same as deck, just a button with one card that represents whole pile)
-        // Some representation of other players' hands, scores, avatars
-        // Chat / Log box
-        // Navigation
-
-    // Auto-join the first room
-    // joinRoom(rooms[0]);
-
-    // Creates card table and elements within it
+    // Initially load lobby (room panel)
     roomPanel = createRoomPanel();
+
+    // Button to toggle showing/hiding room panel
+    roomToggle = document.createElement('button');
+    roomToggle.id = 'room-toggle-button';
+    roomToggle.id = 'room-toggle-button';
     
     
     // Add all elements created to container
@@ -206,6 +200,7 @@ function createContinueButton() {
     // Continue game button
     const cont = document.createElement('button');
     
+    // new session, start game. round end, continue; game end, new game 
     cont.id = 'continue-button';
     cont.className = 'game-button';
     cont.innerHTML = 'Continue to Next Round';

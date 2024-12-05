@@ -124,6 +124,15 @@ footer {
     margin: 1rem;
 }
 
+.room-button {
+    display: block;
+}
+
+
+.game-button {
+    display: block;
+}
+
 /* Visual marker for current player */
 .player-container[current='1'] {
     border: 1px solid #000000;
