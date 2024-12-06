@@ -27,6 +27,21 @@ class User:
         return f"{self.name}"
 
 
+class Room:
+    def __init__(self, name, roompw, game, capacity, time_created, creator):
+        self.name = name
+        self.roompw = roompw
+        self.game = game
+        self.capacity = capacity
+        self.time_created = time_created
+        self.time_last_used = time_created
+        self.creator = creator
+
+        # Was storing these in standalone dicts, can move to this class
+        self.clients = []
+        self.game_state = None
+
+
 def login_required(f):
     """
     Decorate routes to require login.

@@ -20,6 +20,7 @@ Room creation
   Room capacity
   Time created
   Time last used
+  Room creator
 
   If game in progress - current game state? Push game states to database periodically? Or maybe on every move?
   Could create save state 
