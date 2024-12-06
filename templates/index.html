@@ -1,5 +1,3 @@
-<!-- Turn this into game selection screen for room creation -->
-
 {% extends "layout.html" %}
 
 {% block title %}
@@ -7,34 +5,46 @@
 {% endblock %}
 
 {% block main %}
-    <div class="container text-center container-custom">
-        <div class="card">
-            <a href="/chat" class="btn-custom">
-                <div class="card-body">
-                    <h4 class="card-title">Chat</h4>
-                    <p class="card-text">Enter chatrooms !<br><br></p>
-                </div>
-                <img src="{{ url_for('static', filename='/images/chat.png') }}" class="card-img-top" alt="Chat">
-            </a>
-        </div>
-        <div class="card">
-            <a href="/thirty_one" class="btn-custom">
-                <div class="card-body">
-                    <h4 class="card-title">31</h4>
-                    <p class="card-text">Multiplayer card game - get to 31!<br></p>
-                </div>
-                <img src="{{ url_for('static', filename='/images/31.png') }}" class="card-img-top" alt="31 screenshot">
-            </a>
-        </div>
-        <div class="card">
-            <a href="/minesweeper" class="btn-custom">
-                <div class="card-body">
-                    <h4 class="card-title">Minesweeper</h4>
-                    <p class="card-text">Find all the safe squares as quickly as possible.<br></p>
-                </div>
-                
-                <img src="{{ url_for('static', filename='/images/minesweeper_screenshot.png') }}" class="card-img-top" alt="Minesweeper screenshot">
-            </a>
-        </div>
+    <div class="container container-custom">
+        <form action="/lobby" method="get">
+            <div class="card">
+                <button href="/lobby" class="choose-game btn-custom" id="choose-all" name="game" value="all">
+                    <div class="card-body">
+                        <h4 class="card-title">All</h4>
+                        <p class="card-text">View of all games available on the site!<br><br></p>
+                    </div>
+                    <img src="{{ url_for('static', filename='/images/all.png') }}" class="card-img-top" alt="all picture">
+                </button>
+            </div>
+            <div class="card">
+                <button href="/lobby" class="choose-game btn-custom" id="choose-thirty-one" name="game" value="thirty_one">
+                    <div class="card-body">
+                        <h4 class="card-title">31</h4>
+                        <p class="card-text">Multiplayer card game - don't get caught with the lowest score!<br>2-7 players.</p>
+                    </div>
+                    <img src="{{ url_for('static', filename='/images/31.png') }}" class="card-img-top" alt="31 screenshot">
+                </button>
+            </div>
+            <div class="card">
+
+                <button href="/lobby" class="choose-game btn-custom" id="choose-cribbage" name="game" value="cribbage">
+                    <div class="card-body">
+                        <h4 class="card-title">Cribbage</h4>
+                        <p class="card-text">Play Cribbage!<br>2-3 players.</p>
+                    </div>
+                    <img src="{{ url_for('static', filename='/images/cribbage.png') }}" class="card-img-top" alt="Cribbage screenshot">
+                </button>
+            </div>
+            <div class="card">
+                <button href="/lobby" class="choose-game btn-custom" id="choose-natac" name="game" value="natac">
+                    <div class="card-body">
+                        <h4 class="card-title">Natac</h4>
+                        <p class="card-text">Gain 10 Victory Points to win!<br>2-4 players.</p>
+                    </div>
+                    
+                    <img src="{{ url_for('static', filename='/images/natac.png') }}" class="card-img-top" alt="Natac screenshot">
+                </button>
+            </div>
+        </form>
     </div>
 {% endblock %}

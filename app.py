@@ -34,10 +34,9 @@ log.setLevel(logging.ERROR)
 # Configure socketio
 socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 
-# # Predefined chatrooms; eventually want to enable users to create their own
-CHATROOMS = ["Lounge", "News", "Games", "Coding"]
+GAMEROOMS = ["dev1", "dev2"]
 
-GAMEROOMS = ["room1", "room2"]
+GAMES = ["thirty_one", "cribbage", "natac"]
 
 # Uses session id - browser session cookie
 # If there's nothing in flask or socketio that tracks when users join, can add timestamp session was created to User class
@@ -72,32 +71,38 @@ def after_request(response):
 
 @app.route("/")
 def index():
-    redirect
-    return fl.render_template("lobby.html")
+    # Display game options and option to view All
+    return fl.render_template("index.html")
 
 
-@app.route("/thirty_one") #, methods=["GET", "POST"])
-def thirty_one():
-    fl.session["last_page"] = fl.url_for("thirty_one")
+@app.route("/lobby")
+def lobby():
+    # Want to load rooms from database
+    game = fl.request.args.get("game")
+    print(game)
+    return fl.render_template("lobby.html", rooms=GAMEROOMS, game=game)
+
+
+@app.route("/room_creation")
+def room_creation():
+    return fl.render_template("room_creation.html", games=GAMES)
+
+
+@app.route("/game") #, methods=["GET", "POST"])
+def game():
+    fl.session["last_page"] = fl.url_for("game")
 
     # Load lobby?? Or drop into room and make lobby a separate route
     # username = fl.session.get("username", "")
     # if len(username) == 0:
     #     username = get_random_name()
-    print(f"session on thirty_one get request = {fl.session}")
+    print(f"session on play get request = {fl.session}")
     # Required to instantiate a session cookie for players with random names
     fl.session["session_id"] = fl.request.cookies.get("session")
     fl.session["rooms"] = set()
         
     # Everything taken care of via web sockets
-    return fl.render_template("thirty_one.html") #, username=username)
-
-
-@app.route("/chat", methods=["GET", "POST"])
-def chat():
-    username = fl.session.get("username")
-    
-    return fl.render_template("chat.html", username=username, rooms=CHATROOMS)
+    return fl.render_template("game.html") #, username=username)
 
 
 # -- FlaskSocketIO -- #
@@ -114,8 +119,9 @@ def on_join(data):
         print(f"{data['room']} is full, redirecting.")
         fio.emit("debug_msg", {"msg": f"{data['room']} is full, redirecting."}, to=fl.request.sid)
         
-        # Redirect to lobby
-        fl.redirect("/thirty_one")
+        # Should already be in lobby, stay in lobby
+        # Maybe turn this into a flash message
+        return f"{data['room']} is full"
 
     # Keep track of rooms joined in flask session dict
     fl.session["rooms"].add(data["room"])

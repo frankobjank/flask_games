@@ -1,0 +1,15 @@
+<!-- Turn this into popup window for game selection screen on room creation or for existing room -->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    Lobby
+{% endblock %}
+
+{% block main %}
+    <!-- JS For Lobby -->
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/lobby.js') }}"></script>
+
+    <!-- Outer container - Filled in with script -->
+    <div class="outer-container"></div>
+{% endblock %}

@@ -1,73 +1,32 @@
 # Overall layout
 
-2 choices: lobby that is room-focused or landing page that is game-based (might look prettier than lobby)
+Home page that is game-based
+  Click game -> render lobby for specific games
 
-Homepage - Lobby
-    Players can create a new room for any purpose (i.e. 31, cribbage, natac)
+  Can have an option for `All`
 
-Could combine the 2 by displaying bootstrap `card` on the right side of the screen and list the lobbies on the left
+Lobby
+  Table of rooms - sortable by any attribute -> create room or join an existing room
 
-automatically delete a room when last player leaves
+Room creation
 
-Things to display for lobby:
-  Table of rooms:
-    Room name - date created
+  Put room into database on creation - Maybe limit to 5 created per person, prompt them to delete previous room if they've made 5
 
-## Plan for 31
+  Room schema:
+  Room id
+  Room name
+  Room password - if blank,  no password is required. Set to NULL in sql
+  Room game
+  Room capacity
+  Time created
+  Time last used
 
-Server : 
-    How to handle user accounts? I think actual accounts may not be necessary for games
-    Give ability to pick own name and associate that name with a cookie (if possible)
-    Lobby page where you enter the name of the room, name of yourself, and optional passcode
-        Something similar to jackbox where a prompt comes up to choose a name before you can join a room
-        If name is currently being used by another user, make them pick a different one
+  If game in progress - current game state? Push game states to database periodically? Or maybe on every move?
+  Could create save state 
 
-Client :
-    Receives player info from server (how many, player scores)
-    Receives hands from server (full hand for self, size of hand for others)
-    
-    Displays self player (and hand visible to self) and all other players (and hands hidden to self)
-    Displays deck and discard pile
-    
-    Gets signal from players to start game and send to server
-    Server receives signal, starts game, and returns info to client
+  Automatically delete a room when last player leaves?
+  Delete room after (3?) days of inactivity
 
-    Server determines player order.
-    
-    Client allows players to make a move on their turn
-    TODO - see if the moves one player makes updates to other clients automatically 
-        or if needs to go through server and back to other clients
-
-    Server receives data on move; either allows or denies it
-    Update client
-
-
-
-Notes on sids:
-
-SCENARIO - user connects
-    logged in -> username is stored and can be used to identify user
-    sid_to_user
-    user_to_sid
-
-    not logged in -> sid cannot be associated with username on join
-
-SCENARIO - user joins room
-    logged in: no changes
-
-    not logged in -> sid_to_user, user_to_sid
-
-
-SCENARIO - user leaves room
-    no change because this does not affect session
-
-SCENARIO - user disconnects
-    username is not provided as it takes no arguments. must find username with sid
-    username = sid_to_user[sid]
-
-
-sid is particular to a window. Each new window/tab is a different session
-a player can join as many rooms as they want - if they are opened in a new window/tab, a new sid is assigned
-
-IF A PLAYER SWITCHES FROM ONE ROOM TO ANOTHER WITHIN THE SAME SESSION THE SID STAYS THE SAME
-
+Game
+  Room that has 1 game and a chat box
+  Button to go back to lobby (put in nav bar?)

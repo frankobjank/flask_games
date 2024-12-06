@@ -3,7 +3,7 @@
 // Room, Socket Variables
 // Initializing socket
 const socket = io();
-let rooms = ['room1', 'room2'];
+let rooms = ['dev1', 'dev2'];
 var currentRoom;
 
 // Client username - assign on connect if not logged into account
