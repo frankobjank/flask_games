@@ -30,23 +30,25 @@ let players = {};
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Initially load lobby (room panel)
-    roomPanel = createRoomPanel();
+    /* Moved to lobby.js
+        // Initially load lobby (room panel)
+        roomPanel = createRoomPanel();
 
-    // Button to toggle showing/hiding room panel
-    roomToggle = document.createElement('button');
-    roomToggle.id = 'room-toggle-button';
-    roomToggle.id = 'room-toggle-button';
+        // Button to toggle showing/hiding room panel
+        roomToggle = document.createElement('button');
+        roomToggle.id = 'room-toggle-button';
+        roomToggle.id = 'room-toggle-button';
+        
+        // Add all elements created to container
+        document.querySelector('.outer-container').appendChild(roomPanel);
+        
+        // Need to add onclick for room buttons here after they've been added to document
+        addOnClick()
+    */
     
-    
-    // Add all elements created to container
-    document.querySelector('.outer-container').appendChild(roomPanel);
-    
-    // Need to add onclick for room buttons here after they've been added to document
-    addOnClick()
 });
 
-
+/* Moved to lobby.js
 function createRoomPanel() {
     const roomPanel = document.createElement('div');
     roomPanel.className = 'room-panel';
@@ -109,6 +111,7 @@ function addOnClick() {
         }
     });
 }
+*/
 
 
 function createGamePanel() {
@@ -116,11 +119,11 @@ function createGamePanel() {
     gamePanel.className = 'game-panel';
     gamePanel.id = 'game-panel';
     
-    table = createTable();
+    board = createBoard();
     continueButton = createContinueButton();
     startButton = createStartButton();
 
-    gamePanel.appendChild(table);
+    gamePanel.appendChild(board);
     gamePanel.appendChild(continueButton);
     gamePanel.appendChild(startButton);
 
@@ -128,18 +131,18 @@ function createGamePanel() {
 }
 
 
-function createTable() {
+function createBoard() {
 
-    // Create div for card table
-    const cardTable = document.createElement('div');
-    cardTable.className = 'card-table mb-5';
+    // Create div for board
+    const board = document.createElement('div');
+    board.className = 'board mb-5';
 
     // Create deck container
     const deckContainer = document.createElement('div');
     deckContainer.className = 'deck-container';
     
-    // Add container to table
-    cardTable.appendChild(deckContainer);
+    // Add deck to board
+    board.appendChild(deckContainer);
 
     // Create deck button
     const deck = document.createElement('button');
@@ -156,8 +159,8 @@ function createTable() {
     const discardContainer = document.createElement('div');
     discardContainer.className = 'discard-container';
     
-    // Add container to table
-    cardTable.appendChild(discardContainer);
+    // Add discard to board
+    board.appendChild(discardContainer);
     
     // Create discard button
     const discard = document.createElement('button');
@@ -173,10 +176,10 @@ function createTable() {
     // // Create container for hand
     // const handContainer = document.createElement('div');
     // handContainer.className = 'hand-container';
-    // Add to table
-    // cardTable.appendChild(handContainer);
+    // Add to board
+    // board.appendChild(handContainer);
 
-    return cardTable;
+    return board;
 }
 
 
@@ -886,7 +889,7 @@ socket.on('chat_log', data => {
     console.log(`Client received: ${data.msg} from ${data.sender}`);
 });
 
-// Receiving log / chat messages
+// Receiving debug messages
 socket.on('debug_msg', data => {
     console.log(`Client debug msg received: ${data.msg}`);
 });

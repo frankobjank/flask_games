@@ -37,14 +37,11 @@ socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 gamerooms = ["dev1", "dev2"]
 
 gameroom_objects = {}
-
-
 gameroom_objects["dev1"] = Room(
-    name="dev1", roompw="", game="thirty_one", capacity=7, time_created=time(), creator="dev"
+    name="dev1", roompw="", game="thirty_one", capacity=7, date_created=time(), creator="dev"
 )
-
 gameroom_objects["dev2"] = Room(
-    name="dev2", roompw=ws.generate_password_hash("llll"), game="thirty_one", capacity=7, time_created=time(), creator="dev"
+    name="dev2", roompw=ws.generate_password_hash("llll"), game="thirty_one", capacity=7, date_created=time(), creator="dev"
 )
 
 GAMES = ["thirty_one", "cribbage", "natac"]
@@ -94,8 +91,9 @@ def lobby():
     game = fl.request.args.get("game")
 
     # Want to load rooms from database
+    zipped_rooms = [room.package_self() for room in gameroom_objects.values()]
     
-    return fl.render_template("lobby.html", rooms=gamerooms, game=game)
+    return fl.render_template("lobby.html", rooms=zipped_rooms, game=game)
 
 
 @app.route("/room_creation")

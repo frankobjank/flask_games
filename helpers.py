@@ -1,6 +1,7 @@
 from flask import session, redirect
 from functools import wraps
 import random
+from time import strftime, localtime
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
@@ -28,18 +29,38 @@ class User:
 
 
 class Room:
-    def __init__(self, name, roompw, game, capacity, time_created, creator):
+    def __init__(self, name: str, roompw: str, game: str, capacity: int, date_created: int, creator: str):
         self.name = name
         self.roompw = roompw
         self.game = game
         self.capacity = capacity
-        self.time_created = time_created
-        self.time_last_used = time_created
+        self.date_created = date_created
+        self.time_last_used = date_created
         self.creator = creator
 
         # Was storing these in standalone dicts, can move to this class
         self.clients = []
         self.game_state = None
+    
+    
+    def package_self(self) -> dict:
+        """Put variables to send to client into a dict."""
+        
+        if self.game_state:
+            in_progress = self.game_state.in_progress
+        else:
+            in_progress = False
+        
+        return {
+            "name": self.name,
+            "game": self.game,
+            "capacity": self.capacity,
+            "date_created": strftime('%Y-%m-%d %H:%M:%S', localtime(self.date_created)),
+            "creator": self.creator,
+            "clients_connected": len(self.clients),
+            "in_progress": in_progress
+        }
+
 
 
 def login_required(f):

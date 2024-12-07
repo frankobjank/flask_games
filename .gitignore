@@ -4,5 +4,5 @@ __pycache__/
 flask_session/
 .DS_Store
 scrap
-scratch.py
+scratch*
 flask_games.code-workspace

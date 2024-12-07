@@ -1,3 +1,5 @@
+Need to handle same user joining the same room - could prevent like runescape "you already have a session running, must wait for that one to close"
+
 # Overall layout
 
 Home page that is game-based

@@ -7,9 +7,28 @@
 {% endblock %}
 
 {% block main %}
+    <!-- JS for accessing variables from response to GET request -->
+    <script type="text/javascript">
+        /* Receive data as dict; transform into JSON */
+        const roomData = {{ data|tojson }};
+    </script>
+
     <!-- JS For Lobby -->
     <script type="text/javascript" src="{{ url_for('static', filename='scripts/lobby.js') }}"></script>
 
     <!-- Outer container - Filled in with script -->
-    <div class="outer-container"></div>
+    <div class="outer-container">
+        <div class="table-container">
+            <table class="table table-striped room-table" id="room-table">
+                <thead>
+                    <th id="room-th-name">Name</th>
+                    <th id="room-th-game">Game</th>
+                    <th id="room-th-players">Players</th>
+                    <th id="room-th-date_created">Date Created</th>
+                    <th id="room-th-creator">Created By</th>
+                    <th id="room-th-in_progress">Game Running?</th>
+                </thead>
+            </table>
+        </div>
+    </div>
 {% endblock %}
