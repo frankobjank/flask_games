@@ -55,7 +55,7 @@ class Room:
             "name": self.name,
             "game": self.game,
             "capacity": self.capacity,
-            "date_created": strftime('%Y-%m-%d %H:%M:%S', localtime(self.date_created)),
+            "date_created": strftime('%Y-%m-%d %I:%M:%S %p', localtime(self.date_created)),
             "creator": self.creator,
             "clients_connected": len(self.clients),
             "in_progress": in_progress

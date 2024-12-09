@@ -4,20 +4,11 @@
 // Initializing socket
 const socket = io();
 
-// May not need this array if rooms are part of table
-// let rooms = [];
-
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Create room table and populate with room data
-    roomTable = createRoomTable(roomData);
-
-    // Add all elements created to outer container
-    document.querySelector('.outer-container').appendChild(roomTable);
-    
-    // Need to add onclick for room buttons here after they've been added to document
-    addOnClick()
+    // Populate table with room data
+    addRooms(roomData);
 });
 
 // Include:
@@ -27,101 +18,91 @@ document.addEventListener('DOMContentLoaded', () => {
         // "name": self.name,
         // "game": self.game,
         // "capacity": self.capacity,
-        // "date_created": strftime('%Y-%m-%d %H:%M:%S', localtime(self.date_created)),
+        // "date_created": strftime('%Y-%m-%d %I:%M:%S %p', localtime(self.date_created)),
         // "creator": self.creator,
         // "clients_connected": len(self.clients),
         // "in_progress": in_progress
         
         // 'Join room' button
 
-function createRoomTable(roomData) {
-    const tableContainer = document.createElement('div');
-    tableContainer.className = 'table-container';
-    
-    const table = document.createElement('table');
-    table.className = 'table table-striped room-table';
-    table.id = 'room-table';
+        // <th id="room-th-name">Name</th>
+        // <th id="room-th-game">Game</th>
+        // <th id="room-th-players">Players</th>
+        // <th id="room-th-date_created">Date Created</th>
+        // <th id="room-th-creator">Created By</th>
+        // <th id="room-th-in_progress">Game Running?</th>
 
-    const head = document.createElement('thead');
-    head.className = 'room-table';
-    head.id = 'room-table-head';
+function addRooms(newRooms) {
+    const tbody = document.querySelector('#room-tbody');
 
+    for (const room of newRooms) {
+        if (document.querySelector('#room-tr-' + room.name) !== null) {
+            console.log(`Duplicate room found when adding room ${room.name}.`);
+            continue;
+        }
 
-    for (const roomName of rooms) {
-        const roomButton = document.createElement('button');
-        roomButton.className = 'room-button';
-        roomButton.id = roomName + '-button';
-        roomButton.innerHTML = roomName;
+        const row = document.createElement('tr');
+        row.className = 'room-tr';
+        row.id = 'room-tr-' + room.name;
+
+        // Adding onclick to row instead of using button to join room
+        row.onclick = () => {
+            joinRoom(room.name);
+        }
+
+        const tdname = document.createElement('td');
+        tdname.innerHTML = room.name;
+        row.appendChild(tdname);
+
+        const tdgame = document.createElement('td');
+        tdgame.innerHTML = room.game;
+        row.appendChild(tdgame);
         
-        // Disable button if currently in room
-        roomButton.disabled = roomName === currentRoom;
+        const tdplayers = document.createElement('td');
+        tdplayers.innerHTML = `${room.clients_connected} / ${room.capacity}`;
+        row.appendChild(tdplayers);
         
-        // Adding onclick later with addOnClick()
+        const tdcreator = document.createElement('td');
+        tdcreator.innerHTML = room.creator;
+        row.appendChild(tdcreator);
 
-        tableContainer.appendChild(roomButton);
+        const tddate = document.createElement('td');
+        tddate.innerHTML = room.date_created;
+        row.appendChild(tddate);
+
+        const tdin_progress = document.createElement('td');
+        tdin_progress.innerHTML = room.in_progress;
+        row.appendChild(tdin_progress);
+
+        // const roomButton = document.createElement('button');
+        // roomButton.className = 'room-button btn-custom';
+        // roomButton.id = room.name + '-button';
+        
+        // // Disable button if room is full
+        // roomButton.disabled = room.capacity === room.clients_connected;
+        // roomButton.onclick = () => {
+        //     joinRoom(room.name);
+        // }
+        // tbody.appendChild(roomButton);
+
+        tbody.appendChild(row);
     }
     
-    tableContainer.appendChild(table);
-
-    return tableContainer;
 }
 
-
-function addOnClick() {
-    
-    // Onclick above was not working; Moving to end of function
-    document.querySelectorAll('.room-button').forEach(room => {
-        room.onclick = () => {
-            if (inProgress) {
-                console.log('Cannot switch rooms when game is in progress.');
-                return;
-            }
-
-            // Check if already in selected room
-            if (room.innerHTML === currentRoom) {
-                msg = `You are already in ${currentRoom} room.`;
-                addToLog(msg);
-
-            } else {
-                // Join room if not in room
-                if (currentRoom === undefined) {
-                    joinRoom(room.innerHTML);
-                } else {
-
-                    // Else leave current room and join new room
-                    const promise = leaveRoom(username, currentRoom);
-                    
-                    // Process leaveRoom as a promise
-                    promise
-                        .then(() => {
-                            // On successful leave, teardown will be requested by server
-                            console.log('Successfully left room.');
-
-                            joinRoom(room.innerHTML);
-                        })
-                        .catch((error) => {
-                            console.log(`Could not leave ${currentRoom}: ${error}`);
-                        });
-                }
-            }
-        }
-    });
-}
-
-function updateRooms(data) {
-
-}
 
 // Socketio
 
 // Join room
 function joinRoom(room) {
-    console.log('Client join event.');
+    console.log('Sending join request.');
     
     // Pass name of room to server
-    socket.emit('join', {'room': room});
+    socket.emit('join', {'room': room}, (response) => {
+        console.log(`Response to join: ${response}`);
+    });
     
-    // Server should check for game state on join and load game if game is in progress
+    // If accepted, should direct to a game page
 }
 
 // Updating table whenever room is added or players join/leave rooms

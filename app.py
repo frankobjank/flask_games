@@ -89,7 +89,11 @@ def index():
 def lobby():
     # game to use as filter in sql query
     game = fl.request.args.get("game")
-
+    
+    # Initialize rooms, but check to see if existing to not overwrite rooms
+    if not fl.session.get("rooms"):
+        fl.session["rooms"] = set()
+    
     # Want to load rooms from database
     zipped_rooms = [room.package_self() for room in gameroom_objects.values()]
     
@@ -110,12 +114,10 @@ def game():
     # username = fl.session.get("username", "")
     # if len(username) == 0:
     #     username = get_random_name()
-    print(f"session on play get request = {fl.session}")
+    print(f"session on game get request = {fl.session}")
     # Required to instantiate a session cookie for players with random names
     fl.session["session_id"] = fl.request.cookies.get("session")
-    fl.session["rooms"] = set()
         
-    # Everything taken care of via web sockets
     return fl.render_template("game.html") #, username=username)
 
 
@@ -373,6 +375,7 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
+    print(fl.request.full_path)
     fl.session["session_id"] = fl.request.cookies.get("session")
     
     # Automatically re-join room if session cookie is stored on server

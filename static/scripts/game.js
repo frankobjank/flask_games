@@ -822,7 +822,7 @@ function joinRoom(room) {
 // Leave room - async function so it blocks join from running until room teardown
 async function leaveRoom(username, room) {
     
-    console.log('Requesting leave event.')
+    console.log('Requesting leave event.');
 
     if (currentRoom === null || currentRoom === undefined) {
         console.log('Leave room called but not in room.');
