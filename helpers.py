@@ -8,11 +8,11 @@ NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrud
 
 
 class User:
-    def __init__(self, name: str="", session_id: str="", websocket_id: str="", room: str=""):
+    def __init__(self, name: str="", session_cookie: str="", websocket_id: str="", room: str=""):
         self.name = name
-        self.session_id = session_id
+        self.session_cookie = session_cookie
         
-        # Theoretically multiple rooms connects are possible; can handle this later
+        # Theoretically multiple rooms connects are possible so websocket id and room should be sets
         self.websocket_id = websocket_id
         self.room = room
 
@@ -21,7 +21,7 @@ class User:
 
 
     def __repr__(self) -> str:
-        return f"User(name={self.name}, session_id={self.session_id}, websocket_id={self.websocket_id}, room={self.room}, connected={self.connected})"
+        return f"User(name={self.name}, session_cookie={self.session_cookie}, websocket_id={self.websocket_id}, room={self.room}, connected={self.connected})"
     
 
     def __str__(self) -> str:

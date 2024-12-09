@@ -108,25 +108,27 @@ footer {
     vertical-align: middle;
 }
 
-/* Thirty One */
+/* Lobby */
 .outer-container {
     display: flex;
     justify-content: space-between; /* Adjust spacing between panels */
     align-items: center; /* Align panels vertically in the middle */
-    height: 100vh; /* Optional: Full height */
-    padding: 2rem;
+    /* Optional: Full height */
+    /* height: 100vh; */
+    padding-top: 50px;
+    padding-bottom: 2rem;
 }
 
+.room-tr:hover {
+    cursor: pointer;
+}
+
+/* Game */
 .panel {
     border: 1px solid black;
     padding: 1rem;
     margin: 1rem;
 }
-
-.room-button {
-    display: block;
-}
-
 
 .game-button {
     display: block;

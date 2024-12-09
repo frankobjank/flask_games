@@ -46,9 +46,9 @@ gameroom_objects["dev2"] = Room(
 
 GAMES = ["thirty_one", "cribbage", "natac"]
 
-# Uses session id - browser session cookie
+# Uses session cookie
 # If there's nothing in flask or socketio that tracks when users join, can add timestamp session was created to User class
-session_to_user = {}  # Session id: User class
+session_to_user = {}  # session cookie: User class
 
 # Uses socketio sid - new sid on every reconnect
 sid_to_user = {}
@@ -109,16 +109,17 @@ def room_creation():
 @app.route("/game") #, methods=["GET", "POST"])
 def game():
     fl.session["last_page"] = fl.url_for("game")
-
+    
     # Load lobby?? Or drop into room and make lobby a separate route
     # username = fl.session.get("username", "")
     # if len(username) == 0:
     #     username = get_random_name()
-    print(f"session on game get request = {fl.session}")
+    print(f"Session on game get request = {fl.session}")
+
     # Required to instantiate a session cookie for players with random names
-    fl.session["session_id"] = fl.request.cookies.get("session")
+    fl.session["session_cookie"] = fl.request.cookies.get("session")
         
-    return fl.render_template("game.html") #, username=username)
+    return fl.render_template("game.html", username=fl.session.get("username"))
 
 
 # -- FlaskSocketIO -- #
@@ -142,20 +143,19 @@ def on_join(data):
     # Keep track of rooms joined in flask session dict
     fl.session["rooms"].add(data["room"])
 
-    # Name and session id to add to room_clients dict
+    # Name and session cookie to add to room_clients dict
     user = User(
         name = fl.session.get("username", ""), 
-        session_id = fl.session.get("session_id", ""), 
+        session_cookie = fl.session.get("session_cookie", ""), 
         websocket_id = fl.request.sid
     )
     
-    # At least session id should be assigned at this point
-    assert len(user.session_id) > 0, "Session id should be assigned at this point"
+    # At least session cookie should be assigned at this point
+    assert len(user.session_cookie) > 0, "Session cookie should be assigned at this point"
         
-    # Use session id to find username if username not found
-    # session id 
+    # Use session cookie to find username if username not found
     for old_user in room_clients[data["room"]]:
-        if user.session_id == old_user.session_id:
+        if user.session_cookie == old_user.session_cookie:
             
             # If user was in room clients already, assign new user to old user
             # (instead of adding a new entry to room clients)
@@ -167,7 +167,7 @@ def on_join(data):
             # Remove old copy of client, will append new client later
             room_clients[data["room"]].remove(old_user)
 
-    # Assign random name if session id not found
+    # Assign random name if session cookie not found
     if len(user.name) == 0:
         
         # ALLOW USER TO CREATE THEIR OWN USERNAME - will have to implement on client side
@@ -185,7 +185,7 @@ def on_join(data):
     # TODO session_to_user dict persists through flask socketio disconnect events so a session 
     # can be recovered. However, this should be cleared every so often so it doesn't just grow
     # endlessly. Maybe after 12 hours of inactivity?
-    session_to_user[user.session_id] = user
+    session_to_user[user.session_cookie] = user
 
     # Set up client's username on their end
     # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
@@ -241,7 +241,7 @@ def on_join(data):
         # Will probably have to create individual logs
         
         # game.temp_log = []
-    
+
     return "Server callback: join fully processed"
         
 
@@ -260,7 +260,7 @@ def on_leave(data):
     # In lieu of removing user from room clients dict:
     # Set connected to False so that user persists
     for user in room_clients[data["room"]]:
-        if fl.session["session_id"] == user.session_id and fl.session["username"] == user.name:
+        if fl.session["session_cookie"] == user.session_cookie and fl.session["username"] == user.name:
             user.connected = False
             
     
@@ -375,8 +375,7 @@ def message(data):
 
 @socketio.on("connect")
 def on_connect():
-    print(fl.request.full_path)
-    fl.session["session_id"] = fl.request.cookies.get("session")
+    fl.session["session_cookie"] = fl.request.cookies.get("session")
     
     # Automatically re-join room if session cookie is stored on server
     # This may be handled by socketio `reconnect` - check documentation
@@ -385,7 +384,7 @@ def on_connect():
     # Connect happens on lobby so connect doesn't actually mean reconnecting to a room
     # Re-join is covered in on_join
     
-    # check_user = session_to_user.get(fl.session["session_id"])
+    # check_user = session_to_user.get(fl.session["session_cookie"])
     # if check_user:
     #     print(f"Found user in session dict; Calling join room on {check_user.room}")
     #     fio.join_room(check_user.room)
@@ -422,8 +421,8 @@ def on_disconnect():
         for user in users:
             # Should probably change this because different users could have 
             # the same username in different rooms - added another validation
-            # of session id to not remove the wrong user
-            if user.name == username and user.session_id == fl.session["session_id"]:
+            # of session cookie to not remove the wrong user
+            if user.name == username and user.session_cookie == fl.session["session_cookie"]:
                 user.connected = False
 
                 game = room_to_game.get(room)

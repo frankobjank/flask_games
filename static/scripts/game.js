@@ -3,7 +3,6 @@
 // Room, Socket Variables
 // Initializing socket
 const socket = io();
-let rooms = ['dev1', 'dev2'];
 var currentRoom;
 
 // Client username - assign on connect if not logged into account
@@ -30,89 +29,9 @@ let players = {};
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
 
-    /* Moved to lobby.js
-        // Initially load lobby (room panel)
-        roomPanel = createRoomPanel();
 
-        // Button to toggle showing/hiding room panel
-        roomToggle = document.createElement('button');
-        roomToggle.id = 'room-toggle-button';
-        roomToggle.id = 'room-toggle-button';
-        
-        // Add all elements created to container
-        document.querySelector('.outer-container').appendChild(roomPanel);
-        
-        // Need to add onclick for room buttons here after they've been added to document
-        addOnClick()
-    */
     
 });
-
-/* Moved to lobby.js
-function createRoomPanel() {
-    const roomPanel = document.createElement('div');
-    roomPanel.className = 'room-panel';
-    
-    for (const roomName of rooms) {
-        const roomButton = document.createElement('button');
-        roomButton.className = 'room-button';
-        roomButton.id = roomName + '-button';
-        roomButton.innerHTML = roomName;
-        
-        // Disable button if currently in room
-        roomButton.disabled = roomName === currentRoom;
-        
-        // Adding onclick later with addOnClick()
-
-        roomPanel.appendChild(roomButton);
-    }
-    
-    return roomPanel;
-}
-
-
-function addOnClick() {
-    
-    // Onclick above was not working; Moving to end of function
-    document.querySelectorAll('.room-button').forEach(room => {
-        room.onclick = () => {
-            if (inProgress) {
-                console.log('Cannot switch rooms when game is in progress.');
-                return;
-            }
-
-            // Check if already in selected room
-            if (room.innerHTML === currentRoom) {
-                msg = `You are already in ${currentRoom} room.`;
-                addToLog(msg);
-
-            } else {
-                // Join room if not in room
-                if (currentRoom === undefined) {
-                    joinRoom(room.innerHTML);
-                } else {
-
-                    // Else leave current room and join new room
-                    const promise = leaveRoom(username, currentRoom);
-                    
-                    // Process leaveRoom as a promise
-                    promise
-                        .then(() => {
-                            // On successful leave, teardown will be requested by server
-                            console.log('Successfully left room.');
-
-                            joinRoom(room.innerHTML);
-                        })
-                        .catch((error) => {
-                            console.log(`Could not leave ${currentRoom}: ${error}`);
-                        });
-                }
-            }
-        }
-    });
-}
-*/
-
 
 function createGamePanel() {
     const gamePanel = document.createElement('div');
@@ -553,14 +472,6 @@ function updateRoom(response) {
     if (response.action === 'setup_room') {
         // Update global var `currentRoom`
         currentRoom = response.room;
-
-        // Disable current room button in room panel
-        for (const room of rooms) {
-            roomButtonID = '#' + room + '-button';
-
-            // Disable button if currently in room; Enable all others
-            document.querySelector(roomButtonID).disabled = room === currentRoom;
-        }
 
         // Assign username if not yet defined
         if (username === undefined) {

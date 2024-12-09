@@ -22,13 +22,10 @@
 
     <!-- Outer container, table container, table of rooms -->
     <div class="outer-container">
-        <button class="add-room btn-custom" id="add-room-button" onclick="">
-
-        </button>
         <div class="table-container">
             <table class="table table-striped room-table" id="room-table">
                 <thead id="room-thead">
-                    <th id="room-th-name">Room</th>
+                    <th id="room-th-name" cursor="pointer">Room</th>
                     <th id="room-th-game">Game</th>
                     <th id="room-th-players">Players</th>
                     <th id="room-th-creator">Created By</th>
@@ -40,5 +37,8 @@
                 <tbody id="room-tbody"></tbody>
             </table>
         </div>
+        <button class="add-room btn-custom" id="add-room-button" onclick="">
+            Create Room
+        </button>
     </div>
 {% endblock %}

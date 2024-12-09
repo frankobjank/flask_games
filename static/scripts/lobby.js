@@ -74,17 +74,6 @@ function addRooms(newRooms) {
         tdin_progress.innerHTML = room.in_progress;
         row.appendChild(tdin_progress);
 
-        // const roomButton = document.createElement('button');
-        // roomButton.className = 'room-button btn-custom';
-        // roomButton.id = room.name + '-button';
-        
-        // // Disable button if room is full
-        // roomButton.disabled = room.capacity === room.clients_connected;
-        // roomButton.onclick = () => {
-        //     joinRoom(room.name);
-        // }
-        // tbody.appendChild(roomButton);
-
         tbody.appendChild(row);
     }
     
@@ -99,10 +88,14 @@ function joinRoom(room) {
     
     // Pass name of room to server
     socket.emit('join', {'room': room}, (response) => {
+        
+        // If accepted, should direct to a game page, or maybe remove room table and create game panels
         console.log(`Response to join: ${response}`);
+        
+        window.location.href = 'game';
+
     });
     
-    // If accepted, should direct to a game page
 }
 
 // Updating table whenever room is added or players join/leave rooms
@@ -124,5 +117,5 @@ socket.on('disconnect', () => {
 
 // Receiving debug messages
 socket.on('debug_msg', data => {
-    console.log(`Client debug msg received: ${data.msg}`);
+    console.log(`Client received: ${data.msg}`);
 });

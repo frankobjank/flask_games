@@ -13,14 +13,18 @@
 
 {% block main %}
 
-    <!-- SocketIO JS -->
-    <!-- Moved to layout to be global -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.0/socket.io.js"></script> -->
+    <!-- JS for accessing variables from response to GET request -->
+    <script type="text/javascript">
+        /* Receive data as dict; transform into JSON */
+        const roomData = {{ username }};
+    </script>
 
-    <!-- JS For 31 Game -->
-    <script type="text/javascript" src="{{ url_for('static', filename='scripts/thirtyOne.js') }}"></script>
+    <!-- JS for setting up game page -->
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/game.js') }}"></script>
 
     <!-- Outer container includes whole game board / controls. Filled in with script -->
-    <div class="outer-container"></div>
+    <div class="outer-container">
+        <button onclick="">Return to Lobby</button>
+    </div>
 
 {% endblock %}
