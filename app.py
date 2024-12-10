@@ -34,20 +34,32 @@ log.setLevel(logging.ERROR)
 # Configure socketio
 socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 
-gamerooms = ["dev1", "dev2"]
+rooms = {}
 
-gameroom_objects = {}
-gameroom_objects["dev1"] = Room(
-    name="dev1", roompw="", game="thirty_one", capacity=7, date_created=time(), creator="dev"
+rooms["dev1"] = Room(
+    name="dev1", roompw="", game_name="thirty_one", capacity=7, date_created=time(), 
+    creator="dev"
 )
-gameroom_objects["dev2"] = Room(
-    name="dev2", roompw=ws.generate_password_hash("llll"), game="thirty_one", capacity=7, date_created=time(), creator="dev"
+
+rooms["dev2"] = Room(
+    name="dev2", roompw=ws.generate_password_hash("llll"), game_name="thirty_one", 
+    capacity=7, date_created=time(), creator="dev"
 )
 
 GAMES = ["thirty_one", "cribbage", "natac"]
 
+# Switching to new data structures - Rooms will contain all data on users
+# Can remove room variable from class User since they will already be split by rooms
+
+# Hopefully a global user dict will not be necessary 
+# - use case would be to notify all other 
+# clients when a user in their room disconnects,
+# but flask-socketio might be able to handle that
+
 # Uses session cookie
-# If there's nothing in flask or socketio that tracks when users join, can add timestamp session was created to User class
+# If there's nothing in flask or socketio that tracks when users join
+    # can add timestamp session was created to User class
+
 session_to_user = {}  # session cookie: User class
 
 # Uses socketio sid - new sid on every reconnect
@@ -60,7 +72,7 @@ user_to_sid = {}  # Player: list of sids --- might need to move this to be
 # user_to_sid is very fragile - the only reason this is needed is to send game update to all clients in room. Storing User class in Room class could solve this as sid would be included
 
 # Can cover these dicts in Room class
-room_clients = {r: [] for r in gamerooms}  # Room: set(players)
+room_clients = {r: [] for r in rooms.keys()}  # Room: set(players)
 room_to_game = {}  # Room: Game State
 
 
@@ -85,19 +97,35 @@ def index():
     return fl.render_template("index.html")
 
 
-@app.route("/lobby")
+@app.route("/lobby", methods=["GET", "POST"])
 def lobby():
-    # game to use as filter in sql query
-    game = fl.request.args.get("game")
-    
-    # Initialize rooms, but check to see if existing to not overwrite rooms
-    if not fl.session.get("rooms"):
-        fl.session["rooms"] = set()
-    
-    # Want to load rooms from database
-    zipped_rooms = [room.package_self() for room in gameroom_objects.values()]
-    
-    return fl.render_template("lobby.html", rooms=zipped_rooms, game=game)
+    if fl.request.method == "POST":
+        # Ensure username was submitted
+        if not fl.request.form.get("username"):
+            
+            # Eventually want to switch to flash - will require AJAX
+            # fl.flash("No username entered.")
+
+            return apology("Must provide a username.", 403)
+        
+        # TODO check for duplicate name
+        
+        return fl.render_template("lobby.html", rooms=zipped_rooms, )
+
+
+    elif fl.request.method == "GET":
+        # game to use as filter in sql query
+        fl.session["lobby_filter"] = fl.request.args.get("game")
+
+        # Initialize rooms, but check to see if existing to not overwrite rooms
+        # Currently not using the "rooms_joined" value, it can be considered debug-only
+        # if not fl.session.get("rooms_joined"):
+        #     fl.session["rooms_joined"] = set()
+        
+        # Want to load rooms from database (or from memory)
+        zipped_rooms = [room.package_self() for room in rooms.values()]
+
+        return fl.render_template("lobby.html", rooms=zipped_rooms)
 
 
 @app.route("/room_creation")
@@ -114,12 +142,13 @@ def game():
     # username = fl.session.get("username", "")
     # if len(username) == 0:
     #     username = get_random_name()
-    print(f"Session on game get request = {fl.session}")
+    
+    # print(f"Session on game get request = {fl.session}")
 
     # Required to instantiate a session cookie for players with random names
     fl.session["session_cookie"] = fl.request.cookies.get("session")
         
-    return fl.render_template("game.html", username=fl.session.get("username"))
+    return fl.render_template("game.html")
 
 
 # -- FlaskSocketIO -- #
@@ -130,8 +159,9 @@ def on_join(data):
 
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
+    
     # Check if room full
-    if is_full(room_users = data["room"], max_players = 7):
+    if rooms[data["room"]].is_full():
         
         print(f"{data['room']} is full, redirecting.")
         fio.emit("debug_msg", {"msg": f"{data['room']} is full, redirecting."}, to=fl.request.sid)
@@ -141,7 +171,7 @@ def on_join(data):
         return f"{data['room']} is full"
 
     # Keep track of rooms joined in flask session dict
-    fl.session["rooms"].add(data["room"])
+    # fl.session["rooms_joined"].add(data["room"])
 
     # Name and session cookie to add to room_clients dict
     user = User(
@@ -154,7 +184,7 @@ def on_join(data):
     assert len(user.session_cookie) > 0, "Session cookie should be assigned at this point"
         
     # Use session cookie to find username if username not found
-    for old_user in room_clients[data["room"]]:
+    for old_user in rooms[data["room"]].users:
         if user.session_cookie == old_user.session_cookie:
             
             # If user was in room clients already, assign new user to old user
@@ -164,8 +194,8 @@ def on_join(data):
             # Copy new websocket instead of using old invalid sid
             user.websocket_id = fl.request.sid
             
-            # Remove old copy of client, will append new client later
-            room_clients[data["room"]].remove(old_user)
+            # Remove old copy of client, will append new client outside of `if` statement
+            rooms[data["room"]].users.remove(old_user)
 
     # Assign random name if session cookie not found
     if len(user.name) == 0:
@@ -173,13 +203,14 @@ def on_join(data):
         # ALLOW USER TO CREATE THEIR OWN USERNAME - will have to implement on client side
 
         # Pass in current room names to avoid duplicates
-        user.name = get_random_name(exclude = {connected_user.name for connected_user in room_clients[data["room"]]})
+        user.name = get_random_name(exclude = {connected_user.name for connected_user in rooms[data["room"]].users})
         print(f"Random name chosen = {user.name}")
 
     # Add new user to room clients
-    room_clients[data["room"]].append(user)
+    rooms[data["room"]].users.append(user)
     
-    user.room = data["room"]
+    # Hopefully won't need this room value, feels very circular
+    # user.room = data["room"]
     user.connected = True
     
     # TODO session_to_user dict persists through flask socketio disconnect events so a session 
@@ -189,8 +220,8 @@ def on_join(data):
 
     # Set up client's username on their end
     # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
-    fio.emit("update_room", {"action": "setup_room", "room": data["room"], "username": user.name},
-             to=fl.request.sid)
+    fio.emit("update_room", {"action": "setup_room", "room": data["room"],
+             "username": user.name}, to=fl.request.sid)
 
     # Join the room
     fio.join_room(data["room"])
@@ -199,7 +230,7 @@ def on_join(data):
     fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "",
              "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
-    # Callback to send updated list of players
+    # Send updated list of players
     fio.emit("update_room", {"action": "add_players", "room": data["room"],
              "players": [user.name for user in room_clients[data["room"]] if user.connected]},
              room=data["room"], broadcast=True)
@@ -215,14 +246,11 @@ def on_join(data):
     # updated room clients dict
 
     # Print for debug
-    print(f"ON JOIN for {user.name} to the {data['room']} room.")
-    print(f"sid on JOIN = {user.websocket_id} for {user.name}")
-
-    for room, users in room_clients.items():
-        print(f"room {room} clients at end of JOIN \n{users}")
+    # print(f"ON JOIN for {user.name} to the {data['room']} room.")
+    # print(f"sid on JOIN = {user.websocket_id} for {user.name}")
 
     # Send game data if game in progress
-    game = room_to_game.get(data["room"])
+    game = rooms[data["room"]].game
 
     if game and game.in_progress and user.name in game.players.keys():
         
@@ -232,9 +260,9 @@ def on_join(data):
         fio.emit("update_game", response, to=fl.request.sid, room=data["room"])
         fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
         
-        # If player is rejoining, update connection status for all other clients
-        fio.emit("update_room", {"action": "conn_status", "room": room, "players": [user.name],
-                 "connected": True}, room=room, broadcast=True)
+        # If player is rejoining, update connection status for all other clients in room
+        fio.emit("update_room", {"action": "conn_status", "room": data["room"], 
+                 "players": [user.name], "connected": True}, room=data["room"], broadcast=True)
         
         # Can't empty temp log for one player;
         # This will probably result in duplicate messages coming to the joined player
@@ -242,7 +270,7 @@ def on_join(data):
         
         # game.temp_log = []
 
-    return "Server callback: join fully processed"
+    return "Server callback: join fully processed."
         
 
 @socketio.on("leave")
@@ -259,12 +287,12 @@ def on_leave(data):
 
     # In lieu of removing user from room clients dict:
     # Set connected to False so that user persists
-    for user in room_clients[data["room"]]:
+    for user in rooms[data["room"]].users:
         if fl.session["session_cookie"] == user.session_cookie and fl.session["username"] == user.name:
             user.connected = False
             
     
-    fl.session["rooms"].discard(data["room"])
+    # fl.session["rooms_joined"].discard(data["room"])
     
     fio.leave_room(data["room"])
 
@@ -272,18 +300,21 @@ def on_leave(data):
     fio.emit("chat_log", {"msg": f"{data['username']} has left.", "sender": "",
              "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
-    # Room is implied since a single request sid is only linked to one room (I think)
+    # Room is implied since a single request sid is only linked to one room
     fio.emit("update_room", {"action": "teardown_room"}, to=fl.request.sid)
 
-    game = room_to_game.get(data["room"])
 
-    # If not game OR if game AND game is not in progress:
+    # Can leave freely if:
+        # Not game OR if game AND game is not in progress:
+    
     # Remove leaving player from list of players
-    if not game or (game and not game.in_progress):
+    if not rooms[data["room"]].game or (rooms[data["room"]].game 
+                                        and not rooms[data["room"]].game.in_progress):
+        
         # Broadbast = True since notification should go to all other players in room
         fio.emit("update_room", {"action": "remove_players", "room": data["room"],
-                 "players": list(user.name for user in room_clients[data["room"]] if not user.connected)}, 
-                 room=user.room, broadcast=True)
+                 "players": list(user.name for user in rooms[data["room"]].users 
+                 if not user.connected)}, room=user.room, broadcast=True)
     
     return "Server callback: leave fully processed."
 
@@ -299,7 +330,7 @@ def process_move(data):
     if data["action"] == "start":
         
         # Reject if invalid number of players
-        if not (2 <= len([user for user in room_clients[data["room"]] if user.connected]) <= 7):
+        if not (2 <= rooms[data["room"]].get_num_connected() <= 7):
             fio.emit("debug_msg", {"msg": "Invalid number of players."}, to=fl.request.sid)
             print("Invalid number of players.")
             
@@ -309,22 +340,25 @@ def process_move(data):
             return
         
         # Create new game if no game in active games dict
-        if not room_to_game.get(data["room"]):
-            room_to_game[data["room"]] = thirty_one_game.State(data["room"])
+        # if not room_to_game.get(data["room"]):
+        #     room_to_game[data["room"]] = thirty_one_game.State(data["room"])
+        
+        if not rooms[data["room"]].game:
+            rooms[data["room"]].game = thirty_one_game.State(data["room"])
         
         # Reject if game has already started
-        if room_to_game.get(data["room"]).in_progress:
+        if rooms[data["room"]].game.in_progress:
             fio.emit("debug_msg", {"msg": "Game is already in progress; Cannot start game."}, to=fl.request.sid)
             print("Game is already in progress.")
         
         # Add all players to game state since there are the correct number
-        for user in room_clients[data["room"]]:
+        for user in rooms[data["room"]].users:
             if user.connected:
                 fio.emit("debug_msg", {"msg": f"Adding {user} to game."}, to=fl.request.sid)
                 print(f"Adding {user} to game.")
-                room_to_game.get(data["room"]).add_player(user.name)
+                rooms[data["room"]].game.add_player(user.name)
 
-    game = room_to_game.get(data["room"])
+    game = rooms[data["room"]].game
     
     # Exit early if game does not yet exist
     if not game:
@@ -403,8 +437,8 @@ def on_disconnect():
         print("Getting username via client sid.")
         username = sid_to_user.get(fl.request.sid, "")
     
-    # Remove all rooms from session["rooms"]
-    fl.session["rooms"] = set()
+    # Remove all rooms from session["rooms_joined"]
+    # fl.session["rooms_joined"] = set()
     
     if len(username) == 0:
         print("Failed to find username.")
@@ -417,51 +451,48 @@ def on_disconnect():
     # Room id is unavailable;
     # Remove player from every room since disconnect implies leaving all rooms
     # DON'T REMOVE from room clients so client can reconnect
-    for room, users in room_clients.items():
-        for user in users:
-            # Should probably change this because different users could have 
-            # the same username in different rooms - added another validation
-            # of session cookie to not remove the wrong user
+    for room_name, room_object in rooms.items():
+        for user in room_object.users:
+
+            # Added session cookie validation to avoid removing the wrong user
             if user.name == username and user.session_cookie == fl.session["session_cookie"]:
                 user.connected = False
-
-                game = room_to_game.get(room)
                 
                 # Remove player if no game
-                if not game:
+                if not room_object.game:
                     print("No game exists; removing player.")
-                    fio.emit("update_room", {"action": "remove_players", "room": room, 
-                             "players": [user.name]}, room=room, broadcast=True)
-                    print(f"Sending update to room {room} to remove `{user.name}`")
+                    fio.emit("update_room", {"action": "remove_players", "room": room_name, 
+                             "players": [user.name]}, room=room_name, broadcast=True)
+                    print(f"Sending update to room {room_name} to remove `{user.name}`")
 
                 # If game, check if game is in progress
                 else:
                     
                     # If game is not running, remove player. Otherwise keep player until game is officially reset
-                    if not game.in_progress:
+                    if not room_object.game.in_progress:
                         print("Game exists but is not in progress; removing player.")
 
                         # Broadcast = True; i.e. player who is leaving does not need the remove players event
-                        fio.emit("update_room", {"action": "remove_players", "room": room,
-                                 "players": [user.name]}, room=room, broadcast=True)
+                        fio.emit("update_room", {"action": "remove_players", "room": room_name,
+                                 "players": [user.name]}, room=room_name, broadcast=True)
 
-                        print(f"Sending update to room {room} to remove `{user.name}`")
+                        print(f"Sending update to room {room_name} to remove `{user.name}`")
                     
                     # If game is in progress, let other clients in room know that the player has disconnected 
                     # Can add visual indicator on client-side
                     else:
                         print("Game exists and is in progress; sending disconnect notice to other clients.")
 
-                        fio.emit("update_room", {"action": "conn_status", "room": room,
-                                 "players": [user.name], "connected": False}, room=room,
-                                 broadcast=True)                        
+                        fio.emit("update_room", {"action": "conn_status", "room": room_name,
+                                 "players": [user.name], "connected": False}, room=room_name,
+                                 broadcast=True)
     
     # End of loop
 
     # Remove user from user to sid dict
     user_to_sid.pop(username)
 
-    # Remove sid from sid to user dict - this must be within `if username` conditional since will only exist if there is a username 
+    # Remove sid from sid to user dict - should exist because username exists
     sid_to_user.pop(fl.request.sid)    
     
 # -- End FlaskSocketIO -- #

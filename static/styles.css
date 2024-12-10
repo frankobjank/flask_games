@@ -108,7 +108,7 @@ footer {
     vertical-align: middle;
 }
 
-/* Lobby */
+/* General */
 .outer-container {
     display: flex;
     justify-content: space-between; /* Adjust spacing between panels */
@@ -118,6 +118,21 @@ footer {
     padding-top: 50px;
     padding-bottom: 2rem;
 }
+
+/* Lobby */
+.lobby-container {
+    padding-top: 50px;
+    padding-bottom: 2rem;
+}
+
+.lobby-header {
+    padding: .5rem;
+    display: flex;
+    justify-content: space-between; /* Adjust spacing between panels */
+    align-items: center; /* Align panels vertically in the middle */
+
+}
+
 
 .room-tr:hover {
     cursor: pointer;

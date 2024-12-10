@@ -21,7 +21,34 @@
     <script type="text/javascript" src="{{ url_for('static', filename='scripts/lobby.js') }}"></script>
 
     <!-- Outer container, table container, table of rooms -->
-    <div class="outer-container">
+    <div class="lobby-container">
+
+        <div class="lobby-header">
+            <div class="add-room">
+                <a class="add-room" id="add-room-nav" href="/create_room.html">Create Room</a>
+            </div>
+
+            <div class="lobby-username">
+
+                {% if not session["username"] %}
+
+                    <form action="/lobby" method="post" class="form-control" id="add-username-form">
+                        
+                        <div class="mb-3" id="input-container">
+                            <input autocomplete="off" class="form-control mx-auto w-auto" name="username" placeholder="Enter name" type="text">
+                        </div>
+
+                        <button class="btn btn-primary" type="submit">Submit</button>
+                    
+                    </form>
+
+                {% else %}
+                    <span>Welcome, {{ username }}.</span>
+                {% endif %}
+            </div>
+            
+        </div>
+
         <div class="table-container">
             <table class="table table-striped room-table" id="room-table">
                 <thead id="room-thead">
@@ -37,8 +64,6 @@
                 <tbody id="room-tbody"></tbody>
             </table>
         </div>
-        <button class="add-room btn-custom" id="add-room-button" onclick="">
-            Create Room
-        </button>
+
     </div>
 {% endblock %}

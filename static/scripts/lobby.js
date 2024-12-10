@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Option to delete room (but only can be done by creator of room or site admin)
     // Table of rooms - columns:
         // "name": self.name,
-        // "game": self.game,
+        // "game_name": self.game_name,
         // "capacity": self.capacity,
         // "date_created": strftime('%Y-%m-%d %I:%M:%S %p', localtime(self.date_created)),
         // "creator": self.creator,
@@ -55,7 +55,7 @@ function addRooms(newRooms) {
         row.appendChild(tdname);
 
         const tdgame = document.createElement('td');
-        tdgame.innerHTML = room.game;
+        tdgame.innerHTML = room.game_name;
         row.appendChild(tdgame);
         
         const tdplayers = document.createElement('td');

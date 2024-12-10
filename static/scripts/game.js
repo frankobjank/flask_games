@@ -3,7 +3,7 @@
 // Room, Socket Variables
 // Initializing socket
 const socket = io();
-var currentRoom;
+var roomName;
 
 // Client username - assign on connect if not logged into account
 var username;
@@ -28,10 +28,20 @@ let players = {};
 
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
-
-
-    
+    toLobby = createLobbyAnchor();
+    document.querySelector('.outer-container').appendChild(toLobby);
 });
+
+function createLobbyAnchor() {
+    const toLobby = document.createElement('a');
+    toLobby.className = 'room-nav';
+    toLobby.href = '/lobby';
+    toLobby.innerHTML = 'Return to Lobby';
+    toLobby.onclick = () => {
+        leaveRoom(roomName);
+    }
+    return toLobby;
+}
 
 function createGamePanel() {
     const gamePanel = document.createElement('div');
@@ -68,7 +78,7 @@ function createBoard() {
     deck.id = 'deck';
     deck.innerHTML = 'Deck';
     deck.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': currentRoom});
+        socket.emit('move', {'action': 'draw', 'room': roomName});
     }
 
     // Add deck button to container
@@ -85,7 +95,7 @@ function createBoard() {
     const discard = document.createElement('button');
     discard.id = 'discard-button';
     discard.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': currentRoom});
+        socket.emit('move', {'action': 'pickup', 'room': roomName});
     }
     
     // Add discard button to container
@@ -111,7 +121,7 @@ function createStartButton() {
     start.innerHTML = 'Start New Game';
 
     start.onclick = () => {
-        socket.emit('move', {'action': 'start', 'room': currentRoom});
+        socket.emit('move', {'action': 'start', 'room': roomName});
     }
 
     return start;
@@ -129,7 +139,7 @@ function createContinueButton() {
     cont.disabled = true;
 
     cont.onclick = () => {
-        socket.emit('move', {'action': 'continue', 'room': currentRoom});
+        socket.emit('move', {'action': 'continue', 'room': roomName});
     }
 
     return cont;
@@ -207,7 +217,7 @@ function createPlayerContainer(name) {
         
         // Send server request on click
         knockButton.onclick = () => {
-            socket.emit('move', {'action': 'knock', 'room': currentRoom});
+            socket.emit('move', {'action': 'knock', 'room': roomName});
             console.log(`Sending knock request to server.`)
         }
 
@@ -285,7 +295,7 @@ function createChatLogPanel(username) {
     chatLogHeader.className = 'chat log header';
     chatLogHeader.id = 'chat-log-header';
     // Header should display room name - and player name?
-    chatLogHeader.innerHTML = '<h4>' + username + ' - ' + currentRoom + '</h4>';
+    chatLogHeader.innerHTML = '<h4>' + username + ' - ' + roomName + '</h4>';
     
 
     const chatLogMessages = document.createElement('div');
@@ -323,7 +333,7 @@ function createChatLogPanel(username) {
     sendMessageButton.onclick = () => {
         // Prevent sending blank messages
         if (messageInput.value.length > 0) {
-            socket.send({'msg': messageInput.value, 'username': username, 'room': currentRoom});
+            socket.send({'msg': messageInput.value, 'username': username, 'room': roomName});
             
             // Clear input area
             messageInput.value = '';
@@ -401,7 +411,7 @@ function createHandButton(serverCard) {
 
     // Send server request on click
     cardButton.onclick = () => {
-        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'card': cardButton.id});
+        socket.emit('move', {'action': 'discard', 'room': roomName, 'card': cardButton.id});
         console.log(`Requesting discard ${cardButton.id}`)
     }
     return cardButton;
@@ -470,8 +480,8 @@ function updateRoom(response) {
     
     // Called on join. Client adds username, builds room.
     if (response.action === 'setup_room') {
-        // Update global var `currentRoom`
-        currentRoom = response.room;
+        // Update global var `roomName`
+        roomName = response.room;
 
         // Assign username if not yet defined
         if (username === undefined) {
@@ -531,7 +541,7 @@ function updateRoom(response) {
         }
 
         // Set current room to null
-        currentRoom = null;
+        roomName = null;
         
         // Reset game vars when leaving room
         inProgress = false;
@@ -727,7 +737,7 @@ function joinRoom(room) {
     // Pass name of room to server
     socket.emit('join', {'room': room});
     
-    // Server should check for game state on join and load game if game is in progress
+    // Server checks for game state on join and load game if game is in progress
 }
 
 // Leave room - async function so it blocks join from running until room teardown
@@ -735,7 +745,7 @@ async function leaveRoom(username, room) {
     
     console.log('Requesting leave event.');
 
-    if (currentRoom === null || currentRoom === undefined) {
+    if (roomName === null || roomName === undefined) {
         console.log('Leave room called but not in room.');
         return;
     }

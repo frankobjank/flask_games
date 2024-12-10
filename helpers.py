@@ -29,38 +29,47 @@ class User:
 
 
 class Room:
-    def __init__(self, name: str, roompw: str, game: str, capacity: int, date_created: int, creator: str):
+    def __init__(self, name: str, roompw: str, game_name: str, capacity: int, date_created: int, creator: str):
         self.name = name
         self.roompw = roompw
-        self.game = game
+        self.game_name = game_name
         self.capacity = capacity
         self.date_created = date_created
         self.time_last_used = date_created
         self.creator = creator
 
         # Was storing these in standalone dicts, can move to this class
-        self.clients = []
-        self.game_state = None
+        self.users = []
+
+        # An instance of game state - 1 per room
+        self.game = None
+
+
+    def is_full(self) -> bool:
+        return len(self.users) >= self.capacity
     
     
     def package_self(self) -> dict:
         """Put variables to send to client into a dict."""
         
-        if self.game_state:
-            in_progress = self.game_state.in_progress
+        if self.game:
+            in_progress = self.game.in_progress
         else:
             in_progress = False
         
         return {
             "name": self.name,
-            "game": self.game,
+            "game_name": self.game_name,
             "capacity": self.capacity,
-            "date_created": strftime('%Y-%m-%d %I:%M:%S %p', localtime(self.date_created)),
+            "date_created": strftime('%D %I:%M %p', localtime(self.date_created)),
             "creator": self.creator,
-            "clients_connected": len(self.clients),
+            "clients_connected": len(self.users),
             "in_progress": in_progress
         }
+    
 
+    def get_num_connected(self) -> int:
+        return len([user for user in self.users if user.connected])
 
 
 def login_required(f):
@@ -101,15 +110,10 @@ def to_percent(n: float) -> str:
     return f"{(n * 100.0):,.1f}%"
 
 
-def get_all_clients(room_clients) -> set:
+def get_all_clients(rooms: dict[str,Room] ) -> set:
     all_clients = set()
     
-    for s in room_clients.values():
-        all_clients.union(s)
+    for r in rooms.values():
+        all_clients.union(r.users)
     
     return all_clients
-
-
-def is_full(room_users: list, max_players: int):
-    return len(room_users) >= max_players
-        
