@@ -30,6 +30,14 @@ Room creation
   Automatically delete a room when last player leaves?
   Delete room after (3?) days of inactivity
 
+  Option to make a private/hidden room that doesn't appear in lobby and you can send link for others to join. This should not be added to database since they are more intended as one-use only and can be deleted after last user leaves.
+
 Game
   Room that has 1 game and a chat box
   Button to go back to lobby (put in nav bar?)
+
+
+
+
+Lobby -> Pick name of room
+Game -> Pass in (name of room / username) and call join room from game page

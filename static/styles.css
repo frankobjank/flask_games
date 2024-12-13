@@ -133,9 +133,11 @@ footer {
 
 }
 
-
-.room-tr:hover {
+/* For hover on lobby room table */
+.room-table .room-tbody .room-tr:hover .room-td {
     cursor: pointer;
+    background-color: lightgray;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 /* Game */

@@ -410,7 +410,7 @@ def message(data):
 @socketio.on("connect")
 def on_connect():
     fl.session["session_cookie"] = fl.request.cookies.get("session")
-    
+    print(f"User at {fl.session["session_cookie"]} connected.")
     # Automatically re-join room if session cookie is stored on server
     # This may be handled by socketio `reconnect` - check documentation
     # Can probably remove the below code as it did not seem to work

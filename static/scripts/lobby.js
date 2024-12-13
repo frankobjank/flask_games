@@ -2,7 +2,7 @@
 
 // Room, Socket Variables
 // Initializing socket
-const socket = io();
+// const socket = io();
 
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,33 +45,39 @@ function addRooms(newRooms) {
         row.className = 'room-tr';
         row.id = 'room-tr-' + room.name;
 
-        // Adding onclick to row instead of using button to join room
+        // Adding onclick to row instead of using button or anchor
         row.onclick = () => {
-            joinRoom(room.name);
+            window.location = '/game';
         }
 
         const tdname = document.createElement('td');
         tdname.innerHTML = room.name;
+        tdname.className = 'room-td';
         row.appendChild(tdname);
-
+        
         const tdgame = document.createElement('td');
         tdgame.innerHTML = room.game_name;
+        tdgame.className = 'room-td';
         row.appendChild(tdgame);
         
         const tdplayers = document.createElement('td');
         tdplayers.innerHTML = `${room.clients_connected} / ${room.capacity}`;
+        tdplayers.className = 'room-td';
         row.appendChild(tdplayers);
         
         const tdcreator = document.createElement('td');
         tdcreator.innerHTML = room.creator;
+        tdcreator.className = 'room-td';
         row.appendChild(tdcreator);
-
+        
         const tddate = document.createElement('td');
         tddate.innerHTML = room.date_created;
+        tddate.className = 'room-td';
         row.appendChild(tddate);
-
+        
         const tdin_progress = document.createElement('td');
         tdin_progress.innerHTML = room.in_progress;
+        tdin_progress.className = 'room-td';
         row.appendChild(tdin_progress);
 
         tbody.appendChild(row);
@@ -82,40 +88,40 @@ function addRooms(newRooms) {
 
 // Socketio
 
-// Join room
-function joinRoom(room) {
-    console.log('Sending join request.');
+// // Join room
+// function joinRoom(room) {
+//     console.log('Sending join request.');
     
-    // Pass name of room to server
-    socket.emit('join', {'room': room}, (response) => {
+//     // Pass name of room to server
+//     socket.emit('join', {'room': room}, (response) => {
         
-        // If accepted, should direct to a game page, or maybe remove room table and create game panels
-        console.log(`Response to join: ${response}`);
+//         // If accepted, should direct to a game page, or maybe remove room table and create game panels
+//         console.log(`Response to join: ${response}`);
         
-        window.location.href = 'game';
+//         window.location.href = 'game';
 
-    });
+//     });
     
-}
+// }
 
-// Updating table whenever room is added or players join/leave rooms
-socket.on('update_table', data => {
-    // For debug:
-    console.log(`Client received update_table event: ${JSON.stringify(data)}.`);
+// // Updating table whenever room is added or players join/leave rooms
+// socket.on('update_table', data => {
+//     // For debug:
+//     console.log(`Client received update_table event: ${JSON.stringify(data)}.`);
     
-    updateRoom(data);
-});
+//     updateRoom(data);
+// });
 
-socket.on('connect', () => {
-    console.log('Client connect event.');
-    // Incorporate `socket.recovered`?
-});
+// socket.on('connect', () => {
+//     console.log('Client connect event.');
+//     // Incorporate `socket.recovered`?
+// });
 
-socket.on('disconnect', () => {
-    console.log('Client disconnect event.');
-});
+// socket.on('disconnect', () => {
+//     console.log('Client disconnect event.');
+// });
 
-// Receiving debug messages
-socket.on('debug_msg', data => {
-    console.log(`Client received: ${data.msg}`);
-});
+// // Receiving debug messages
+// socket.on('debug_msg', data => {
+//     console.log(`Client received: ${data.msg}`);
+// });
