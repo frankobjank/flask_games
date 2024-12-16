@@ -109,7 +109,7 @@ footer {
 }
 
 /* General */
-.outer-container {
+.game-container {
     display: flex;
     justify-content: space-between; /* Adjust spacing between panels */
     align-items: center; /* Align panels vertically in the middle */

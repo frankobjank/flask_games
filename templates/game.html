@@ -1,28 +1,21 @@
-<!-- Might be able to change this to just `game.html` and let
- any game use this HTML and be populated with different games via js -->
+<!-- Turn this into popup window for game selection screen on room creation or for existing room -->
 
 {% extends "layout.html" %}
 
 {% block title %}
-    31
+    Game
 {% endblock %}
 
 {% block header %}
-   <h2>31</h2>
+   <h2 id="room-name-header"></h2>
 {% endblock %}
 
 {% block main %}
 
-    <!-- JS for accessing variables from response to GET request -->
-    <script type="text/javascript">
-        // Find a way to pass roomname to client to be able to joinroom
-        const roomName = {{ roomName }};
-    </script>
+    <!-- JS For Lobby -->
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/gameLobby.js') }}"></script>
 
-    <!-- JS for setting up game page -->
-    <script type="text/javascript" src="{{ url_for('static', filename='scripts/game.js') }}" defer></script>
-
-    <!-- Outer container includes whole game board / controls. Filled in with script -->
+    <!-- Outer container includes whole lobby or game containers -->
     <div class="outer-container"></div>
-
+    
 {% endblock %}
