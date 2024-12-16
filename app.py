@@ -110,7 +110,7 @@ def lobby():
         
         # TODO check for duplicate name
         
-        return fl.render_template("lobby.html", rooms=zipped_rooms, )
+        return fl.render_template("lobby.html", rooms=zipped_rooms)
 
 
     elif fl.request.method == "GET":

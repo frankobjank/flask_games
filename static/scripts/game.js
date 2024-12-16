@@ -1,13 +1,5 @@
 // https://socket.io/docs/v4/client-api/
 
-// Room, Socket Variables
-// Initializing socket
-const socket = io();
-var roomName;
-
-// Client username - assign on connect if not logged into account
-var username;
-
 // Number of entries in chat log
 var chatLogCount = 0;
 
@@ -28,8 +20,11 @@ let players = {};
 
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
-    toLobby = createLobbyAnchor();
+
+    const toLobby = createLobbyAnchor();
     document.querySelector('.outer-container').appendChild(toLobby);
+    
+    joinRoom(roomName);
 });
 
 function createLobbyAnchor() {

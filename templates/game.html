@@ -14,10 +14,10 @@
 {% block main %}
 
     <!-- JS for accessing variables from response to GET request -->
-    <!-- <script type="text/javascript">
-        /* Receive username from server */
-        const username = {{ username }};
-    </script> -->
+    <script type="text/javascript">
+        // Find a way to pass roomname to client to be able to joinroom
+        const roomName = {{ roomName }};
+    </script>
 
     <!-- JS for setting up game page -->
     <script type="text/javascript" src="{{ url_for('static', filename='scripts/game.js') }}" defer></script>

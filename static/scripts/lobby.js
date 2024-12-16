@@ -2,7 +2,11 @@
 
 // Room, Socket Variables
 // Initializing socket
-// const socket = io();
+const socket = io();
+
+// Client username - assign on connect if not logged into account
+var username;
+var roomName = 'lobby';
 
 // On page load - 'Main' function
 document.addEventListener('DOMContentLoaded', () => {
