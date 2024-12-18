@@ -44,10 +44,6 @@ Game -> Pass in (name of room / username) and call join room from game page
 
 Can potentially use namespaces to create unlisted rooms that are reached by namespace rules (i.e. specifying a unique path)
 
-When game room is joined
-  Everyone else in lobby should receive updated number of players in room
-
-When game room is left
 
 Lobby must be updated when:
   Any listed game room is joined

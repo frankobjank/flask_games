@@ -558,7 +558,7 @@ function removePlayers(players) {
 
 }
 
-function updateRoom(response) {
+function updateLobby(response) {
     if (response === undefined) {
         console.log('response = undefined');
         return;
@@ -567,7 +567,6 @@ function updateRoom(response) {
     // Called on join. Client adds username, builds room.
     if (response.action === 'setup_room') {
         
-        // Lobby or game room
         // Update global var `currentRoom`
         currentRoom = response.room;
         
@@ -576,189 +575,191 @@ function updateRoom(response) {
             username = response.username;
         }
     
-        // Set up lobby
-        if (response.room === 'lobby') {
-            // Remove old lobby if exists; rebuild from scratch
+        // Update header
+        document.querySelector('#room-name-header').innerHTML = 'Lobby';
+        
+        // Create lobby container
+        lobbyContainer = document.createElement('div');
+        lobbyContainer.className = 'lobby-container';
+        document.querySelector('.outer-container').appendChild(lobbyContainer);
+        
+        lobbyHeader = document.createElement('div');
+        lobbyHeader.className = 'lobby-header';
+        lobbyContainer.appendChild(lobbyHeader);
 
-            // Update header
-            document.querySelector('#room-name-header').innerHTML = 'Lobby';
-            
-            // Create lobby container
-            lobbyContainer = document.createElement('div');
-            lobbyContainer.className = 'lobby-container';
-            document.querySelector('.outer-container').appendChild(lobbyContainer);
-            
-            lobbyHeader = document.createElement('div');
-            lobbyHeader.className = 'lobby-header';
-            lobbyContainer.appendChild(lobbyHeader);
+        addRoomContainer = document.createElement('div');
+        addRoomContainer.className = 'add-room';
+        lobbyContainer.appendChild(addRoomContainer);
+        
+        addRoomAnchor = document.createElement('a');
+        addRoomAnchor.className = 'add-room';
+        addRoomAnchor.id = 'add-room-nav';
+        addRoomAnchor.href = '/create_room.html';
+        addRoomAnchor.innerHTML = 'Create Room';
 
-            addRoomContainer = document.createElement('div');
-            addRoomContainer.className = 'add-room';
-            lobbyContainer.appendChild(addRoomContainer);
-            
-            addRoomAnchor = document.createElement('a');
-            addRoomAnchor.className = 'add-room';
-            addRoomAnchor.id = 'add-room-nav';
-            addRoomAnchor.href = '/create_room.html';
-            addRoomAnchor.innerHTML = 'Create Room';
+        addRoomContainer.appendChild(addRoomAnchor);
 
-            addRoomContainer.appendChild(addRoomAnchor);
+        // Add username input `form` here?
 
-            // Add username input form here?
+        tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        lobbyContainer.appendChild(tableContainer);
 
-            tableContainer = document.createElement('div');
-            tableContainer.className = 'table-container';
-            lobbyContainer.appendChild(tableContainer);
+        roomTable = document.createElement('table');
+        roomTable.className = 'table table-striped room-table';
+        roomTable.id = 'room-table';
+        tableContainer.appendChild(roomTable);
 
-            roomTable = document.createElement('table');
-            roomTable.className = 'table table-striped room-table';
-            roomTable.id = 'room-table';
-            tableContainer.appendChild(roomTable);
+        // Creating thead
+        thead = document.createElement('thead');
+        thead.className = 'room-thead';
+        thead.id = 'room-thead';
+        roomTable.appendChild(thead);
 
-            // Creating thead
-            thead = document.createElement('thead');
-            thead.className = 'room-thead';
-            thead.id = 'room-thead';
-            roomTable.appendChild(thead);
+        // Creating all header cells
+        theadRoom = document.createElement('th');
+        theadRoom.id = 'room-thead-name';
+        theadRoom.innerHTML = 'Room';
+        thead.appendChild(theadRoom);
 
-            // Creating all header cells
-            theadRoom = document.createElement('th');
-            theadRoom.id = 'room-thead-name';
-            theadRoom.innerHTML = 'Room';
-            thead.appendChild(theadRoom);
+        theadGame = document.createElement('th');
+        theadGame.id = 'room-thead-game';
+        theadGame.innerHTML = 'Game';
+        thead.appendChild(theadGame);
 
-            theadGame = document.createElement('th');
-            theadGame.id = 'room-thead-game';
-            theadGame.innerHTML = 'Game';
-            thead.appendChild(theadGame);
+        theadPlayers = document.createElement('th');
+        theadPlayers.id = 'room-thead-players';
+        theadPlayers.innerHTML = 'Players';
+        thead.appendChild(theadPlayers);
 
-            theadPlayers = document.createElement('th');
-            theadPlayers.id = 'room-thead-players';
-            theadPlayers.innerHTML = 'Players';
-            thead.appendChild(theadPlayers);
+        theadCreator = document.createElement('th');
+        theadCreator.id = 'room-thead-creator';
+        theadCreator.innerHTML = 'Created By';
+        thead.appendChild(theadCreator);
 
-            theadCreator = document.createElement('th');
-            theadCreator.id = 'room-thead-creator';
-            theadCreator.innerHTML = 'Created By';
-            thead.appendChild(theadCreator);
+        theadDate = document.createElement('th');
+        theadDate.id = 'room-thead-date_created';
+        theadDate.innerHTML = 'Date Created';
+        thead.appendChild(theadDate);
 
-            theadDate = document.createElement('th');
-            theadDate.id = 'room-thead-date_created';
-            theadDate.innerHTML = 'Date Created';
-            thead.appendChild(theadDate);
+        theadInProgress = document.createElement('th');
+        theadInProgress.id = 'room-thead-in_progress';
+        theadInProgress.innerHTML = 'Game Running?';
+        thead.appendChild(theadInProgress);
+        // End thead
 
-            theadInProgress = document.createElement('th');
-            theadInProgress.id = 'room-thead-in_progress';
-            theadInProgress.innerHTML = 'Game Running?';
-            thead.appendChild(theadInProgress);
-            // End thead
-
-            // Create tbody - to be filled in via addRooms
-            tbody = document.createElement('tbody');
-            tbody.className = 'room-tbody';
-            tbody.id = 'room-tbody';
-            roomTable.appendChild(tbody);
-
-        }
-
-        // Set up game room
-        else {
-            // Update header
-            document.querySelector('#room-name-header').innerHTML = response.room;
-
-            gameContainer = document.createElement('div');
-            gameContainer.className = 'game-container';
-            document.querySelector('.outer-container').appendChild(gameContainer);
-
-            // Create `to lobby` button
-            const toLobby = createLobbyButton();
-            gameContainer.appendChild(toLobby);
-            
-            // Create game, player, chat panels if username is assigned
-            if (username.length > 0) {
-                
-                // Create panels from scratch on EVERY join
-                // Game, player, chat panels are removed on leave
-                
-                // Create new game panel
-                const gamePanel = createGamePanel();
-                gameContainer.appendChild(gamePanel);
-                
-                // Create new player panel
-                const playerPanel = createPlayerPanel();
-                gameContainer.appendChild(playerPanel);
-                
-                if (document.querySelector('#chat-log-panel') === null) {
-                    const chatLogPanel = createChatLogPanel(username);
-                    gameContainer.appendChild(chatLogPanel);
-                }
-                else {
-                    // If chat log exists it should persist;
-                    // Remove and then append to end of game-container div
-                    const chatLogPanel = gameContainer.removeChild(document.querySelector('#chat-log-panel'));
-    
-                    gameContainer.appendChild(chatLogPanel);
-                }         
-            };
-        }
+        // Create tbody - to be filled in via addRooms
+        tbody = document.createElement('tbody');
+        tbody.className = 'room-tbody';
+        tbody.id = 'room-tbody';
+        roomTable.appendChild(tbody);
     }
 
     // Called on leave. Removes panels so they can be re-added with new data.
     else if (response.action === 'teardown_room') {
 
-        // Teardown lobby if leaving lobby
-        if (response.room === 'lobby') {
-            // Remove all lobby elements
-            if (document.querySelector('.lobby-container') !== null) {
-                document.querySelector('.lobby-container').remove();
-            }
-        }
-        
-        // Teardown game room if not leaving lobby
-        // Make sure no valid game rooms are called `lobby`
-        else {
-            // // Remove game panel if it exists
-            // if (document.querySelector('#game-panel') !== null) {
-                
-            //     // .remove() removes element without having to know parent
-            //     document.querySelector('#game-panel').remove();
-            // }
-            
-            // // Maybe combine player panel with game panel?
-            // // Remove old player panel
-            // if (document.querySelector('#player-panel') !== null) {
-            //     document.querySelector('#player-panel').remove();
-            // }
-            
-            // // Remove chat panel - or persist chat panel
-            // if (document.querySelector('#chat-log-panel') !== null) {
-            //     document.querySelector('#chat-log-panel').remove(); 
-            // }
-
-            // Remove all three panels at once
-            if (document.querySelector('.game-container') !== null) {
-                document.querySelector('.game-container').remove();
-            }
-
-            // Reset msg count to 0 if chat is not persisting
-            chatLogCount = 0;
-    
-            // Set current room to null
-            currentRoom = null;
-            
-            // Reset game vars when leaving room
-            inProgress = false;
-            mode = '';
-            currentPlayer = '';
-            discardCard = '';
-            playerOrder = [];
-            playersConnected = [];
+        // Remove lobby container
+        if (document.querySelector('.lobby-container') !== null) {
+            document.querySelector('.lobby-container').remove();
         }
     }
 
     // Add rooms to lobby
     else if (response.action === 'add_rooms') {
+        // Called when loading lobby and when creating new room
         addRooms(response.rooms);
+    }
+
+    // Update number of players in a room when a player leaves or joins
+    else if (response.action === 'set_num_players') {
+        if (document.querySelector('#room-tr-' + response.room_to_change) === null) {
+            console.log(`Cannot find ${response.room_to_change}.`);
+        }
+        
+        // response.num_players;
+    }
+}
+
+function updateGameRoom(response) {
+    if (response === undefined) {
+        console.log('response = undefined');
+        return;
+    }
+    
+    // Called on join. Client adds username, builds room.
+    if (response.action === 'setup_room') {
+        
+        // Update global var `currentRoom`
+        currentRoom = response.room;
+        
+        // Assign username if not yet defined
+        if (username === undefined) {
+            username = response.username;
+        }
+    
+        // Set up game room
+        // Update header
+        document.querySelector('#room-name-header').innerHTML = response.room;
+
+        gameContainer = document.createElement('div');
+        gameContainer.className = 'game-container';
+        document.querySelector('.outer-container').appendChild(gameContainer);
+
+        // Create `to lobby` button
+        const toLobby = createLobbyButton();
+        gameContainer.appendChild(toLobby);
+        
+        // Create game, player, chat panels if username is assigned
+        if (username.length > 0) {
+            
+            // Create panels from scratch on EVERY join
+            // Game, player, chat panels are removed on leave
+            
+            // Create new game panel
+            const gamePanel = createGamePanel();
+            gameContainer.appendChild(gamePanel);
+            
+            // Create new player panel
+            const playerPanel = createPlayerPanel();
+            gameContainer.appendChild(playerPanel);
+            
+            if (document.querySelector('#chat-log-panel') === null) {
+                const chatLogPanel = createChatLogPanel(username);
+                gameContainer.appendChild(chatLogPanel);
+            }
+            else {
+                // If chat log exists it should persist;
+                // Remove and then append to end of game-container div
+                const chatLogPanel = gameContainer.removeChild(document.querySelector('#chat-log-panel'));
+
+                gameContainer.appendChild(chatLogPanel);
+            }         
+        }
+    }
+    
+
+    // Called on leave. Removes panels so they can be re-added with new data.
+    else if (response.action === 'teardown_room') {
+
+        // Teardown game room - Remove game panel if it exists
+        if (document.querySelector('.game-container') !== null) {
+            document.querySelector('.game-container').remove();
+        }
+
+        // Reset msg count to 0 if chat is not persisting
+        chatLogCount = 0;
+
+        // Set current room to null
+        currentRoom = null;
+        
+        // Reset game vars when leaving room
+        inProgress = false;
+        mode = '';
+        currentPlayer = '';
+        discardCard = '';
+        playerOrder = [];
+        playersConnected = [];
+        
     }
 
     // Add players to player panel on join

@@ -102,17 +102,11 @@ def index():
     return fl.render_template("index.html")
 
 
-@app.route("/room_creation")
-def room_creation():
-    fl.session["last_page"] = fl.url_for("room_creation")
-    return fl.render_template("room_creation.html", games=GAMES)
-
-
 @app.route("/game")
 def game():
     fl.session["last_page"] = fl.url_for("game")
     
-    # Load lobby
+    # Load lobby on GET
 
     username = fl.session.get("username", "")
     if len(username) == 0:
@@ -125,6 +119,13 @@ def game():
 
 
 # -- FlaskSocketIO -- #
+@socketio.on("create_room")
+def on_create_room():
+    # TODO: Send new room details to lobby
+        # - on client side, room should be appended to lobby container
+    return "Server callback: room created."
+
+
 @socketio.on("join")
 def on_join(data):
     # Change to unique url room solution?
@@ -187,10 +188,17 @@ def on_join(data):
     # endlessly. Maybe after 12 hours of inactivity?
     session_to_user[user.session_cookie] = user
 
-    # Set up client's username on their end
-    # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
-    fio.emit("update_room", {"action": "setup_room", "room": data["room"],
-             "username": user.name}, to=fl.request.sid)
+    # For lobby
+    if data["room"] == "lobby":
+        fio.emit("update_lobby", {"action": "setup_room", "room": data["room"],
+                 "username": user.name}, to=fl.request.sid)
+
+    # For game room
+    else:
+        # Set up client's username on their end
+        # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
+        fio.emit("update_room", {"action": "setup_room", "room": data["room"],
+                 "username": user.name}, to=fl.request.sid)
     
 
     # Join the room
@@ -218,7 +226,7 @@ def on_join(data):
             if room.name != "lobby"]}, to=fl.request.sid
         )
         
-        return "Server callback: joined lobby."
+        return "Server callback: join completed."
     
     # Joining game room - NOT lobby
 
@@ -226,7 +234,7 @@ def on_join(data):
     fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "system",
             "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
-    print(f"Sending update room to {data['room']} to add {list((user.name for user in   rooms[data['room']].users if user.connected))}")
+    print(f"Sending update room to {data['room']} to add {list((user.name for user in rooms[data['room']].users if user.connected))}")
 
     # Send updated list of players
     fio.emit("update_room", {"action": "add_players", "room": data["room"],
@@ -255,7 +263,7 @@ def on_join(data):
         
         # game.temp_log = []
 
-    return "Server callback: join fully processed."
+    return "Server callback: join completed."
         
 
 @socketio.on("leave")
@@ -266,8 +274,14 @@ def on_leave(data):
     print("ON LEAVE")
     
     print(f"{data['username']} has left the {data['room']} room.")
+    
+    # For lobby
+    if data["room"] == "lobby":
+        fio.emit("update_lobby", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
 
-    fio.emit("update_room", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
+    # For game room
+    else:
+        fio.emit("update_room", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
 
     fio.leave_room(data["room"])
 
@@ -279,10 +293,18 @@ def on_leave(data):
 
     # If lobby, exit early. Below code only applies to game rooms
     if data["room"] == "lobby":
-        return "Server callback: left lobby."
+        return "Server callback: successful leave."
+    
+    # If game room, continue
 
+    # Send updated player count to everyone in lobby
+    fio.emit("update_lobby", {"action": "set_num_players", "room_to_change": data["room"], 
+                              "num_players": rooms[data["room"]].get_num_connected()}, to="lobby")
+
+    # Notify the rest of clients in the room that user has left
     fio.emit("chat_log", {"msg": f"{data['username']} has left.", "sender": "system",
-             "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+                          "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, 
+                          room=data["room"])
 
     # Can leave freely if:
         # Not game OR if game AND game is not in progress:
@@ -297,7 +319,7 @@ def on_leave(data):
                  if not user.connected)}, room=user.room, broadcast=True)
     
     # Return statement serves as callback
-    return "Server callback: leave fully processed."
+    return "Server callback: successful leave."
 
 
 # Custom event - "move"
