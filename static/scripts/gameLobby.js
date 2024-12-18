@@ -326,15 +326,15 @@ function createPlayerContainer(name) {
 }
 
 // Add message to chat log
-function addToLog(msg, sender="") {
+function addToLog(msg, sender) {
     chatLogCount++;
     
     const msgElement = document.createElement('div');
     msgElement.className = 'chat-log-message';
     msgElement.id = 'chat-log-message-' + chatLogCount;
     
-    // Add sender to msg only if sender is given; otherwise system message
-    if (sender.length > 0) {
+    // Add sender to msg if not a system message
+    if (sender !== 'system') {
         const senderSpan = document.createElement('span');
         senderSpan.className = 'player-name chat message';
         senderSpan.id = 'sender-span-' + sender;
@@ -343,10 +343,6 @@ function addToLog(msg, sender="") {
         senderSpan.innerHTML = sender + ': ';
 
         msgElement.append(senderSpan);
-    }
-    else {
-        // Set sender to 'system' if no sender provided
-        sender = 'system';
     }
 
     // Debug log
@@ -582,6 +578,8 @@ function updateRoom(response) {
     
         // Set up lobby
         if (response.room === 'lobby') {
+            // Remove old lobby if exists; rebuild from scratch
+
             // Update header
             document.querySelector('#room-name-header').innerHTML = 'Lobby';
             
@@ -972,6 +970,14 @@ async function leaveRoom(username, room) {
     }
 
 }
+
+// Updating lobby
+socket.on('update_lobby', data => {
+    // For debug:
+    console.log(`Client received update_lobby event: ${JSON.stringify(data)}.`);
+    
+    updateLobby(data);
+});
 
 // Updating room state
 socket.on('update_room', data => {
