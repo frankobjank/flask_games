@@ -59,7 +59,7 @@ function addRooms(newRooms) {
             promise
                 .then(() => {
                     // On successful leave, teardown will be requested by server
-                    console.log('Successfully left room.');
+                    console.log(`Successfully left ${currentRoom}.`);
 
                     joinRoom(room.name);
                 })
@@ -131,7 +131,7 @@ function createLobbyButton() {
         promise
             .then(() => {
                 // On successful leave, teardown will be requested by server
-                console.log('Successfully left room.');
+                console.log(`Successfully left ${currentRoom}.`);
 
                 joinRoom('lobby');
             })
@@ -348,6 +348,9 @@ function addToLog(msg, sender="") {
         // Set sender to 'system' if no sender provided
         sender = 'system';
     }
+
+    // Debug log
+    console.log(`Client received: ${msg} from ${sender}`);
 
     msgElement.innerHTML += msg;
     
@@ -1015,7 +1018,6 @@ socket.on('reconnect', (attempt) => {
 // Receiving log / chat messages
 socket.on('chat_log', data => {
     addToLog(data.msg, data.sender);
-    console.log(`Client received: ${data.msg} from ${data.sender}`);
 });
 
 // Receiving debug messages
