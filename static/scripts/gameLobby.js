@@ -690,7 +690,10 @@ function updateLobby(response) {
 
         // Update in_progress
         else if (response.col === 'in_progress') {
-            // This will be difficult to do on server side, maybe the rooms can detect when there is a change in in_progress variable and send to lobby when that change occurs. It could also do the same for number of players....
+            // If this is not optimal to do on server side, maybe the rooms can 
+            // detect when there is a change in in_progress variable and send to 
+            // lobby when that change occurs. It could also do the same for number of players....
+            
             document.querySelector('#room-td-in_progress-' + response.row).innerHTML = response.new_value;
         }
         
