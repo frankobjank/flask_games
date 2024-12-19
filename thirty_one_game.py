@@ -197,7 +197,7 @@ class State:
         # Reset game vars
         self.player_order = []
         self.round_num = 0
-        self.remaining_players = {}
+        self.remaining_players = {p_name: Player(p_name) for p_name in self.all_players}
 
         # Set player order - eventually should be random
         self.player_order = [p_name for p_name in self.remaining_players.keys()]

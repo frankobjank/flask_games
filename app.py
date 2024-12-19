@@ -250,7 +250,8 @@ def on_join(data):
     # Send game data if game in progress
     game = rooms[data["room"]].game
 
-    if game and game.in_progress and user.name in game.players.keys():
+    # Use all players list to send updates to players who are knocked out
+    if game and game.in_progress and user.name in game.all_players:
         
         response = game.package_state(user.name)
                     
