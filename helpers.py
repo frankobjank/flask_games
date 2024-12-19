@@ -63,7 +63,7 @@ class Room:
             "capacity": self.capacity,
             "date_created": strftime('%D %I:%M %p', localtime(self.date_created)),
             "creator": self.creator,
-            "clients_connected": len(self.users),
+            "clients_connected": self.get_num_connected(),
             "in_progress": in_progress
         }
     

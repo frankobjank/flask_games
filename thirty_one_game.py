@@ -82,7 +82,7 @@ class Deck:
 
 
 class State:
-    def __init__(self, room_name) -> None:
+    def __init__(self, room_name: str) -> None:
         
         # modes : start, add_players, main_phase, discard 
             # HANDLE THESE MODES internally instead: end_turn, end_round, end_game

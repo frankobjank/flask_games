@@ -40,6 +40,8 @@ function addRooms(newRooms) {
     const tbody = document.querySelector('#room-tbody');
 
     for (const room of newRooms) {
+
+        // Check if room already exists - do not allow rooms with the same name
         if (document.querySelector('#room-tr-' + room.name) !== null) {
             console.log(`Duplicate room found when adding room ${room.name}.`);
             continue;
@@ -69,33 +71,35 @@ function addRooms(newRooms) {
         }
 
         const tdname = document.createElement('td');
-        tdname.innerHTML = room.name;
         tdname.className = 'room-td';
+        tdname.innerHTML = room.name;
         row.appendChild(tdname);
         
         const tdgame = document.createElement('td');
-        tdgame.innerHTML = room.game_name;
         tdgame.className = 'room-td';
+        tdgame.innerHTML = room.game_name;
         row.appendChild(tdgame);
         
         const tdplayers = document.createElement('td');
-        tdplayers.innerHTML = `${room.clients_connected} / ${room.capacity}`;
         tdplayers.className = 'room-td';
+        tdplayers.id = 'room-td-players-' + room.name;
+        tdplayers.innerHTML = `${room.clients_connected} / ${room.capacity}`;
         row.appendChild(tdplayers);
         
         const tdcreator = document.createElement('td');
-        tdcreator.innerHTML = room.creator;
         tdcreator.className = 'room-td';
+        tdcreator.innerHTML = room.creator;
         row.appendChild(tdcreator);
         
         const tddate = document.createElement('td');
-        tddate.innerHTML = room.date_created;
         tddate.className = 'room-td';
+        tddate.innerHTML = room.date_created;
         row.appendChild(tddate);
         
         const tdin_progress = document.createElement('td');
-        tdin_progress.innerHTML = room.in_progress;
         tdin_progress.className = 'room-td';
+        tdin_progress.id = 'room-td-in_progress-' + room.name;
+        tdin_progress.innerHTML = room.in_progress;
         row.appendChild(tdin_progress);
 
         tbody.appendChild(row);
@@ -671,12 +675,25 @@ function updateLobby(response) {
     }
 
     // Update number of players in a room when a player leaves or joins
-    else if (response.action === 'set_num_players') {
-        if (document.querySelector('#room-tr-' + response.room_to_change) === null) {
-            console.log(`Cannot find ${response.room_to_change}.`);
+    else if (response.action === 'update_lobby_table') {
+        
+        // Check that row exists
+        if (document.querySelector('#room-tr-' + response.row) === null) {
+            console.log(`${response.row} does not exist.`);
+            return;
+        }
+
+        // Update number of players
+        if (response.col === 'players') {
+            document.querySelector('#room-td-players-' + response.row).innerHTML = response.new_value;
+        }
+
+        // Update in_progress
+        else if (response.col === 'in_progress') {
+            // This will be difficult to do on server side, maybe the rooms can detect when there is a change in in_progress variable and send to lobby when that change occurs. It could also do the same for number of players....
+            document.querySelector('#room-td-in_progress-' + response.row).innerHTML = response.new_value;
         }
         
-        // response.num_players;
     }
 }
 
@@ -981,11 +998,11 @@ socket.on('update_lobby', data => {
 });
 
 // Updating room state
-socket.on('update_room', data => {
+socket.on('update_gameroom', data => {
     // For debug:
-    console.log(`Client received update_room event: ${JSON.stringify(data)}.`);
+    console.log(`Client received update_gameroom event: ${JSON.stringify(data)}.`);
     
-    updateRoom(data);
+    updateGameRoom(data);
 });
 
 // Updating game state
