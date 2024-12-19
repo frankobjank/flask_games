@@ -414,7 +414,7 @@ def process_move(data):
         if in_progress_before_update != game.in_progress:
             # Send updated player count to anyone remaining in lobby
             fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "in_progress",
-                     "new_value": game.in_progress, to="lobby")
+                     "new_value": game.in_progress}, to="lobby")
 
 
 @socketio.on("message")
