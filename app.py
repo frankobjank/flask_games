@@ -380,6 +380,9 @@ def process_move(data):
         print("Not accepting move from non-current player while game is in progress.")
         fio.emit("debug_msg", {"msg": f"Server rejecting move request; Client not current player."}, to=fl.request.sid)
         return
+
+    # Save in_progress var before game update
+    in_progress_before_update = game.in_progress
     
     # Update based on data.action, data.card
     if game.update(data) == "reject":
@@ -406,8 +409,12 @@ def process_move(data):
         # Empty temp log after all players are updated
         game.temp_log = []
 
-        # On each accepted move, send in_progress var to each user in lobby. 
-        # Can optimize to only send when var has changed.
+        # If in_progress var has changed, send update to lobby. 
+        
+        if in_progress_before_update != game.in_progress:
+            # Send updated player count to anyone remaining in lobby
+            fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "in_progress",
+                     "new_value": game.in_progress, to="lobby")
 
 
 @socketio.on("message")
