@@ -37,6 +37,8 @@ socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 rooms = {}
 
 rooms["lobby"] = Room(
+    # This limits the lobby to 10000 people. Instead can skip capacity validation 
+    # on join for lobby
     name="lobby", roompw="", game_name="", capacity=10000, date_created=time(), 
     creator="dev"
 )
@@ -262,12 +264,9 @@ def on_join(data):
         # If player is rejoining, update connection status for all other clients in room
         fio.emit("update_gameroom", {"action": "conn_status", "room": data["room"], 
                     "players": [user.name], "connected": True}, room=data["room"], broadcast=True)
-        
-        # Can't empty temp log for one player;
-        # This will probably result in duplicate messages coming to the joined player
-        # Will probably have to create individual logs
-        
-        # game.temp_log = []
+
+        # Empty log for player after update is sent
+        game.log[user.name] = []
 
     return "Server callback: join completed."
         
@@ -379,12 +378,9 @@ def process_move(data):
     # Only allow input from all players to click continue during round ending
     if game.in_progress and game.mode != "end_round" and fl.session.get("username", "") != game.current_player:
         print("Not accepting move from non-current player while game is in progress.")
-        fio.emit("debug_msg", {"msg": f"Server rejecting move request; Client not current player."}, to=fl.request.sid)
+        fio.emit("debug_msg", {"msg": f"Server rejected move request; Client not current player."}, to=fl.request.sid)
         return
 
-    # Save in_progress var before game update
-    in_progress_before_update = game.in_progress
-    
     # Update based on data.action, data.card
     if game.update(data) == "reject":
         # Send on server reject
@@ -393,6 +389,10 @@ def process_move(data):
 
     # Send on server accept; Tailored response to each player
     else:
+        
+        # Save in_progress var before game update
+        in_progress_before_update = game.in_progress
+        
         for username in game.all_players:
             
             response = game.package_state(username)
@@ -407,8 +407,8 @@ def process_move(data):
                 f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
                 to=user_to_sid[username])
     
-        # Empty temp log after all players are updated
-        game.temp_log = []
+            # Empty log for player after update is sent
+            game.log[username] = []
 
         # If in_progress var has changed, send update to lobby. 
         

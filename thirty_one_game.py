@@ -105,8 +105,9 @@ class State:
         # Gameplay
         self.mode = "start"
         self.in_progress = False
-        self.log = []
-        self.temp_log = []
+
+        # Reset on every server update. Split up by player for custom responses
+        self.log = {}
 
         # Rounds
         self.round_num = 0
@@ -176,10 +177,19 @@ class State:
         self.remaining_players[name] = Player(name)
 
 
-    def print_and_log(self, msg) -> None:
+    def print_and_log(self, msg, player="all") -> None:
         print(msg)
-        self.log.append(msg)
-        self.temp_log.append(msg)
+
+        # Send to all clients
+        if player == "all":
+            # Use all players so players receive msg even after knockout
+            for p_name in self.all_players:
+                self.log[p_name].append(msg)
+
+        # Send to one specific client
+        else:
+            self.log[player].append(msg)
+
 
 
     def start_game(self) -> None:
@@ -198,6 +208,8 @@ class State:
         self.player_order = []
         self.round_num = 0
         self.remaining_players = {p_name: Player(p_name) for p_name in self.all_players}
+        # Start log as empty list for each player
+        self.log = {p_name: [] for p_name in self.all_players}
 
         # Set player order - eventually should be random
         self.player_order = [p_name for p_name in self.remaining_players.keys()]
@@ -302,8 +314,7 @@ class State:
             # Give clients time to view the ending score/ board, then reset
 
         else:
-            print("\nRemaining Players' Extra Lives:")
-            self.log.append("\nRemaining Players' Extra Lives:")
+            self.print_and_log("\nRemaining Players' Extra Lives:")
             for p_name, p_object in self.remaining_players.items():
                 self.print_and_log(f"{p_name} - {p_object.lives} extra lives")
                 if p_object.lives == 0:
@@ -372,11 +383,13 @@ class State:
             elif packet["action"] == "pickup":
                 # convert to str here for type consistency
                 taken_card = self.discard.pop()
-                self.print_and_log(f"{self.current_player} picked up a {taken_card} from discard.")
+                # Extra turn log - removed
+                # self.print_and_log(f"{self.current_player} picked up a card from the discard pile.")
 
             elif packet["action"] == "draw":
                 taken_card = self.draw_card()
-                self.print_and_log(f"{self.current_player} drew a card from the deck.")
+                # Extra turn log - removed
+                # self.print_and_log(f"{self.current_player} drew a card from the deck.")
             
             elif packet["action"] == "discard":
                 # TODO Personal log
@@ -420,8 +433,9 @@ class State:
             self.discard.append(chosen_card)
             # 'debug' log the actual card discarded; don't send to players
             print(f"{self.current_player} discarded: {chosen_card}")
-            # Send general message to player
-            self.print_and_log(f"{self.current_player} discarded.")
+            
+            # Extra turn log - removed
+            # self.print_and_log(f"{self.current_player} discarded.")
             
             self.end_turn()
         
@@ -463,7 +477,7 @@ class State:
             "lives": lives,  # remaining lives of all players
             "discard": discard_card,  # top card of discard pile
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
-            "log": self.temp_log,  # new log msgs - might split for each player
+            "log": self.log[player_name],  # new log msgs - split up for each player
             
             "dealer": self.dealer,  # dealer of round
             "knocked": self.knocked,  # player who knocked (empty string until a knock)

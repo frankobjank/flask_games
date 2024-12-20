@@ -858,7 +858,7 @@ function updateGame(response) {
 
         // Fill log
         for (const msg of response.log) {
-            addToLog(msg);
+            addToLog(msg, "system");
         }
         
         if (!inProgress) {
@@ -878,8 +878,9 @@ function updateGame(response) {
         if (mode === 'end_round') {
             document.querySelector('#continue-button').disabled = false;
             
-            // TODO figure out how to delay display of winner by ~3 seconds to make reveal more realistic to a real game
-            // Maybe use roundEnd flag that gets reset every round start. Or can go by specific log messages but that seems more fragile
+            // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
+            // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
+            // Or can go by specific log messages but that seems more fragile
         }
         
         // Disable continue button on every other mode
