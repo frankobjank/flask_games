@@ -11,7 +11,7 @@ var currentRoom = 'lobby';
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Join room - defaults to lobby
+    // Join room - current room is lobby on initial GET
     joinRoom(currentRoom);
 });
 
@@ -583,77 +583,105 @@ function updateLobby(response) {
         document.querySelector('#room-name-header').innerHTML = 'Lobby';
         
         // Create lobby container
-        lobbyContainer = document.createElement('div');
+        const lobbyContainer = document.createElement('div');
         lobbyContainer.className = 'lobby-container';
         document.querySelector('.outer-container').appendChild(lobbyContainer);
         
-        lobbyHeader = document.createElement('div');
+        // -- Lobby header --
+        const lobbyHeader = document.createElement('div');
         lobbyHeader.className = 'lobby-header';
         lobbyContainer.appendChild(lobbyHeader);
-
-        addRoomContainer = document.createElement('div');
-        addRoomContainer.className = 'add-room';
-        lobbyContainer.appendChild(addRoomContainer);
         
-        addRoomAnchor = document.createElement('a');
+        // Add room
+        const addRoomContainer = document.createElement('div');
+        addRoomContainer.className = 'add-room';
+        lobbyHeader.appendChild(addRoomContainer);
+        
+        const addRoomAnchor = document.createElement('a');
         addRoomAnchor.className = 'add-room';
         addRoomAnchor.id = 'add-room-nav';
         addRoomAnchor.href = '/create_room.html';
         addRoomAnchor.innerHTML = 'Create Room';
-
+        
         addRoomContainer.appendChild(addRoomAnchor);
+        
+        // Add username - only display this if username not set yet
+        const addUsernameContainer = document.createElement('div');
+        addUsernameContainer.className = 'add-username mb-3';
+        lobbyHeader.appendChild(addUsernameContainer);
 
-        // Add username input `form` here?
+        const addUsernameInput = document.createElement('input');
+        addUsernameInput.className = 'form-control mx-auto w-auto';
+        addUsernameInput.type = 'text';
+        addUsernameInput.autocomplete = 'off';
+        addUsernameInput.placeholder = 'Enter name';
+        
+        addUsernameContainer.appendChild(addUsernameInput);
 
-        tableContainer = document.createElement('div');
+        const submitButton = document.createElement('button');
+        submitButton.className = 'btn btn-primary';
+        submitButton.innerHTML = '>';
+
+        submitButton.onclick = () => {
+            // Prevent sending blank input
+            if (submitButton.value.length > 0) {
+                socket.emit('submit_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
+            };
+        };
+
+        addUsernameContainer.appendChild(submitButton);
+        // -- End lobby header --
+
+        // Lobby table
+        const tableContainer = document.createElement('div');
         tableContainer.className = 'table-container';
         lobbyContainer.appendChild(tableContainer);
 
-        roomTable = document.createElement('table');
+        const roomTable = document.createElement('table');
         roomTable.className = 'table table-striped room-table';
         roomTable.id = 'room-table';
         tableContainer.appendChild(roomTable);
 
-        // Creating thead
-        thead = document.createElement('thead');
+        // -- Lobby thead --
+        const thead = document.createElement('thead');
         thead.className = 'room-thead';
         thead.id = 'room-thead';
         roomTable.appendChild(thead);
 
-        // Creating all header cells
-        theadRoom = document.createElement('th');
+        // All header cells
+        const theadRoom = document.createElement('th');
         theadRoom.id = 'room-thead-name';
         theadRoom.innerHTML = 'Room';
         thead.appendChild(theadRoom);
 
-        theadGame = document.createElement('th');
+        const theadGame = document.createElement('th');
         theadGame.id = 'room-thead-game';
         theadGame.innerHTML = 'Game';
         thead.appendChild(theadGame);
 
-        theadPlayers = document.createElement('th');
+        const theadPlayers = document.createElement('th');
         theadPlayers.id = 'room-thead-players';
         theadPlayers.innerHTML = 'Players';
         thead.appendChild(theadPlayers);
 
-        theadCreator = document.createElement('th');
+        const theadCreator = document.createElement('th');
         theadCreator.id = 'room-thead-creator';
         theadCreator.innerHTML = 'Created By';
         thead.appendChild(theadCreator);
 
-        theadDate = document.createElement('th');
+        const theadDate = document.createElement('th');
         theadDate.id = 'room-thead-date_created';
         theadDate.innerHTML = 'Date Created';
         thead.appendChild(theadDate);
 
-        theadInProgress = document.createElement('th');
+        const theadInProgress = document.createElement('th');
         theadInProgress.id = 'room-thead-in_progress';
         theadInProgress.innerHTML = 'Game Running?';
         thead.appendChild(theadInProgress);
-        // End thead
+        // -- End Lobby thead --
 
-        // Create tbody - to be filled in via addRooms
-        tbody = document.createElement('tbody');
+        // tbody - to be filled in via addRooms
+        const tbody = document.createElement('tbody');
         tbody.className = 'room-tbody';
         tbody.id = 'room-tbody';
         roomTable.appendChild(tbody);

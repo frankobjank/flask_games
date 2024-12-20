@@ -128,6 +128,13 @@ def on_create_room():
     return "Server callback: room created."
 
 
+@socketio.on("submit_username")
+def on_submit_username(data):
+    # TODO: username validation - check db for duplicate, check existing rooms for duplicate
+    data.username_request
+    return "Server callback: username accepted."
+
+
 @socketio.on("join")
 def on_join(data):
     # Change to unique url room solution?
