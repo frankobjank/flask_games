@@ -624,8 +624,21 @@ function updateLobby(response) {
 
         submitButton.onclick = () => {
             // Prevent sending blank input
-            if (submitButton.value.length > 0) {
-                socket.emit('submit_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
+            if (addUsernameInput.value.length > 0) {
+
+                // Using emitWithAck - for callback. Returns promise
+                const promise = socket.emitWithAck('set_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
+                
+                promise
+                    .then((data) => {
+                        // Successful request, add username
+                        username = data.username;
+                        console.log(`Username successfully added: ${data.username}.`);
+                    })
+                    .catch((error) => {
+                        console.error(`Could not set username: ${error}`);
+                    });
+
             };
         };
 
@@ -1010,7 +1023,7 @@ async function leaveRoom(username, room) {
     }
 
     try {
-        // Using emitWithAck - has a callback and is blocking
+        // Using await and emitWithAck - has a callback and is blocking
         const response = await socket.emitWithAck('leave', {'username': username, 'room': room});
         console.log(`Response = ${response}`);
         return response;        

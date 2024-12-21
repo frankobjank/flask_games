@@ -128,11 +128,17 @@ def on_create_room():
     return "Server callback: room created."
 
 
-@socketio.on("submit_username")
-def on_submit_username(data):
+@socketio.on("set_username")
+def on_set_username(data):
     # TODO: username validation - check db for duplicate, check existing rooms for duplicate
-    data.username_request
-    return "Server callback: username accepted."
+    print(f"Received username: {data['username_request']}")
+
+    if len(fl.session.get("username", "")) > 0:
+        return {"msg": "Canceling request: username already set.", "username": ""}
+    
+    fl.session["username"] = data["username_request"]
+
+    return {"username": data["username_request"]}
 
 
 @socketio.on("join")
@@ -176,14 +182,14 @@ def on_join(data):
             # Remove old copy of client, will append new client outside of `if` statement
             rooms[data["room"]].users.remove(old_user)
 
-    # Assign random name if session cookie not found
-    if len(user.name) == 0:
+    # # Assign random name if session cookie not found
+    # if len(user.name) == 0:
         
-        # ALLOW USER TO CREATE THEIR OWN USERNAME - will have to implement on client side
+    #     # ALLOW USER TO CREATE THEIR OWN USERNAME - will have to implement on client side
 
-        # Pass in current room names to avoid duplicates
-        user.name = get_random_name(exclude = {connected_user.name for connected_user in rooms[data["room"]].users})
-        print(f"Random name chosen = {user.name}")
+    #     # Pass in current room names to avoid duplicates
+    #     user.name = get_random_name(exclude = {connected_user.name for connected_user in rooms[data["room"]].users})
+    #     print(f"Random name chosen = {user.name}")
 
     # Add new user to room clients
     rooms[data["room"]].users.append(user)
