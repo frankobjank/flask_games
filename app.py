@@ -132,18 +132,31 @@ def on_set_username(data):
 def on_join(data):
     # Change to unique url room solution?
         # potentially with option of making public and being added to a lobby
+    
+    print(f"Users on join: {rooms[data['room']].users} before processing.")
 
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
-    # Check if room full
-    if data["room"] != "lobby" and rooms[data["room"]].is_full():
+    if data["room"] != "lobby":
+
+        # Check if room full
+        if rooms[data["room"]].is_full():
         
-        print(f"{data['room']} is full, redirecting.")
-        fio.emit("debug_msg", {"msg": f"{data['room']} is full, redirecting."}, to=fl.request.sid)
+            print(f"{data['room']} is full; Unable to join.")
+            fio.emit("debug_msg", {"msg": f"{data['room']} is full; Unable to join."}, to=fl.request.sid)
+            
+            # Should already be in lobby, stay in lobby
+            # Maybe turn this into a flash message
+            return f"{data['room']} is full"
         
-        # Should already be in lobby, stay in lobby
-        # Maybe turn this into a flash message
-        return f"{data['room']} is full"
+        # Do not allow client to join non-lobby room with no username
+        if len(fl.session.get("username", "")) == 0:
+            
+            print(f"Username is not set; cannot join {data['room']}.")
+            fio.emit("debug_msg", {"msg": f"Username is not set; cannot join {data['room']}."}, to=fl.request.sid)
+            
+            return
+
     
     user = None
 
@@ -157,14 +170,14 @@ def on_join(data):
             room_user.sid = fl.request.sid
 
             # If user found, add username to session
-            fl.session["username"] = room_user.username
+            fl.session["username"] = room_user.name
 
             # Assign to `user` for using below
             user = room_user
 
     # If no existing user matches, create new user object.
     # If a user connects to multiple rooms, a new user object will be created for each one.
-    else:
+    if not user:
         user = User(
             name = fl.session.get("username", ""), 
             session_cookie = fl.session.get("session_cookie", ""), 
@@ -199,6 +212,7 @@ def on_join(data):
         fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"],
                  "username": user.name}, to=fl.request.sid)
     
+    print(f"Users on join: {rooms[data['room']].users} after processing.")
 
     # Join the room
     fio.join_room(data["room"])
@@ -333,10 +347,6 @@ def on_move(data):
                      "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())},
                      to=fl.request.sid)
             return
-        
-        # Create new game if no game in active games dict
-        # if not room_to_game.get(data["room"]):
-        #     room_to_game[data["room"]] = thirty_one_game.State(data["room"])
         
         if not rooms[data["room"]].game:
             rooms[data["room"]].game = thirty_one_game.State(data["room"])

@@ -16,7 +16,7 @@ class User:
 
 
     def __repr__(self) -> str:
-        return f"User(name={self.name}, session_cookie={self.session_cookie}, sid={self.sid}, room={self.room}, connected={self.connected})"
+        return f"User(name={self.name}, session_cookie={self.session_cookie}, sid={self.sid}, connected={self.connected})"
     
 
     def __str__(self) -> str:

@@ -54,6 +54,15 @@ function addRooms(newRooms) {
         // Adding onclick to row instead of using button or anchor
         row.onclick = () => {
 
+            // Prevent joining game room if username not set
+            if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
+                
+                // Add flash or something to prevent joining game room
+                
+                console.log(`Cannot join game room; Username is '${username}'`);
+                return;
+            }
+
             // Leave lobby and join selected room
             const promise = leaveRoom(username, currentRoom);
                             
