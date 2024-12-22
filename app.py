@@ -170,7 +170,7 @@ def on_join(data):
             room_user.sid = fl.request.sid
 
             # If user found, add username to session
-            fl.session["username"] = room_user.name
+            # fl.session["username"] = room_user.name
 
             # Assign to `user` for using below
             user = room_user
@@ -219,8 +219,9 @@ def on_join(data):
     print(f"{user.name} joined {data['room']}.")
 
 
-    # Store username in session
-    fl.session["username"] = user.name
+    # Store username in session if username is not set yet
+    if len(fl.session.get("username", "")) == 0:
+           fl.session["username"] = user.name
 
     # Joining lobby; exit early
     if data["room"] == "lobby":
