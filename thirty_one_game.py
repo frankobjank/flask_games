@@ -22,6 +22,9 @@ class Player:
         
         # Score starts at 3
         self.lives = 3
+
+        # `Address` used for socket io messages
+        self.sid = ""
     
     
     def __repr__(self) -> str:

@@ -562,12 +562,11 @@ function removePlayers(players) {
 
 }
 
-function createAddUsername() {
+function createUsernameInput() {
     // Add username - only display this if username not set yet
-    const addUsernameContainer = document.createElement('div');
-    addUsernameContainer.className = 'add-username mb-3';
-    addUsernameContainer.id = 'add-username-container';
-
+    const usernameInputContainer = document.createElement('div');
+    usernameInputContainer.id = 'username-input-container';
+    
     const addUsernameInput = document.createElement('input');
     addUsernameInput.className = 'form-control mx-auto w-auto';
     addUsernameInput.type = 'text';
@@ -577,7 +576,7 @@ function createAddUsername() {
     // Add warning when trying to submit non-alphanumeric password - 
     // Highlight username box when trying to join room if username not set
     
-    addUsernameContainer.appendChild(addUsernameInput);
+    usernameInputContainer.appendChild(addUsernameInput);
 
     const submitButton = document.createElement('button');
     submitButton.className = 'btn btn-primary';
@@ -596,10 +595,10 @@ function createAddUsername() {
                     username = data.username;
                     console.log(`Username successfully added: ${data.username}.`);
                     
-                    document.querySelector('#lobby-header-container').removeChild(document.querySelector('#add-username-container'));
+                    document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'));
                     
                     const welcome = createWelcome();
-                    document.querySelector('#lobby-header-container').appendChild(welcome);
+                    document.querySelector('#lobby-username-container').appendChild(welcome);
                 })
                 .catch((error) => {
                     console.error(`Could not set username: ${error}`);
@@ -608,9 +607,9 @@ function createAddUsername() {
         };
     };
 
-    addUsernameContainer.appendChild(submitButton);
+    usernameInputContainer.appendChild(submitButton);
 
-    return addUsernameContainer;
+    return usernameInputContainer;
 }
 
 function createWelcome() {
@@ -662,17 +661,22 @@ function updateLobby(response) {
         addRoomAnchor.innerHTML = 'Create Room';
         
         addRoomContainer.appendChild(addRoomAnchor);
-        
+
+        const lobbyUsername = document.createElement('div');
+        lobbyUsername.className = 'add-username mb-3';
+        lobbyUsername.id = 'lobby-username-container';
+        lobbyHeader.appendChild(lobbyUsername);
+
         // If no username, add username input area
         if (username === undefined || username.length === 0) {
-            const addUsernameContainer = createAddUsername();
-            lobbyHeader.appendChild(addUsernameContainer);
+            const usernameInputContainer = createUsernameInput();
+            lobbyUsername.appendChild(usernameInputContainer);
         }
         
+        // If username, add welcome 
         else if (username.length > 0) {
-            // If username, add welcome 
             const welcome = createWelcome();
-            lobbyHeader.appendChild(welcome);
+            lobbyUsername.appendChild(welcome);
         }
 
         // -- End lobby header --

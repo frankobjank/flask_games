@@ -25,7 +25,7 @@ class User:
     
 
     def __str__(self) -> str:
-        return f"{self.name}"
+        return self.name
 
 
 class Room:
@@ -48,6 +48,10 @@ class Room:
     def is_full(self) -> bool:
         return len(self.users) >= self.capacity
     
+
+    def get_num_connected(self) -> int:
+        return len([user for user in self.users if user.connected])
+    
     
     def package_self(self) -> dict:
         """Put variables to send to client into a dict."""
@@ -66,10 +70,6 @@ class Room:
             "clients_connected": self.get_num_connected(),
             "in_progress": in_progress
         }
-    
-
-    def get_num_connected(self) -> int:
-        return len([user for user in self.users if user.connected])
 
 
 def login_required(f):
@@ -110,7 +110,7 @@ def to_percent(n: float) -> str:
     return f"{(n * 100.0):,.1f}%"
 
 
-def get_all_clients(rooms: dict[str,Room] ) -> set:
+def get_all_clients(rooms: dict[str, Room]) -> set:
     all_clients = set()
     
     for r in rooms.values():

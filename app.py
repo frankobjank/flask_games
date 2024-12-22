@@ -34,6 +34,8 @@ log.setLevel(logging.ERROR)
 # Configure socketio
 socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 
+users = {}
+
 rooms = {}
 
 rooms["lobby"] = Room(
@@ -79,8 +81,8 @@ user_to_sid = {}  # Player: list of sids --- might need to move this to be
 # user_to_sid is very fragile - the only reason this is needed is to send game update to all clients in room. Storing User class in Room class could solve this as sid would be included
 
 # Can cover these dicts in Room class
-room_clients = {r: [] for r in rooms.keys()}  # Room: set(players)
-room_to_game = {}  # Room: Game State
+# room_clients = {r: [] for r in rooms.keys()}  # Room: set(players)
+# room_to_game = {}  # Room: Game State
 
 
 # Users can set username without creating an account
@@ -179,6 +181,8 @@ def on_join(data):
     # Use session cookie to find username if username not found
     for old_user in rooms[data["room"]].users:
         if user.session_cookie == old_user.session_cookie:
+
+            print(f"old user {old_user.name} was found in room {data['room']}")
             
             # If user was in room clients already, assign new user to old user
             # (instead of adding a new entry to room clients)
@@ -201,6 +205,8 @@ def on_join(data):
 
     # Add new user to room clients
     rooms[data["room"]].users.append(user)
+
+    print(f"Added user to room {data['room']}")
     
     # Hopefully won't need this room value, feels very circular
     # user.room = data["room"]
@@ -343,7 +349,7 @@ def on_leave(data):
         # Broadbast = True since notification should go to all other players in room
         fio.emit("update_gameroom", {"action": "remove_players", "room": data["room"],
                  "players": list(user.name for user in rooms[data["room"]].users 
-                 if not user.connected)}, room=user.room, broadcast=True)
+                 if not user.connected)}, room=data["room"], broadcast=True)
     
     # Return statement serves as callback
     return "Server callback: successful leave."
@@ -504,7 +510,7 @@ def on_disconnect():
                     print(f"Sending update to room {room_name} to remove `{user.name}`")
 
                 # If game, check if game is in progress
-                else:
+                elif room_object.game:
                     
                     # If game is not running, remove player. Otherwise keep player until game is officially reset
                     if not room_object.game.in_progress:

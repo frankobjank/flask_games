@@ -45,7 +45,16 @@ Game -> Pass in (name of room / username) and call join room from game page
 Can potentially use namespaces to create unlisted rooms that are reached by namespace rules (i.e. specifying a unique path)
 
 
-Lobby must be updated when:
-  Any listed game room is joined
-  Any listed game room is left
-  Any listed room is created or deleted
+
+
+Data structures:
+
+rooms {"room_name": Room()}
+
+Room() - self.users = []
+User() - name, session_cookie, websocket_id, room
+
+session_to_user = {}  # session cookie: User class
+
+sid_to_user = {}
+user_to_sid = {}
