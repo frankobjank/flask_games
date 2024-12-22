@@ -52,7 +52,7 @@ Data structures:
 rooms {"room_name": Room()}
 
 Room() - self.users = []
-User() - name, session_cookie, websocket_id, room
+User() - name, session_cookie, sid, room
 
 session_to_user = {}  # session cookie: User class
 

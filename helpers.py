@@ -8,20 +8,15 @@ NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrud
 
 
 class User:
-    def __init__(self, name: str="", session_cookie: str="", websocket_id: str="", room: str=""):
+    def __init__(self, name: str="", session_cookie: str="", sid: str="", connected: bool=False):
         self.name = name
         self.session_cookie = session_cookie
-        
-        # Theoretically multiple rooms connects are possible so websocket id and room should be sets
-        self.websocket_id = websocket_id
-        self.room = room
-
-        # Keep track of connection status to reconnect if user gets disconnected
-        self.connected = False
+        self.sid = sid  # A user object is unique to a room, so only one sid is needed at any time
+        self.connected = connected  # Indicate whether user is connected or disconnected
 
 
     def __repr__(self) -> str:
-        return f"User(name={self.name}, session_cookie={self.session_cookie}, websocket_id={self.websocket_id}, room={self.room}, connected={self.connected})"
+        return f"User(name={self.name}, session_cookie={self.session_cookie}, sid={self.sid}, room={self.room}, connected={self.connected})"
     
 
     def __str__(self) -> str:
