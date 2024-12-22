@@ -136,6 +136,14 @@ def on_set_username(data):
     if len(fl.session.get("username", "")) > 0:
         return {"msg": "Canceling request: username already set.", "username": ""}
     
+    # Security concern - sanitize username
+    
+    # Limit to 12 chars
+    if len(data["username_request"]) > 12:
+        return {"msg": "Username may not exceed 12 chars.", "username": ""}
+
+    # Make sure it is only alphanumeric chars
+    
     fl.session["username"] = data["username_request"]
 
     return {"username": data["username_request"]}

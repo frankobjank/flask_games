@@ -562,6 +562,63 @@ function removePlayers(players) {
 
 }
 
+function createAddUsername() {
+    // Add username - only display this if username not set yet
+    const addUsernameContainer = document.createElement('div');
+    addUsernameContainer.className = 'add-username mb-3';
+    addUsernameContainer.id = 'add-username-container';
+
+    const addUsernameInput = document.createElement('input');
+    addUsernameInput.className = 'form-control mx-auto w-auto';
+    addUsernameInput.type = 'text';
+    addUsernameInput.autocomplete = 'off';
+    addUsernameInput.placeholder = 'Enter name';
+    addUsernameInput.maxLength = '12';
+    // Add warning when trying to submit non-alphanumeric password - 
+    // Highlight username box when trying to join room if username not set
+    
+    addUsernameContainer.appendChild(addUsernameInput);
+
+    const submitButton = document.createElement('button');
+    submitButton.className = 'btn btn-primary';
+    submitButton.innerHTML = '>';
+
+    submitButton.onclick = () => {
+        // Prevent sending blank input
+        if (addUsernameInput.value.length > 0) {
+
+            // Using emitWithAck - for callback. Returns promise
+            const promise = socket.emitWithAck('set_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
+            
+            promise
+                .then((data) => {
+                    // Successful request, add username
+                    username = data.username;
+                    console.log(`Username successfully added: ${data.username}.`);
+                    
+                    document.querySelector('#lobby-header-container').removeChild(document.querySelector('#add-username-container'));
+                    
+                    const welcome = createWelcome();
+                    document.querySelector('#lobby-header-container').appendChild(welcome);
+                })
+                .catch((error) => {
+                    console.error(`Could not set username: ${error}`);
+                });
+
+        };
+    };
+
+    addUsernameContainer.appendChild(submitButton);
+
+    return addUsernameContainer;
+}
+
+function createWelcome() {
+    const welcome = document.createElement('div');
+    welcome.innerHTML = `<h4>Welcome ${username}</h4>`;
+    return welcome;
+}
+
 function updateLobby(response) {
     if (response === undefined) {
         console.log('response = undefined');
@@ -590,6 +647,7 @@ function updateLobby(response) {
         // -- Lobby header --
         const lobbyHeader = document.createElement('div');
         lobbyHeader.className = 'lobby-header';
+        lobbyHeader.id = 'lobby-header-container';
         lobbyContainer.appendChild(lobbyHeader);
         
         // Add room
@@ -605,44 +663,18 @@ function updateLobby(response) {
         
         addRoomContainer.appendChild(addRoomAnchor);
         
-        // Add username - only display this if username not set yet
-        const addUsernameContainer = document.createElement('div');
-        addUsernameContainer.className = 'add-username mb-3';
-        lobbyHeader.appendChild(addUsernameContainer);
-
-        const addUsernameInput = document.createElement('input');
-        addUsernameInput.className = 'form-control mx-auto w-auto';
-        addUsernameInput.type = 'text';
-        addUsernameInput.autocomplete = 'off';
-        addUsernameInput.placeholder = 'Enter name';
+        // If no username, add username input area
+        if (username === undefined || username.length === 0) {
+            const addUsernameContainer = createAddUsername();
+            lobbyHeader.appendChild(addUsernameContainer);
+        }
         
-        addUsernameContainer.appendChild(addUsernameInput);
+        else if (username.length > 0) {
+            // If username, add welcome 
+            const welcome = createWelcome();
+            lobbyHeader.appendChild(welcome);
+        }
 
-        const submitButton = document.createElement('button');
-        submitButton.className = 'btn btn-primary';
-        submitButton.innerHTML = '>';
-
-        submitButton.onclick = () => {
-            // Prevent sending blank input
-            if (addUsernameInput.value.length > 0) {
-
-                // Using emitWithAck - for callback. Returns promise
-                const promise = socket.emitWithAck('set_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
-                
-                promise
-                    .then((data) => {
-                        // Successful request, add username
-                        username = data.username;
-                        console.log(`Username successfully added: ${data.username}.`);
-                    })
-                    .catch((error) => {
-                        console.error(`Could not set username: ${error}`);
-                    });
-
-            };
-        };
-
-        addUsernameContainer.appendChild(submitButton);
         // -- End lobby header --
 
         // Lobby table
