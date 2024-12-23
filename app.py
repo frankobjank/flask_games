@@ -1,5 +1,6 @@
 # Python official modules
 import logging
+import re
 import sqlite3
 from time import time, localtime, strftime
 import werkzeug.security as ws
@@ -110,22 +111,37 @@ def on_create_room():
 @socketio.on("set_username")
 def on_set_username(data):
     # TODO: username validation - check db for duplicate, check existing rooms for duplicate
-    print(f"Received username: {data['username_request']}")
+    username = data["username_request"]
+
+    print(f"Received username: {username}")
 
     if len(fl.session.get("username", "")) > 0:
         return {"msg": "Canceling request: username already set.", "username": ""}
     
-    # Security concern - sanitize username
-    
+    # Strip whitespace
+    username = username.strip()
+
+    # Security concern - sanitize username. Only allow non-alphanumeric and underscore chars.
+    if not re.match(r"^[a-zA-Z0-9_]+$", username):
+        return {"msg": "Canceling request: username contains illegal characters.", "username": ""}
+
     # Limit to 12 chars
-    if len(data["username_request"]) > 12:
-        return {"msg": "Username may not exceed 12 chars.", "username": ""}
-
-    # Make sure it is only alphanumeric chars
+    if len(username) > 12:
+        username = username[:12]
     
-    fl.session["username"] = data["username_request"]
+    # Update name in session dict and in room's user list
+    fl.session["username"] = username
+    
+    # Setting username should only happen in lobby, therefore only need to update users in lobby
+    # Can make users a dict to shorten lookup time
+    for user in rooms["lobby"].users:
+        if fl.session["session_cookie"] == user.session_cookie and len(user.name) == 0:
+            user.name = username
+            
+            # Break after first match
+            break
 
-    return {"username": data["username_request"]}
+    return {"username": username}
 
 
 @socketio.on("join")
@@ -169,8 +185,8 @@ def on_join(data):
             # Copy new sid to room_user object
             room_user.sid = fl.request.sid
 
-            # If user found, add username to session
-            # fl.session["username"] = room_user.name
+            # If user found, set connected to True
+            room_user.connected = True
 
             # Assign to `user` for using below
             user = room_user
@@ -200,6 +216,10 @@ def on_join(data):
     #     print(f"Random name chosen = {user.name}")
 
 
+    # Store username in session if username is not set yet
+    if len(fl.session.get("username", "")) == 0:
+        fl.session["username"] = user.name
+
     # For lobby
     if data["room"] == "lobby":
         fio.emit("update_lobby", {"action": "setup_room", "room": data["room"],
@@ -217,11 +237,6 @@ def on_join(data):
     # Join the room
     fio.join_room(data["room"])
     print(f"{user.name} joined {data['room']}.")
-
-
-    # Store username in session if username is not set yet
-    if len(fl.session.get("username", "")) == 0:
-           fl.session["username"] = user.name
 
     # Joining lobby; exit early
     if data["room"] == "lobby":
@@ -411,7 +426,7 @@ def on_move(data):
                     to=response["sid"])
     
             # Empty log for player after update is sent
-            game.log[username] = []
+            game.players[username].log = []
 
         # If in_progress var has changed, send update to lobby. 
         
@@ -437,6 +452,8 @@ def on_connect():
 
 @socketio.on("disconnect")
 def on_disconnect():
+    print(f"Session on disconnect: {fl.session}")
+
     # Getting username via flask session
     print("On disconnect; getting username via flask session.")
     username = fl.session.get("username", "")
@@ -457,15 +474,16 @@ def on_disconnect():
                 
                 # Remove player if no game
                 if not room_object.game:
-                    print("No game exists; removing player.")
+
+                    print(f"No game exists; Sending update to room {room_name} to remove `{user.name}`")
                     fio.emit("update_gameroom", {"action": "remove_players", "room": room_name, 
                              "players": [user.name]}, room=room_name, broadcast=True)
-                    print(f"Sending update to room {room_name} to remove `{user.name}`")
 
                 # If game, check if game is in progress
                 elif room_object.game:
                     
-                    # If game is not running, remove player. Otherwise keep player until game is officially reset
+                    # If game is not running, remove player. 
+                    # Otherwise keep player until game is officially reset.
                     if not room_object.game.in_progress:
                         print("Game exists but is not in progress; removing player.")
 
@@ -483,15 +501,7 @@ def on_disconnect():
                         fio.emit("update_gameroom", {"action": "conn_status", "room": room_name,
                                  "players": [user.name], "connected": False}, room=room_name,
                                  broadcast=True)
-    
-    # End of loop
 
-    # Remove user from user to sid dict
-    # user_to_sid.pop(username)
-
-    # Remove sid from sid to user dict - should exist because username exists
-    # sid_to_user.pop(fl.request.sid)    
-    
 # -- End FlaskSocketIO -- #
 
 

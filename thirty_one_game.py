@@ -205,23 +205,19 @@ class State:
             return
         
         # Check number of players
-        if not (self.MIN_PLAYERS <= len(self.all_players) <= self.MAX_PLAYERS):
+        if not (self.MIN_PLAYERS <= len(self.players.keys()) <= self.MAX_PLAYERS):
             print("Need between 2 and 7 players to begin.")
             return
         
         # Reset game vars
         self.player_order = []
         self.round_num = 0
-        # Can be removed?
-        # self.remaining_players = {p_name: Player(p_name) for p_name in self.all_players}
-        # Start log as empty list for each player
         for p_object in self.players.values():
-            p_object.log = []
+            p_object.log = []  # Start log as empty list for each player
 
         # Set player order - eventually should be random
         self.player_order = [p_name for p_name in self.players.keys()]
 
-        # Set in progress to True
         self.in_progress = True
 
         self.new_round()
@@ -246,7 +242,7 @@ class State:
         self.shuffle_deck()
         
         # Reset each player's hand and deal new hand
-        for p_name, p_object in self.players:
+        for p_name, p_object in self.players.items():
             # Reset hand for every player to make sure player who is out doesn't have a hand
             p_object.hand = []
 
@@ -315,9 +311,8 @@ class State:
             # Adjust player order; Keep players dict static
             self.player_order.remove(p_name)
 
-        if len(self.players) == 1:
-            winner = [p for p in self.players.keys()][0]
-            self.print_and_log(f"\n{winner} wins!")
+        if len(self.player_order) == 1:
+            self.print_and_log(f"\n{[self.player_order][0]} wins!")
             self.mode = "end_game"
             self.in_progress = False
 

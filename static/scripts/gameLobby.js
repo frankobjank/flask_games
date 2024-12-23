@@ -359,7 +359,7 @@ function addToLog(msg, sender) {
     }
 
     // Debug log
-    console.log(`Client received: ${msg} from ${sender}`);
+    console.log(`Client received: '${msg}' from '${sender}'`);
 
     msgElement.innerHTML += msg;
     
@@ -600,7 +600,13 @@ function createUsernameInput() {
             
             promise
                 .then((data) => {
-                    // Successful request, add username
+                    // Username failed validation, not set.
+                    if (data.username.length === 0) {
+                        console.log(`Error: ${data.msg}`)
+                        return;
+                    }
+                    
+                    // Successful request, add username.
                     username = data.username;
                     console.log(`Username successfully added: ${data.username}.`);
                     
@@ -1082,7 +1088,7 @@ async function leaveRoom(username, room) {
 // Updating lobby
 socket.on('update_lobby', data => {
     // For debug:
-    console.log(`Client received update_lobby event: ${JSON.stringify(data)}.`);
+    console.log(`Client received 'update_lobby' event: ${JSON.stringify(data)}.`);
     
     updateLobby(data);
 });
@@ -1090,7 +1096,7 @@ socket.on('update_lobby', data => {
 // Updating room state
 socket.on('update_gameroom', data => {
     // For debug:
-    console.log(`Client received update_gameroom event: ${JSON.stringify(data)}.`);
+    console.log(`Client received 'update_gameroom' event: ${JSON.stringify(data)}.`);
     
     updateGameRoom(data);
 });
@@ -1098,7 +1104,7 @@ socket.on('update_gameroom', data => {
 // Updating game state
 socket.on('update_game', data => {
     // For debug:
-    console.log(`Client received update game event: ${JSON.stringify(data)}.`);
+    console.log(`Client received 'update game' event: ${JSON.stringify(data)}.`);
     
     updateGame(data);
 });
