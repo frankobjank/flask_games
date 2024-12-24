@@ -90,13 +90,14 @@ def game():
     
     # Load lobby on GET
 
-    username = fl.session.get("username", "")
-    if len(username) == 0:
-        username = get_random_name()
+    # For random name
+    # username = fl.session.get("username", "")
+    # if len(username) == 0:
+    #     username = get_random_name()
     
-    # Required to instantiate a session cookie for players with random names
+    # Make sure session cookie is captured
     fl.session["session_cookie"] = fl.request.cookies.get("session")
-    
+
     return fl.render_template("game.html")
 
 
@@ -236,8 +237,9 @@ def on_join(data):
 
     # Join the room
     fio.join_room(data["room"])
+    
     print(f"{user.name} joined {data['room']}.")
-
+    
     # Joining lobby; exit early
     if data["room"] == "lobby":
         # When room is added, push changes to all other users in lobby
@@ -501,7 +503,6 @@ def on_disconnect():
                         fio.emit("update_gameroom", {"action": "conn_status", "room": room_name,
                                  "players": [user.name], "connected": False}, room=room_name,
                                  broadcast=True)
-
 # -- End FlaskSocketIO -- #
 
 

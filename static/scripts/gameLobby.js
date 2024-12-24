@@ -6,13 +6,14 @@ const socket = io();
 
 // Client username - assign on connect if not logged into account
 var username;
-var currentRoom = 'lobby';
+
+// Used on join to keep track of current room
+var currentRoom;
 
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
-
     // Join room - current room is lobby on initial GET
-    joinRoom(currentRoom);
+    joinRoom('lobby');
 });
 
 // Include:
