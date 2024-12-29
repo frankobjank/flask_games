@@ -140,6 +140,83 @@ footer {
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
+/* Modals */
+.modal {
+    position: fixed;
+    /* Center */
+    top: 50%;
+    left: 50%;
+    /* Scale(0) hides the modal */
+    transform: translate(-50%, -50%) scale(0);
+    /* Modal would not appear without setting display */
+    display: none;
+    /* Advantage of scale over display: none is ability to add animation */
+    transition: 200ms ease-in-out;
+    /* border: 1px solid black; */
+    border-radius: 10px;
+    z-index: 10;
+    background-color: rgb(255, 255, 255);
+    width: 500px;
+    max-width: 80%;
+    max-height: 80%;
+}
+
+.modal.active {
+    /* Scale(1) unhides modal */
+    transform: translate(-50%, -50%) scale(1);
+    /* Modal would not appear without setting display */
+    display: block;
+}
+
+.modal-header {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid black;
+}
+
+.modal-title {
+    text-align: center;
+}
+
+.modal-header .modal-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.modal-header .modal-close-button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    background: none;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.modal-body {
+    padding: 10px 15px;
+}
+
+#modal-overlay {
+    position: fixed;
+    opacity: 0;
+    /* Matches the transition of modal */
+    transition: 200ms ease-in-out;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Allows you to click outside of modal (in overlay) */
+    pointer-events: none;
+}
+
+#modal-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
 /* Game */
 .panel {
     border: 1px solid black;

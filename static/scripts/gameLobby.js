@@ -10,6 +10,21 @@ var username;
 // Used on join to keep track of current room
 var currentRoom;
 
+// Overlay for background of modals; 
+// Can use same one for every modal since it covers whole screen
+const modalOverlay = document.createElement('div');
+modalOverlay.id = 'modal-overlay';
+// Allows user to click outside of modal to close it
+modalOverlay.onclick = () => {
+    // Selects ALL open modals
+    const modals = document.querySelectorAll('.modal.active');
+    modals.forEach(modal => {
+        closeModal(modal);
+    })
+}
+
+document.querySelector('body').appendChild(modalOverlay);
+
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
     // Join room - current room is lobby on initial GET
@@ -82,34 +97,34 @@ function addRooms(newRooms) {
 
         const tdname = document.createElement('td');
         tdname.className = 'room-td';
-        tdname.innerHTML = room.name;
+        tdname.innerText = room.name;
         row.appendChild(tdname);
         
         const tdgame = document.createElement('td');
         tdgame.className = 'room-td';
-        tdgame.innerHTML = room.game_name;
+        tdgame.innerText = room.game_name;
         row.appendChild(tdgame);
         
         const tdplayers = document.createElement('td');
         tdplayers.className = 'room-td';
         tdplayers.id = 'room-td-players-' + room.name;
-        tdplayers.innerHTML = `${room.clients_connected} / ${room.capacity}`;
+        tdplayers.innerText = `${room.clients_connected} / ${room.capacity}`;
         row.appendChild(tdplayers);
         
         const tdcreator = document.createElement('td');
         tdcreator.className = 'room-td';
-        tdcreator.innerHTML = room.creator;
+        tdcreator.innerText = room.creator;
         row.appendChild(tdcreator);
         
         const tddate = document.createElement('td');
         tddate.className = 'room-td';
-        tddate.innerHTML = room.date_created;
+        tddate.innerText = room.date_created;
         row.appendChild(tddate);
         
         const tdin_progress = document.createElement('td');
         tdin_progress.className = 'room-td';
         tdin_progress.id = 'room-td-in_progress-' + room.name;
-        tdin_progress.innerHTML = room.in_progress;
+        tdin_progress.innerText = room.in_progress;
         row.appendChild(tdin_progress);
 
         tbody.appendChild(row);
@@ -136,7 +151,7 @@ let players = {};
 function createLobbyButton() {
     const toLobby = document.createElement('button');
     toLobby.className = 'room-nav';
-    toLobby.innerHTML = 'Return to Lobby';
+    toLobby.innerText = 'Return to Lobby';
     toLobby.onclick = () => {
         // Leave current room and join lobby
         const promise = leaveRoom(username, currentRoom);
@@ -188,7 +203,7 @@ function createBoard() {
     // Create deck button
     const deck = document.createElement('button');
     deck.id = 'deck';
-    deck.innerHTML = 'Deck';
+    deck.innerText = 'Deck';
     deck.onclick = () => {
         socket.emit('move', {'action': 'draw', 'room': currentRoom});
     }
@@ -229,7 +244,7 @@ function createStartButton() {
     
     start.id = 'start-button';
     start.className = 'game-button';
-    start.innerHTML = 'Start New Game';
+    start.innerText = 'Start New Game';
 
     start.onclick = () => {
         socket.emit('move', {'action': 'start', 'room': currentRoom});
@@ -245,7 +260,7 @@ function createContinueButton() {
     // new session, start game. round end, continue; game end, new game 
     cont.id = 'continue-button';
     cont.className = 'game-button';
-    cont.innerHTML = 'Continue to Next Round';
+    cont.innerText = 'Continue to Next Round';
     cont.disabled = true;
 
     cont.onclick = () => {
@@ -277,7 +292,7 @@ function createPlayerContainer(name) {
 
     // Give container id of 'playerName-container'
     playerContainer.id = name + '-container';
-    playerContainer.innerHTML = name + br.outerHTML;
+    playerContainer.innerText = name + br.outerHTML;
     
     
     // Put hand size into span
@@ -320,7 +335,7 @@ function createPlayerContainer(name) {
         const knockButton = document.createElement('button');
         knockButton.className = 'knock-button';
         knockButton.id = name + '-knock';
-        knockButton.innerHTML = 'knock';
+        knockButton.innerText = 'knock';
         
         // Send server request on click
         knockButton.onclick = () => {
@@ -354,7 +369,7 @@ function addToLog(msg, sender) {
         senderSpan.id = 'sender-span-' + sender;
         // Can set color by sender !
         // senderSpan.style.color = 'blue';
-        senderSpan.innerHTML = sender + ': ';
+        senderSpan.innerText = sender + ': ';
 
         msgElement.append(senderSpan);
     }
@@ -362,7 +377,7 @@ function addToLog(msg, sender) {
     // Debug log
     console.log(`Client received: '${msg}' from '${sender}'`);
 
-    msgElement.innerHTML += msg;
+    msgElement.innerText += msg;
     
     // Set custom attribute 'sender' for all msgs
     msgElement.setAttribute('sender', sender);
@@ -396,11 +411,13 @@ function createChatLogPanel(username) {
     chatLogContainer.className = 'chat log container rounded-0';
     chatLogContainer.id = 'chat-log-container';
     
-    const chatLogHeader = document.createElement('div');
+    const chatLogHeader = document.createElement('h4');
     chatLogHeader.className = 'chat log header';
     chatLogHeader.id = 'chat-log-header';
     // Header should display room name - and player name?
-    chatLogHeader.innerHTML = '<h4>' + username + ' - ' + currentRoom + '</h4>';
+    // Moving away from innerHTML -> innerText
+    // chatLogHeader.innerHTML = '<h4>' + username + ' - ' + currentRoom + '</h4>';
+    chatLogHeader.innerText = username + ' - ' + currentRoom;
     
 
     const chatLogMessages = document.createElement('div');
@@ -432,7 +449,7 @@ function createChatLogPanel(username) {
     const sendMessageButton = document.createElement('button');
     sendMessageButton.className = 'chat-button input';
     sendMessageButton.id = 'chat-input-send-button';
-    sendMessageButton.innerHTML = '>';
+    sendMessageButton.innerText = '>';
     
     // Button onclick behavior
     sendMessageButton.onclick = () => {
@@ -510,7 +527,7 @@ function createHandButton(serverCard) {
     const cardButton = document.createElement('button');
     cardButton.className = 'hand-button';
     cardButton.id = serverCard;
-    cardButton.innerHTML = cardToDisplay(serverCard);
+    cardButton.innerText = cardToDisplay(serverCard);
 
     // Send server request on click
     cardButton.onclick = () => {
@@ -590,7 +607,7 @@ function createUsernameInput() {
 
     const submitButton = document.createElement('button');
     submitButton.className = 'btn btn-primary';
-    submitButton.innerHTML = '>';
+    submitButton.innerText = '>';
 
     submitButton.onclick = () => {
         // Prevent sending blank input
@@ -629,8 +646,8 @@ function createUsernameInput() {
 }
 
 function createWelcome() {
-    const welcome = document.createElement('div');
-    welcome.innerHTML = `<h4>Welcome ${username}</h4>`;
+    const welcome = document.createElement('h4');
+    welcome.innerText = `Welcome ${username}`;
     return welcome;
 }
 
@@ -652,7 +669,7 @@ function updateLobby(response) {
         }
     
         // Update header
-        document.querySelector('#room-name-header').innerHTML = 'Lobby';
+        document.querySelector('#room-name-header').innerText = 'Lobby';
         
         // Create lobby container
         const lobbyContainer = document.createElement('div');
@@ -665,18 +682,24 @@ function updateLobby(response) {
         lobbyHeader.id = 'lobby-header-container';
         lobbyContainer.appendChild(lobbyHeader);
         
-        // Add room
-        const addRoomContainer = document.createElement('div');
-        addRoomContainer.className = 'add-room';
-        lobbyHeader.appendChild(addRoomContainer);
+        // Container for new room button
+        const newRoomContainer = document.createElement('div');
+        newRoomContainer.className = 'create-room';
         
-        const addRoomAnchor = document.createElement('a');
-        addRoomAnchor.className = 'add-room';
-        addRoomAnchor.id = 'add-room-nav';
-        addRoomAnchor.href = '/create_room.html';
-        addRoomAnchor.innerHTML = 'Create Room';
+        // Create new room modal
+        const newRoomModal = createNewRoomModal();
+        newRoomContainer.appendChild(newRoomModal);
         
-        addRoomContainer.appendChild(addRoomAnchor);
+        const newRoomButton = document.createElement('button');
+        newRoomButton.className = 'create-room-button';
+        newRoomButton.id = 'open-modal-create-room';
+        newRoomButton.innerText = 'Create Room';
+        newRoomButton.onclick = () => {
+            openModal(document.querySelector('#create-room-modal'));
+        }
+        
+        newRoomContainer.appendChild(newRoomButton);
+        lobbyHeader.appendChild(newRoomContainer);
 
         const lobbyUsername = document.createElement('div');
         lobbyUsername.className = 'add-username mb-3';
@@ -716,32 +739,32 @@ function updateLobby(response) {
         // All header cells
         const theadRoom = document.createElement('th');
         theadRoom.id = 'room-thead-name';
-        theadRoom.innerHTML = 'Room';
+        theadRoom.innerText = 'Room';
         thead.appendChild(theadRoom);
 
         const theadGame = document.createElement('th');
         theadGame.id = 'room-thead-game';
-        theadGame.innerHTML = 'Game';
+        theadGame.innerText = 'Game';
         thead.appendChild(theadGame);
 
         const theadPlayers = document.createElement('th');
         theadPlayers.id = 'room-thead-players';
-        theadPlayers.innerHTML = 'Players';
+        theadPlayers.innerText = 'Players';
         thead.appendChild(theadPlayers);
 
         const theadCreator = document.createElement('th');
         theadCreator.id = 'room-thead-creator';
-        theadCreator.innerHTML = 'Created By';
+        theadCreator.innerText = 'Created By';
         thead.appendChild(theadCreator);
 
         const theadDate = document.createElement('th');
         theadDate.id = 'room-thead-date_created';
-        theadDate.innerHTML = 'Date Created';
+        theadDate.innerText = 'Date Created';
         thead.appendChild(theadDate);
 
         const theadInProgress = document.createElement('th');
         theadInProgress.id = 'room-thead-in_progress';
-        theadInProgress.innerHTML = 'Game Running?';
+        theadInProgress.innerText = 'Game Running?';
         thead.appendChild(theadInProgress);
         // -- End Lobby thead --
 
@@ -778,7 +801,7 @@ function updateLobby(response) {
 
         // Update number of players
         if (response.col === 'players') {
-            document.querySelector('#room-td-players-' + response.row).innerHTML = response.new_value;
+            document.querySelector('#room-td-players-' + response.row).innerText = response.new_value;
         }
 
         // Update in_progress
@@ -787,11 +810,56 @@ function updateLobby(response) {
             // detect when there is a change in in_progress variable and send to 
             // lobby when that change occurs. It could also do the same for number of players....
             
-            document.querySelector('#room-td-in_progress-' + response.row).innerHTML = response.new_value;
+            document.querySelector('#room-td-in_progress-' + response.row).innerText = response.new_value;
         }
         
     }
 }
+
+function createNewRoomModal() {
+    // Modal for setting up a new room
+    const newRoomModal = document.createElement('div');
+    newRoomModal.className = 'modal create-room';
+    newRoomModal.id = 'create-room-modal';
+    // Close modal when escape key is pressed
+    // This is not working - only works when close button is selected
+    newRoomModal.addEventListener('keydown', (e) => {
+        console.log(`key ${e.code} pressed`)
+        if (e.code === 'Escape') {
+            console.log('escape being pressed?')
+            closeModal(newRoomModal);
+        }
+    })
+
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'modal-header create-room';
+    
+    const modalTitle = document.createElement('div');
+    modalTitle.className = 'modal-title create-room';
+    modalTitle.innerText = 'Create a New Room';
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'modal-close-button create-room';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        closeModal(newRoomModal);
+    }
+    
+    const modalBody = document.createElement('div');
+    modalBody.className = 'modal-body create-room';
+    modalBody.innerText = 'Room name:\nCapacity:\nGame:';
+    
+    // Create input boxes for the input
+    
+    
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeButton);
+    newRoomModal.appendChild(modalHeader);
+    newRoomModal.appendChild(modalBody);
+
+    return newRoomModal;
+}
+
 
 function updateGameRoom(response) {
     if (response === undefined) {
@@ -812,7 +880,7 @@ function updateGameRoom(response) {
     
         // Set up game room
         // Update header
-        document.querySelector('#room-name-header').innerHTML = response.room;
+        document.querySelector('#room-name-header').innerText = response.room;
 
         gameContainer = document.createElement('div');
         gameContainer.className = 'game-container';
@@ -982,7 +1050,7 @@ function updateGame(response) {
         }
 
         // Add discard card to display on discard button
-        document.querySelector('#discard-button').innerHTML = cardToDisplay(discardCard);
+        document.querySelector('#discard-button').innerText = cardToDisplay(discardCard);
         
         // Unpack players
         // Eventually want to rearrange players to be correct player order
@@ -1000,13 +1068,13 @@ function updateGame(response) {
 
 
             // Update order
-            document.querySelector(playerID + '-order').innerHTML = ' order: ' + i + ' ';
+            document.querySelector(playerID + '-order').innerText = ' order: ' + i + ' ';
             
             // Update lives
-            document.querySelector(playerID + '-lives').innerHTML = ' lives: ' + response.lives[i] + ' ';
+            document.querySelector(playerID + '-lives').innerText = ' lives: ' + response.lives[i] + ' ';
             
             // Update hand size
-            document.querySelector(playerID + '-hand-size').innerHTML = ' hand size: ' + response.hand_sizes[i] + ' ';
+            document.querySelector(playerID + '-hand-size').innerText = ' hand size: ' + response.hand_sizes[i] + ' ';
             
             // If self, update hand with exact cards
             if (username === playerOrder[i]) {
@@ -1027,7 +1095,7 @@ function updateGame(response) {
                 }
                 
                 // Update hand score HTML
-                document.querySelector(playerID + '-hand-score').innerHTML = ' hand score: ' + response.hand_score + ' ';   
+                document.querySelector(playerID + '-hand-score').innerText = ' hand score: ' + response.hand_score + ' ';   
             }
             
             
@@ -1035,13 +1103,13 @@ function updateGame(response) {
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                // document.querySelector(playerID + '-current').innerHTML = 'current';
+                // document.querySelector(playerID + '-current').innerText = 'current';
                 
                 // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
                 document.querySelector(playerID + '-container').setAttribute('current', '1');
             }
             else {
-                // document.querySelector(playerID + '-current').innerHTML = '';
+                // document.querySelector(playerID + '-current').innerText = '';
                 document.querySelector(playerID + '-container').setAttribute('current', '0');
             }
 
@@ -1051,6 +1119,19 @@ function updateGame(response) {
     }
 }
 
+// Modal functions
+
+function openModal(modal) {
+    if (modal == null) return;
+    modal.classList.add('active');
+    modalOverlay.classList.add('active');
+}
+
+function closeModal(modal) {
+    if (modal == null) return;
+    modal.classList.remove('active');
+    modalOverlay.classList.remove('active');
+}
 
 // Socket functions / events
 
