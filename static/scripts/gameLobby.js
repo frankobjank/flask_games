@@ -10,6 +10,15 @@ var username;
 // Used on join to keep track of current room
 var currentRoom;
 
+// Use for validation when creating new usernames / room names
+const nameValidation = '[a-zA-Z0-9_]{3,15}'
+
+// On page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Join room - current room is lobby on initial GET
+    joinRoom('lobby');
+});
+
 // Overlay for background of modals; 
 // Can use same one for every modal since it covers whole screen
 const modalOverlay = document.createElement('div');
@@ -24,12 +33,6 @@ modalOverlay.onclick = () => {
 }
 
 document.querySelector('body').appendChild(modalOverlay);
-
-// On page load
-document.addEventListener('DOMContentLoaded', () => {
-    // Join room - current room is lobby on initial GET
-    joinRoom('lobby');
-});
 
 // Include:
     // Option to create new room
@@ -640,6 +643,14 @@ function createUsernameInput() {
         };
     };
 
+    // Set `enter` to send message
+    addUsernameInput.addEventListener('keyup', (event) => {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            submitButton.click();
+        };
+    });
+
     usernameInputContainer.appendChild(submitButton);
 
     return usernameInputContainer;
@@ -817,15 +828,17 @@ function updateLobby(response) {
 }
 
 function createNewRoomModal() {
+
     // Modal for setting up a new room
     const newRoomModal = document.createElement('div');
     newRoomModal.className = 'modal create-room';
     newRoomModal.id = 'create-room-modal';
+
     // Close modal when escape key is pressed
     // This is not working - only works when close button is selected
-    newRoomModal.addEventListener('keydown', (e) => {
-        console.log(`key ${e.code} pressed`)
-        if (e.code === 'Escape') {
+    newRoomModal.addEventListener('keydown', (event) => {
+        console.log(`key ${event.code} pressed`)
+        if (event.code === 'Escape') {
             console.log('escape being pressed?')
             closeModal(newRoomModal);
         }
@@ -847,10 +860,55 @@ function createNewRoomModal() {
     
     const modalBody = document.createElement('div');
     modalBody.className = 'modal-body create-room';
-    modalBody.innerText = 'Room name:\nCapacity:\nGame:';
-    
+
+    // Set up under `form` even though the handler will be a socket.io event instead of a regular GET or POST
+    const form = document.createElement('form');
+
+    // br to add line breaks to form
+    const br = document.createElement('br');
+
     // Create input boxes for the input
+    const roomLabel = document.createElement('label');
+    roomLabel.for = 'create-room-name'
+    roomLabel.innerText = 'Room name:';
     
+    const roomInput = document.createElement('input');
+    roomInput.id = 'create-room-name';
+    roomInput.type = 'text';
+    // Use same pattern as username - includes min and max length
+    roomInput.pattern = nameValidation;
+
+    const gameLabel = document.createElement('label');
+    gameLabel.for = 'create-room-game';
+    gameLabel.innerText = 'Game:';
+
+    const gameInput = document.createElement('input');
+    gameInput.id = 'create-room-game';
+    gameInput.type = 'radio';
+
+    const capacityLabel = document.createElement('label');
+    capacityLabel.for = 'create-room-capacity'
+    capacityLabel.innerHTML = 'Room Capacity:<br>'
+    
+    const capacityInput = document.createElement('input');
+    capacityInput.id = 'create-room-capacity';
+    capacityInput.type = 'number';
+    capacityInput.step = '1';
+    capacityInput.min = '2';
+    // Eventually max will be determined by which game is chosen
+    capacityInput.max = '4';
+
+    // Use as template for form: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio
+    
+    form.appendChild(roomLabel);
+    form.appendChild(roomInput);
+    form.appendChild(br);
+    form.appendChild(capacityLabel);
+    form.appendChild(capacityInput);
+    form.appendChild(br);
+
+
+    modalBody.appendChild(form);
     
     modalHeader.appendChild(modalTitle);
     modalHeader.appendChild(closeButton);
