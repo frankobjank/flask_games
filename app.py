@@ -44,19 +44,19 @@ GAMES_TO_CAPACITY = {"thirty_one": 7, "cribbage": 3, "natac": 4}
 rooms["lobby"] = Room(
     # This limits the lobby to 10000 people. Instead can skip capacity validation 
     # on join for lobby
-    name="lobby", roompw="", game_name="", capacity=10000, date_created=time(), 
-    creator="dev"
+    name="lobby", roompw="", game_name="", capacity=10000, date_created=int(time()), 
+    creator="Frankobjank"
 )
 
-rooms["dev1"] = Room(
-    name="dev1", roompw="", game_name="thirty_one",
-    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=time(), creator="dev"
+rooms["test1"] = Room(
+    name="test1", roompw="", game_name="thirty_one",
+    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
 )
 
-rooms["dev2"] = Room(
-    name="dev2", roompw=ws.generate_password_hash("llll"), 
+rooms["test2"] = Room(
+    name="test2", roompw=ws.generate_password_hash("llll"), 
     game_name="thirty_one", 
-    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=time(), creator="dev"
+    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
 )
 
 
@@ -122,21 +122,39 @@ def on_create_room(data):
     
     new_room_name = data.get("new_room_name", "")
 
-    if new_room_name in rooms.keys():
-        msg = f"Canceling Create Room request: room with same name already exists."
-        print(msg)
-        return {"msg": msg, "accepted": False}
-
-
     validation = validate_name_input(name=new_room_name, max_len=18)
 
     if not validation["accepted"]:
         print(validation["msg"])
         return {"msg": validation["msg"], "accepted": False}
+    
+    # TODO Add ability to set password via room creation
+    
+    # Attempt to add room to database, checks for dupe
+    try:
+        # If not dupe, add row to table
+        with sqlite3.connect("database.db") as conn:
+            conn.execute("""
+                         INSERT INTO rooms (room, roompw, game, date_created, date_last_used, capacity, creator)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)
+                         """,
+                         new_room_name,
+                         data.get("password", ""),
+                         data["game"],
+                         int(time),
+                         int(time),
+                         GAMES_TO_CAPACITY[data["game"]],
+                         data["username"])
 
+    # Dupe room name
+    except sqlite3.IntegrityError:
+        msg = f"Canceling Create Room request: room with same name already exists."
+        print(msg)
+        return {"msg": msg, "accepted": False}
+    
     # Add room to dict (and database)
     rooms[new_room_name] = Room(name=new_room_name, roompw="", game_name=data["game"], 
-                                capacity=GAMES_TO_CAPACITY[data["game"]], date_created=time(),
+                                capacity=GAMES_TO_CAPACITY[data["game"]], date_created=int(time()),
                                 creator=data["username"])
     
     # Push new room to all other users in lobby
@@ -151,18 +169,7 @@ def on_create_room(data):
 
 @socketio.on("set_username")
 def on_set_username(data):
-    # TODO: username validation - check db for duplicate, check existing rooms for duplicate
-
-    # TODO: turn validation into a function to use on register() as well
-
     username = data.get("username_request", "")
-
-    if len(username) == 0:
-        msg = "Canceling Set Username request: username not provided."
-        print(msg)
-        return {"msg": msg, "accepted": False}
-
-    print(f"Received username request: {username}")
 
     if len(fl.session.get("username", "")) > 0:
         print("Canceling Set Username request: username already set.")
@@ -174,6 +181,25 @@ def on_set_username(data):
     if not validation["accepted"]:
         print(validation["msg"])
         return {"msg": validation["msg"], "accepted": False}
+    
+    # TODO username validation - check db for duplicate, check existing rooms for duplicate
+
+    # TODO If username is accepted, add to database ! As a temporary user. 
+    # Temporary user can be anyone in db who doesn't have a password
+    # On cleanup (every 3 hours?) users who are in DB without a password who were created over 24 hours ago can be deleted. First check if they are currently in any room.
+
+    # Check for dupe name in all rooms
+    # This double loop is inefficient -
+        # Can optimize by storing all users not in db in a set to check against
+        # This would eliminate duplicates between rooms
+        # Maybe store all usernames in a db, with temporary flag for those who did not create an account? and temporary entry is deleted .. 24 hours after last disconnect?
+        # When this cleanup is run, rooms not used for 24 hours should also be deleted
+    for room in rooms.values():
+        for user in room.users:
+            if user.name == username:
+                msg = "Canceling Set Username request: username already taken."
+                print(msg)
+                return {"msg": msg, "accepted": False}
     
     # Update name in session dict and in room's user list
     fl.session["username"] = username
@@ -310,6 +336,12 @@ def on_join(data):
              "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
              room=data["room"], broadcast=True)
     
+    # TODO test this! 
+    # Need to send to self too since self is joining and cannot be assumed to have this data already
+    fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
+             "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
+             to=fl.request.sid)
+    
     # Send updated player count to anyone remaining in lobby
     fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",
              "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"}, 
@@ -332,7 +364,7 @@ def on_join(data):
                  "players": [user.name], "connected": True}, room=data["room"], broadcast=True)
 
         # Empty log for player after update is sent
-        game.log[user.name] = []
+        game.players[user.name].log = []
 
     return "Server callback: join completed."
         
@@ -442,8 +474,8 @@ def on_move(data):
     if game.in_progress and game.mode != "end_round" and fl.session.get("username", "") != game.current_player:
         
         print("Not accepting move from non-current player while game is in progress.")
-        fio.emit("debug_msg", {"msg":
-                f"Server rejected move request; Client not current player."}, to=fl.request.sid)
+        fio.emit("debug_msg", {"msg":f"Server rejected move request; Client not current player."},
+                 to=fl.request.sid)
         
         return
 
@@ -452,8 +484,8 @@ def on_move(data):
         
         # Send on server reject
         print(f"Rejecting `{data['action']}` from `{fl.session.get('username')}`")
-        fio.emit("debug_msg", {"msg": 
-                f"Server rejected move event `{data['action']}`"}, to=fl.request.sid)
+        fio.emit("debug_msg", {"msg": f"Server rejected move event `{data['action']}`"}, 
+                to=fl.request.sid)
 
     # Send on server accept; Tailored response to each player
     else:
@@ -500,6 +532,11 @@ def on_connect():
     fl.session["session_cookie"] = fl.request.cookies.get("session")
 
 
+@socketio.on("debug_msg")
+def on_debug_msg(data):
+    print("debug msg\n\n")
+    print(data)
+
 @socketio.on("disconnect")
 def on_disconnect():
     print(f"Session on disconnect: {fl.session}")
@@ -508,8 +545,10 @@ def on_disconnect():
     print("On disconnect; getting username via flask session.")
     username = fl.session.get("username", "")
     
-    # Username must exist beyond this point
-    
+    if len(username) == 0:
+        print("Username not found, exiting on_disconnect")
+        return
+
     # If username available, remove from rooms
 
     # Room id is unavailable;
@@ -574,7 +613,8 @@ def login():
         with sqlite3.connect("database.db") as conn:
             conn.row_factory = dict_factory
             # COLLATE NOCASE in table schema makes search case insensitive
-            db_response = conn.execute("SELECT * FROM users WHERE username = ?",
+            db_response = conn.execute("SELECT * FROM users WHERE username = ?",    
+                                       # extra comma to make this a tuple
                                        (fl.request.form.get("username"),))
         
         username = ""
@@ -651,7 +691,7 @@ def register():
                             (fl.request.form.get("username"),
                             ws.generate_password_hash(
                             fl.request.form.get("password", "")),
-                            time()))
+                            int(time())))
 
         # Dupe username
         except sqlite3.IntegrityError:

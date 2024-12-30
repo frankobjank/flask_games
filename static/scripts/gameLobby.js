@@ -3,6 +3,7 @@
 // Room, Socket Variables
 // Initializing socket
 const socket = io();
+// TODO: Add leaveRoom() functions to all nav buttons that direct user to different page
 
 // Client username - assign on connect if not logged into account
 var username;
@@ -11,7 +12,8 @@ var username;
 var currentRoom;
 
 // Use for validation when creating new usernames / room names
-const nameValidation = '[a-zA-Z0-9_]{3,15}'
+const nameValidation = '[a-zA-Z0-9_]{3,12}'
+const roomNameValidation = '[a-zA-Z0-9_]{3,18}'
 
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -296,7 +298,7 @@ function createPlayerContainer(name) {
 
     // Give container id of 'playerName-container'
     playerContainer.id = name + '-container';
-    playerContainer.innerText = name + br.outerHTML;
+    playerContainer.innerHTML = name + br.outerHTML;
     
     
     // Put hand size into span
@@ -325,16 +327,20 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(lives);
     playerContainer.appendChild(current);
     
-    // Only add hand, hand score, knock button for self
+    // Add hand, hand score. If not self, will not be filled in except for the end of a round.
+    // Put hand in div
+    const hand = document.createElement('div');
+    hand.id = name + '-hand-container';
+    
+    // Put hand score into div
+    const handScore = document.createElement('div');
+    handScore.id = name + '-hand-score';
+    
+    playerContainer.appendChild(hand);
+    playerContainer.appendChild(handScore);
+
+    // Add knock button only for self
     if (name === username) {
-        // Put hand in div
-        const hand = document.createElement('div');
-        hand.id = name + '-hand-container';
-        
-        // Put hand score into div
-        const handScore = document.createElement('div');
-        handScore.id = name + '-hand-score';
-        
         // Add knock button
         const knockButton = document.createElement('button');
         knockButton.className = 'knock-button';
@@ -347,8 +353,6 @@ function createPlayerContainer(name) {
             console.log(`Sending knock request to server.`)
         }
 
-        playerContainer.appendChild(hand);
-        playerContainer.appendChild(handScore);
         playerContainer.appendChild(knockButton);
         
         // Highlight self name and player info
@@ -603,8 +607,8 @@ function createUsernameInput() {
     addUsernameInput.type = 'text';
     addUsernameInput.autocomplete = 'off';
     addUsernameInput.placeholder = 'Enter name';
-    addUsernameInput.maxLength = '12';
-    // Add warning when trying to submit non-alphanumeric password - 
+    addUsernameInput.pattern = nameValidation;
+    // Add warning when trying to submit non-alphanumeric name? 
     // Highlight username box when trying to join room if username not set
     
     usernameInputContainer.appendChild(addUsernameInput);
@@ -634,6 +638,8 @@ function createUsernameInput() {
                     
                     document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'));
                     
+                    // TODO ---- If username, add create room button, remove if not ----
+
                     const welcome = createWelcome();
                     document.querySelector('#lobby-username-container').appendChild(welcome);
                 })
@@ -871,8 +877,8 @@ function createNewRoomModal() {
     roomContainer.id = 'create-room-name-container';
     
     // Create input boxes for the input
-    const roomLabel = document.createElement('legend');
-    roomLabel.for = 'create-room-name'
+    const roomLabel = document.createElement('label');
+    roomLabel.htmlFor = 'create-room-name'
     roomLabel.innerText = 'Room name:';
     
     const roomInput = document.createElement('input');
@@ -880,7 +886,7 @@ function createNewRoomModal() {
     roomInput.type = 'text';
     roomInput.required = true;
     // Use same pattern as username - includes min and max length
-    roomInput.pattern = nameValidation;
+    roomInput.pattern = roomNameValidation;
     
     roomContainer.appendChild(roomLabel)
     roomContainer.appendChild(roomInput)
@@ -905,7 +911,7 @@ function createNewRoomModal() {
     thirtyOneInput.required = true;
     
     const thirtyOneLabel = document.createElement('label');
-    thirtyOneLabel.for = 'create-room-thirty_one';
+    thirtyOneLabel.htmlFor = 'create-room-thirty_one';
     thirtyOneLabel.innerText = 'Thirty One';
     
     const cribbageInput = document.createElement('input');
@@ -916,7 +922,7 @@ function createNewRoomModal() {
     cribbageInput.required = true;
     
     const cribbageLabel = document.createElement('label');
-    cribbageLabel.for = 'create-room-cribbage';
+    cribbageLabel.htmlFor = 'create-room-cribbage';
     cribbageLabel.innerText = 'Cribbage';
     
     const natacInput = document.createElement('input');
@@ -927,7 +933,7 @@ function createNewRoomModal() {
     natacInput.required = true;
     
     const natacLabel = document.createElement('label');
-    natacLabel.for = 'create-room-natac';
+    natacLabel.htmlFor = 'create-room-natac';
     natacLabel.innerText = 'Natac';
 
     gameChoicesContainer.appendChild(thirtyOneInput)
@@ -1160,6 +1166,29 @@ function updateGameRoom(response) {
     }
 }
 
+function populateHand(username, hand, hand_score) {
+
+    // Update `players` array
+    players[username].hand = hand;
+    players[username].handScore = hand_score;
+    
+    const playerHandContainer = document.querySelector('#' + username + '-hand-container');
+    
+    if (playerHandContainer.hasChildNodes()) {
+        // Empty old hand to get ready for new hand - replaceChildren with no args
+        playerHandContainer.replaceChildren();
+    }
+
+    // Create buttons for hand with array from server
+    for (const card of hand) {
+        // TODO: Technically non-self players' hands should not be clickable
+        playerHandContainer.appendChild(createHandButton(card));
+    }
+    
+    // Update hand score
+    document.querySelector('#' + username + '-hand-score').innerText = ' hand score: ' + hand_score + ' ';
+}
+
 function updateGame(response) {
     if (response === undefined) {
         console.log('response = undefined');
@@ -1180,6 +1209,8 @@ function updateGame(response) {
     // "lives": lives,  # remaining lives of all players
     // "dealer": self.dealer,  # dealer of round
     // "knocked": self.knocked,  # player who knocked (empty string until a knock)
+    // "final_hands": final_hands,  # list of everyone's hands to reveal on round end
+    // "final_scores": final_scores,  # list of everyone's hand scores to reveal on round end
 
     // # Specific to player
     // "recipient": player_name,
@@ -1243,7 +1274,7 @@ function updateGame(response) {
 
             // Once player array is populated, add to player panel for display
             // Turn each attribute (name, order, etc) into a <span> for display
-            playerID = '#' + playerOrder[i];
+            const playerID = '#' + playerOrder[i];
 
 
             // Update order
@@ -1257,24 +1288,20 @@ function updateGame(response) {
             
             // If self, update hand with exact cards
             if (username === playerOrder[i]) {
-                // Update `players` array
-                players[playerOrder[i]].hand = response.hand;
-                players[playerOrder[i]].handScore = response.hand_score;
-                
-                playerHandContainer = document.querySelector(playerID + '-hand-container');
-                
-                if (playerHandContainer.hasChildNodes()) {
-                    // Empty old hand to get ready for new hand - replaceChildren with no args
-                    playerHandContainer.replaceChildren();
-                }
+                populateHand(username, response.hand, response.hand_score)
+            }
 
-                // Create buttons for hand with array from server
-                for (const card of response.hand) {
-                    playerHandContainer.appendChild(createHandButton(card));
-                }
-                
-                // Update hand score HTML
-                document.querySelector(playerID + '-hand-score').innerText = ' hand score: ' + response.hand_score + ' ';   
+            // For non-self players --- If end mode, show hands. Else, empty hands
+            // Using `else if` here implies playerOrder[i] is not the self player
+            else if (mode === 'end_round' || mode === 'end_game') {
+                populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i])
+            } 
+            else {
+                // Remove all cards if there were any
+                document.querySelector(playerID + '-hand-container').replaceChildren()
+
+                // Remove hand score
+                document.querySelector(playerID + '-hand-score').innerText = '';
             }
             
             
@@ -1384,8 +1411,8 @@ socket.on('connect', () => {
     // Incorporate `socket.recovered`?
 });
 
-socket.on('disconnect', () => {
-    console.log('Client disconnect event.');
+socket.on('disconnect', (reason) => {
+    console.log(`\nClient disconnect event for reason: ${reason}.\n`);
 });
 
 

@@ -421,8 +421,6 @@ class State:
             if self.mode != "end_round" and len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
             
-                
-
         elif self.mode == "discard" and packet["action"] == "discard":
             # Unzip from client
             chosen_card = unzip_card(packet["card"])
@@ -462,13 +460,15 @@ class State:
         hand_sizes = []
         lives = []
         final_hands = []
+        final_scores = []
         
         for p_name in self.player_order:
             hand_sizes.append(len(self.players[p_name].hand))
             lives.append(self.players[p_name].lives)
 
-            if self.mode == "end_game":
+            if self.mode == "end_round" or self.mode == "end_game":
                 final_hands.append(self.players[p_name].zip_hand())
+                final_scores.append(self.calc_hand_score(self.players[p_name]))
 
         # All data the client needs from server
         return {
@@ -485,6 +485,7 @@ class State:
             "dealer": self.dealer,  # dealer of round
             "knocked": self.knocked,  # player who knocked (empty string until a knock)
             "final_hands": final_hands,  # reveal all hands to all players
+            "final_scores": final_scores,  # reveal all scores to all players
 
             # Specific to player
             "recipient": player_name,

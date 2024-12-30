@@ -133,7 +133,7 @@ def validate_name_input(name: str, max_len: str) -> dict[str, str|bool]:
     
     # Must be between 3 to max_len chars 
         # Wanted to have different values for username and room name
-    if not max_len > len(name) > 3:
+    if not max_len >= len(name) >= 3:
         response["accepted"] = False
         response["msg"] = "Canceling request: incorrect number of characters."
         return response

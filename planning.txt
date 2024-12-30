@@ -17,7 +17,7 @@ Room creation
   Room schema:
   Room id
   Room name
-  Room password - if blank,  no password is required. Set to NULL in sql
+  Room password - no password is required. If blank, set to NULL in sql
   Room game
   Room capacity
   Time created
