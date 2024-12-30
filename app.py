@@ -138,13 +138,13 @@ def on_create_room(data):
                          INSERT INTO rooms (room, roompw, game, date_created, date_last_used, capacity, creator)
                          VALUES (?, ?, ?, ?, ?, ?, ?)
                          """,
-                         new_room_name,
+                        (new_room_name,
                          data.get("password", ""),
                          data["game"],
-                         int(time),
-                         int(time),
+                         int(time()),
+                         int(time()),
                          GAMES_TO_CAPACITY[data["game"]],
-                         data["username"])
+                         data["username"]))
 
     # Dupe room name
     except sqlite3.IntegrityError:
@@ -329,34 +329,47 @@ def on_join(data):
     fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "system",
              "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
-    print(f"Sending update room to {data['room']} to add {list((user.name for user in rooms[data['room']].users if user.connected))}")
-
-    # Send updated list of players to others in room
-    fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-             "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
-             room=data["room"], broadcast=True)
     
     # TODO test this! 
     # Need to send to self too since self is joining and cannot be assumed to have this data already
-    fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-             "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
-             to=fl.request.sid)
+    # fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
+            #  "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
+            #  to=fl.request.sid)
     
     # Send updated player count to anyone remaining in lobby
     fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",
              "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"}, 
              to="lobby")
     
-    # Send game data if game in progress
+    # Check if game exists; different rules for game vs not game
     game = rooms[data["room"]].game
 
+    # If game doesn't exist or game is not in progress, add only players who are connected
+    # TODO Check special cases, i.e. new games with different players in same room
+    if not game or not game.in_progress:
+        print(f"Sending update room to {data['room']} to add {list((user.name for user in rooms[data['room']].users if user.connected))}")
+
+        # Send updated list of players to others in room
+        fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
+                 "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
+                 room=data["room"], broadcast=True)
+    
+    # If game does exist, add ALL players in game on reconnect
     # Use all players list to send updates to players who are knocked out
-    if game and game.in_progress and user.name in game.players.keys():
+    elif game and game.in_progress and user.name in game.players.keys():
+
+        print(f"Sending update room to {data['room']} to add {list(game.players.keys())}")
+
+        # Send updated list of players to others in room
+        fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
+                 "players": list(game.players.keys())},
+                 room=data["room"], broadcast=True)
         
-        response = game.package_state(user.name)
+        game_update = game.package_state(user.name)
                     
-        print(f"Sending game state to {user.name} on join: \n{response}")    
-        fio.emit("update_game", response, to=fl.request.sid, room=data["room"])
+        # Send game data if game in progress
+        print(f"Sending game state to {user.name} on join: \n{game_update}")    
+        fio.emit("update_game", game_update, to=fl.request.sid, room=data["room"])
         fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
         
         # If player is rejoining, update connection status for all other clients in room

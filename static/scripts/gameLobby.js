@@ -615,7 +615,7 @@ function createUsernameInput() {
 
     const submitButton = document.createElement('button');
     submitButton.className = 'btn btn-primary';
-    submitButton.innerText = '>';
+    submitButton.innerText = 'Set username';
 
     submitButton.onclick = () => {
         // Prevent sending blank input
@@ -1392,7 +1392,7 @@ socket.on('update_gameroom', data => {
 // Updating game state
 socket.on('update_game', data => {
     // For debug:
-    console.log(`Client received 'update game' event: ${JSON.stringify(data)}.`);
+    console.log(`Client received 'update_game' event: ${JSON.stringify(data)}.`);
     
     updateGame(data);
 });
