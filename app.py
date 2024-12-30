@@ -39,6 +39,8 @@ users = {}
 
 rooms = {}
 
+GAMES_TO_CAPACITY = {"thirty_one": 7, "cribbage": 3, "natac": 4}
+
 rooms["lobby"] = Room(
     # This limits the lobby to 10000 people. Instead can skip capacity validation 
     # on join for lobby
@@ -47,16 +49,16 @@ rooms["lobby"] = Room(
 )
 
 rooms["dev1"] = Room(
-    name="dev1", roompw="", game_name="thirty_one", capacity=7, date_created=time(), 
-    creator="dev"
+    name="dev1", roompw="", game_name="thirty_one",
+    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=time(), creator="dev"
 )
 
 rooms["dev2"] = Room(
-    name="dev2", roompw=ws.generate_password_hash("llll"), game_name="thirty_one", 
-    capacity=7, date_created=time(), creator="dev"
+    name="dev2", roompw=ws.generate_password_hash("llll"), 
+    game_name="thirty_one", 
+    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=time(), creator="dev"
 )
 
-GAMES = ["thirty_one", "cribbage", "natac"]
 
 # Uses session cookie
 # If there's nothing in flask or socketio that tracks when users join
@@ -103,46 +105,92 @@ def game():
 
 # -- FlaskSocketIO -- #
 @socketio.on("create_room")
-def on_create_room():
-    # TODO: Send new room details to lobby
-        # - on client side, room should be appended to lobby container
-    return "Server callback: room created."
+def on_create_room(data):
+    
+    print(f"Received on create_room: {data}")
+    # Data keys: 'new_room_name', 'game', 'username', 'room' (i.e. lobby);
+    
+    if data.get("room", "") != "lobby":
+        msg = "Canceling Create Room request: request did not originate from lobby."
+        print(msg)
+        return {"msg": msg, "accepted": False}
+    
+    if data.get("game", "") not in GAMES_TO_CAPACITY.keys():
+        msg = f"Canceling Create Room request: game {data.get('game')} is not in list of accepted inputs."
+        print(msg)
+        return {"msg": msg, "accepted": False}
+    
+    new_room_name = data.get("new_room_name", "")
+
+    if new_room_name in rooms.keys():
+        msg = f"Canceling Create Room request: room with same name already exists."
+        print(msg)
+        return {"msg": msg, "accepted": False}
+
+
+    validation = validate_name_input(name=new_room_name, max_len=18)
+
+    if not validation["accepted"]:
+        print(validation["msg"])
+        return {"msg": validation["msg"], "accepted": False}
+
+    # Add room to dict (and database)
+    rooms[new_room_name] = Room(name=new_room_name, roompw="", game_name=data["game"], 
+                                capacity=GAMES_TO_CAPACITY[data["game"]], date_created=time(),
+                                creator=data["username"])
+    
+    # Push new room to all other users in lobby
+    # `rooms` is the rooms to add; `room` is room USER IS CURRENTLY IN
+    fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
+             "rooms": [room.package_self() for room in rooms.values() if room.name != "lobby"]},
+             to="lobby")
+    
+    # Use pass / fail for status to denote success of request
+    return {"accepted": True}
 
 
 @socketio.on("set_username")
 def on_set_username(data):
     # TODO: username validation - check db for duplicate, check existing rooms for duplicate
-    username = data["username_request"]
 
-    print(f"Received username: {username}")
+    # TODO: turn validation into a function to use on register() as well
+
+    username = data.get("username_request", "")
+
+    if len(username) == 0:
+        msg = "Canceling Set Username request: username not provided."
+        print(msg)
+        return {"msg": msg, "accepted": False}
+
+    print(f"Received username request: {username}")
 
     if len(fl.session.get("username", "")) > 0:
-        return {"msg": "Canceling request: username already set.", "username": ""}
+        print("Canceling Set Username request: username already set.")
+        # Sending callback received to `emitWithAck`
+        return {"msg": "Canceling Set Username request: username already set.", "accepted": False}
     
-    # Strip whitespace
-    username = username.strip()
+    validation = validate_name_input(name=username, max_len=12)
 
-    # Security concern - sanitize username. Only allow non-alphanumeric and underscore chars.
-    if not re.match(r"^[a-zA-Z0-9_]+$", username):
-        return {"msg": "Canceling request: username contains illegal characters.", "username": ""}
-
-    # Limit to 12 chars
-    if len(username) > 12:
-        username = username[:12]
+    if not validation["accepted"]:
+        print(validation["msg"])
+        return {"msg": validation["msg"], "accepted": False}
     
     # Update name in session dict and in room's user list
     fl.session["username"] = username
     
-    # Setting username should only happen in lobby, therefore only need to update users in lobby
-    # Can make users a dict to shorten lookup time
+    # Use session id to see if user already exists in lobby (i.e. on reconnection)
+    # If found, set user.name to name requested
+    # Setting username should only happen in lobby, therefore only need to search lobby to find user
+    # Can make users a dict to shorten lookup time?
     for user in rooms["lobby"].users:
         if fl.session["session_cookie"] == user.session_cookie and len(user.name) == 0:
-            user.name = username
             
+            user.name = username
             # Break after first match
             break
-
-    return {"username": username}
+    
+    # Return accepted username and response True
+    return {"username": username, "accepted": True}
 
 
 @socketio.on("join")
@@ -577,6 +625,12 @@ def register():
         # Ensure username was submitted
         if not fl.request.form.get("username"):
             return apology("Must provide a username.", 400)
+        
+        validation = validate_name_input(name=fl.request.form.get("username"), max_len=12)
+        
+        if not validation["accepted"]:
+            print(validation["msg"])
+            return apology(validation["msg"], 400)
 
         # Ensure password was submitted
         elif not fl.request.form.get("password"):

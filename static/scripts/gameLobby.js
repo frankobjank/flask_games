@@ -273,6 +273,7 @@ function createContinueButton() {
     return cont;
 }
 
+// Currently unused; Check number of players and in progress
 function checkNumPlayers(numPlayers) {
     return (2 <= numPlayers <= 7 && !inProgress);
 }
@@ -621,8 +622,8 @@ function createUsernameInput() {
             
             promise
                 .then((data) => {
-                    // Username failed validation, not set.
-                    if (data.username.length === 0) {
+                    // Msg successfully sent / received but server validation failed.
+                    if (!data.accepted) {
                         console.log(`Error: ${data.msg}`)
                         return;
                     }
@@ -828,6 +829,8 @@ function updateLobby(response) {
 }
 
 function createNewRoomModal() {
+    // Lookup to dynamically set max capacity (min capacity is 2 for all)
+    const capacityLookup = {'thirty_one': 7, 'cribbage': 3, 'natac': 4};
 
     // Modal for setting up a new room
     const newRoomModal = document.createElement('div');
@@ -835,14 +838,14 @@ function createNewRoomModal() {
     newRoomModal.id = 'create-room-modal';
 
     // Close modal when escape key is pressed
-    // This is not working - only works when close button is selected
-    newRoomModal.addEventListener('keydown', (event) => {
-        console.log(`key ${event.code} pressed`)
-        if (event.code === 'Escape') {
-            console.log('escape being pressed?')
-            closeModal(newRoomModal);
-        }
-    })
+    // Bug -- This only worked when close button or input field was selected
+    // newRoomModal.addEventListener('keydown', (event) => {
+    //     console.log(`key ${event.code} pressed`)
+    //     if (event.code === 'Escape') {
+    //         console.log('escape being pressed?')
+    //         closeModal(newRoomModal);
+    //     }
+    // })
 
     const modalHeader = document.createElement('div');
     modalHeader.className = 'modal-header create-room';
@@ -864,48 +867,167 @@ function createNewRoomModal() {
     // Set up under `form` even though the handler will be a socket.io event instead of a regular GET or POST
     const form = document.createElement('form');
 
-    // br to add line breaks to form
-    const br = document.createElement('br');
-
+    const roomContainer = document.createElement('div');
+    roomContainer.id = 'create-room-name-container';
+    
     // Create input boxes for the input
-    const roomLabel = document.createElement('label');
+    const roomLabel = document.createElement('legend');
     roomLabel.for = 'create-room-name'
     roomLabel.innerText = 'Room name:';
     
     const roomInput = document.createElement('input');
     roomInput.id = 'create-room-name';
     roomInput.type = 'text';
+    roomInput.required = true;
     // Use same pattern as username - includes min and max length
     roomInput.pattern = nameValidation;
-
-    const gameLabel = document.createElement('label');
-    gameLabel.for = 'create-room-game';
-    gameLabel.innerText = 'Game:';
-
-    const gameInput = document.createElement('input');
-    gameInput.id = 'create-room-game';
-    gameInput.type = 'radio';
-
-    const capacityLabel = document.createElement('label');
-    capacityLabel.for = 'create-room-capacity'
-    capacityLabel.innerHTML = 'Room Capacity:<br>'
     
-    const capacityInput = document.createElement('input');
-    capacityInput.id = 'create-room-capacity';
-    capacityInput.type = 'number';
-    capacityInput.step = '1';
-    capacityInput.min = '2';
-    // Eventually max will be determined by which game is chosen
-    capacityInput.max = '4';
-
-    // Use as template for form: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio
+    roomContainer.appendChild(roomLabel)
+    roomContainer.appendChild(roomInput)
     
-    form.appendChild(roomLabel);
-    form.appendChild(roomInput);
-    form.appendChild(br);
-    form.appendChild(capacityLabel);
-    form.appendChild(capacityInput);
-    form.appendChild(br);
+    const gameFieldset = document.createElement('fieldset');
+    gameFieldset.id = 'create-room-game-fieldset';
+
+    const gameLegend = document.createElement('legend');
+    gameLegend.id = 'create-room-game-legend';
+    gameLegend.innerText = 'Which game is this room for?';
+
+    gameFieldset.appendChild(gameLegend);
+
+    const gameChoicesContainer = document.createElement('div');
+    
+    const thirtyOneInput = document.createElement('input');
+    thirtyOneInput.type = 'radio';
+    thirtyOneInput.id = 'create-room-thirty_one';
+    thirtyOneInput.name = 'game';
+    thirtyOneInput.value = 'thirty_one';
+    // Setting required for 1 radio option to make the radio section required
+    thirtyOneInput.required = true;
+    
+    const thirtyOneLabel = document.createElement('label');
+    thirtyOneLabel.for = 'create-room-thirty_one';
+    thirtyOneLabel.innerText = 'Thirty One';
+    
+    const cribbageInput = document.createElement('input');
+    cribbageInput.type = 'radio';
+    cribbageInput.id = 'create-room-cribbage';
+    cribbageInput.name = 'game';
+    cribbageInput.value = 'cribbage';
+    cribbageInput.required = true;
+    
+    const cribbageLabel = document.createElement('label');
+    cribbageLabel.for = 'create-room-cribbage';
+    cribbageLabel.innerText = 'Cribbage';
+    
+    const natacInput = document.createElement('input');
+    natacInput.type = 'radio';
+    natacInput.id = 'create-room-natac';
+    natacInput.name = 'game';
+    natacInput.value = 'natac';
+    natacInput.required = true;
+    
+    const natacLabel = document.createElement('label');
+    natacLabel.for = 'create-room-natac';
+    natacLabel.innerText = 'Natac';
+
+    gameChoicesContainer.appendChild(thirtyOneInput)
+    gameChoicesContainer.appendChild(thirtyOneLabel)
+    gameChoicesContainer.appendChild(cribbageInput)
+    gameChoicesContainer.appendChild(cribbageLabel)
+    gameChoicesContainer.appendChild(natacInput)
+    gameChoicesContainer.appendChild(natacLabel)
+
+    gameFieldset.appendChild(gameLegend);
+    gameFieldset.appendChild(gameChoicesContainer);
+
+    // const capacityContainer = document.createElement('div');
+    // capacityContainer.id = 'create-room-capacity-container';
+
+    // const capacityLabel = document.createElement('label');
+    // capacityLabel.for = 'create-room-capacity';
+    // capacityLabel.innerHTML = 'Room Capacity: 2 to ';
+    
+    // const capacityInput = document.createElement('input');
+    // capacityInput.id = 'create-room-capacity';
+    // capacityInput.type = 'number';
+    // capacityInput.step = '1';
+    // capacityInput.min = '2';
+    // // Eventually max will be determined by which game is chosen
+    // capacityInput.max = '4';
+
+    // const capacitySpan = document.createElement('span');
+    // capacitySpan.innerText = 'players.'
+
+    // capacityContainer.appendChild(capacityLabel);
+    // capacityContainer.appendChild(capacityInput);
+    
+    const submitContainer = document.createElement('div');
+    submitContainer.id = 'create-room-submit-container';
+    
+    const submitButton = document.createElement('button');
+    submitButton.id = 'create-room-submit';
+    submitButton.innerText = 'Create Room';
+
+    // Button onclick behavior
+    submitButton.onclick = () => {
+        // `form` here is the create room form
+        console.log(`Name: ${roomInput.value}\nGame: ${form.elements["game"].value}`);
+        
+        // Prevent sending blank messages
+        if (roomInput.value.length === 0 || form.elements["game"].value === undefined) {
+            console.log('Missing a value; cannot submit.')
+            return;
+        }
+
+        // Using emitWithAck - Wait for server to accept request. Returns promise
+        const promise = socket.emitWithAck('create_room', {'new_room_name': roomInput.value, 'game': form.elements["game"].value, 'username': username, 'room': currentRoom});
+                    
+        promise
+            .then((data) => {
+                // Message received / returned, but server failed validation
+                if (!data.accepted) {
+                    
+                    // Server may send message to client to fix something specific
+                    if (data.client_msg) {
+                        const serverResponse = document.createElement('div');
+                        serverResponse.className = 'form-server-response';
+                        serverResponse.innerText = data.client_msg;
+
+                        // Add to room container so client will see it next to room name input
+                        roomContainer.appendChild(serverResponse);
+                    }
+                    
+                    // Log in console and exit early
+                    console.log(`Error: ${data.msg}`)
+                    return;
+                }
+                
+                // Close modal on success
+                console.log('Room created successfully.');
+                closeModal(newRoomModal);                
+            })
+            .catch((error) => {
+                console.error(`Could not create room: ${error}`);
+            });
+    };
+    
+
+    // Set `enter` to submit the form
+    form.addEventListener('keyup', (event) => {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            submitButton.click();
+        };
+    });
+    
+    submitContainer.appendChild(submitButton);
+    
+    // Removing capacity from the options for the time being
+    // Capacity will be defaulted to the max players a game can handle
+    form.appendChild(roomContainer);
+    form.appendChild(gameFieldset);
+    // form.appendChild(capacityContainer);
+    form.appendChild(submitContainer);
 
 
     modalBody.appendChild(form);
@@ -917,7 +1039,6 @@ function createNewRoomModal() {
 
     return newRoomModal;
 }
-
 
 function updateGameRoom(response) {
     if (response === undefined) {

@@ -1,6 +1,7 @@
 from flask import session, redirect
 from functools import wraps
 import random
+import re
 from time import strftime, localtime
 
 # Names to randomly assign
@@ -112,3 +113,32 @@ def get_all_clients(rooms: dict[str, Room]) -> set:
         all_clients.union(r.users)
     
     return all_clients
+
+
+def validate_name_input(name: str, max_len: str) -> dict[str, str|bool]:
+    response = {"name": name,
+                "accepted": False,
+                "msg": ""}
+    
+    if len(name) == 0:
+        response["accepted"] = False
+        response["msg"] = "Name provided is empty."
+        return response
+    
+    # Only allow non-alphanumeric and underscore chars.
+    if not re.match(r"^[a-zA-Z0-9_]+$", response["name"]):
+        response["accepted"] = False
+        response["msg"] = "Canceling request: username contains illegal characters."
+        return response
+    
+    # Must be between 3 to max_len chars 
+        # Wanted to have different values for username and room name
+    if not max_len > len(name) > 3:
+        response["accepted"] = False
+        response["msg"] = "Canceling request: incorrect number of characters."
+        return response
+
+    # If passing the above tests, return True
+    response["accepted"] = True
+
+    return response
