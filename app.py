@@ -127,34 +127,44 @@ def on_create_room(data):
     if not validation["accepted"]:
         print(validation["msg"])
         return {"msg": validation["msg"], "accepted": False}
-    
-    # TODO Add ability to set password via room creation
-    
-    # Attempt to add room to database, checks for dupe
-    try:
-        # If not dupe, add row to table
-        with sqlite3.connect("database.db") as conn:
-            conn.execute("""
-                         INSERT INTO rooms (room, roompw, game, date_created, date_last_used, capacity, creator)
-                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                         """,
-                        (new_room_name,
-                         data.get("password", ""),
-                         data["game"],
-                         int(time()),
-                         int(time()),
-                         GAMES_TO_CAPACITY[data["game"]],
-                         data["username"]))
 
-    # Dupe room name
-    except sqlite3.IntegrityError:
+    # Add a dupe check here - redundant to rooms db check but
+    # this is better to use for now because db is currently not being used
+    if new_room_name in rooms.keys():
         msg = f"Canceling Create Room request: room with same name already exists."
         print(msg)
         return {"msg": msg, "accepted": False}
+
+    # TODO Add ability to set password via room creation
+    
+    # # Attempt to add room to database, checks for dupe
+    # try:
+    #     # If not dupe, add row to table
+    #     with sqlite3.connect("database.db") as conn:
+    #         conn.execute("""
+    #                      INSERT INTO rooms (room, roompw, game, date_created, date_last_used, capacity, creator)
+    #                      VALUES (?, ?, ?, ?, ?, ?, ?)
+    #                      """,
+    #                     (new_room_name,
+    #                      ws.generate_password_hash(data.get("password", "")),
+    #                      data["game"],
+    #                      int(time()),
+    #                      int(time()),
+    #                      GAMES_TO_CAPACITY[data["game"]],
+    #                      data["username"]))
+
+    # # Dupe room name
+    # except sqlite3.IntegrityError:
+    #     msg = f"Canceling Create Room request: room with same name already exists."
+    #     print(msg)
+    #     return {"msg": msg, "accepted": False}
     
     # Add room to dict (and database)
-    rooms[new_room_name] = Room(name=new_room_name, roompw="", game_name=data["game"], 
-                                capacity=GAMES_TO_CAPACITY[data["game"]], date_created=int(time()),
+    rooms[new_room_name] = Room(name=new_room_name,
+                                roompw=ws.generate_password_hash(data.get("password", "")), 
+                                game_name=data["game"],
+                                capacity=GAMES_TO_CAPACITY[data["game"]],
+                                date_created=int(time()),
                                 creator=data["username"])
     
     # Push new room to all other users in lobby
@@ -229,24 +239,30 @@ def on_join(data):
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
     if data["room"] != "lobby":
+        
+        # Check password if room has password
+        if len(rooms[data["room"]].roompw) > 0:
+            if not ws.check_password_hash(rooms[data["room"]].roompw, data.get("password", "")):
+                msg = "Incorrect password; Unable to join."
+                print(msg)
+                fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+                return msg
 
         # Check if room full
         if rooms[data["room"]].is_full():
-        
-            print(f"{data['room']} is full; Unable to join.")
-            fio.emit("debug_msg", {"msg": f"{data['room']} is full; Unable to join."}, to=fl.request.sid)
+            msg = f"{data['room']} is full; Unable to join."
+            print(msg)
+            fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
             
             # Should already be in lobby, stay in lobby
-            # Maybe turn this into a flash message
-            return f"{data['room']} is full"
+            return msg
         
         # Do not allow client to join non-lobby room with no username
         if len(fl.session.get("username", "")) == 0:
-            
-            print(f"Username is not set; cannot join {data['room']}.")
-            fio.emit("debug_msg", {"msg": f"Username is not set; cannot join {data['room']}."}, to=fl.request.sid)
-            
-            return
+            msg = f"Username is not set; cannot join {data['room']}."
+            print(msg)
+            fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+            return msg
 
     
     user = None
@@ -329,12 +345,6 @@ def on_join(data):
     fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "system",
              "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
 
-    
-    # TODO test this! 
-    # Need to send to self too since self is joining and cannot be assumed to have this data already
-    # fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-            #  "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
-            #  to=fl.request.sid)
     
     # Send updated player count to anyone remaining in lobby
     fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",
@@ -702,8 +712,7 @@ def register():
                             VALUES (?, ?, ?)
                             """,
                             (fl.request.form.get("username"),
-                            ws.generate_password_hash(
-                            fl.request.form.get("password", "")),
+                            ws.generate_password_hash(fl.request.form.get("password", "")),
                             int(time())))
 
         # Dupe username

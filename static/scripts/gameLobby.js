@@ -12,8 +12,9 @@ var username;
 var currentRoom;
 
 // Use for validation when creating new usernames / room names
-const nameValidation = '[a-zA-Z0-9_]{3,12}'
-const roomNameValidation = '[a-zA-Z0-9_]{3,18}'
+const nameValidation = '[a-zA-Z0-9_]{4,12}'  // Alphanumeric, underscores, len 3-12
+const roomNameValidation = '[a-zA-Z0-9_]{4,18}'  // Alphanumeric, underscores, len 3-18
+const roompwValidation = '^$|.{4,18}'  // Empty OR any string len 4-18
 
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -873,30 +874,13 @@ function createNewRoomModal() {
     // Set up under `form` even though the handler will be a socket.io event instead of a regular GET or POST
     const form = document.createElement('form');
 
-    const roomContainer = document.createElement('div');
-    roomContainer.id = 'create-room-name-container';
-    
-    // Create input boxes for the input
-    const roomLabel = document.createElement('label');
-    roomLabel.htmlFor = 'create-room-name'
-    roomLabel.innerText = 'Room name:';
-    
-    const roomInput = document.createElement('input');
-    roomInput.id = 'create-room-name';
-    roomInput.type = 'text';
-    roomInput.required = true;
-    // Use same pattern as username - includes min and max length
-    roomInput.pattern = roomNameValidation;
-    
-    roomContainer.appendChild(roomLabel)
-    roomContainer.appendChild(roomInput)
-    
+    // Choose game
     const gameFieldset = document.createElement('fieldset');
     gameFieldset.id = 'create-room-game-fieldset';
 
     const gameLegend = document.createElement('legend');
     gameLegend.id = 'create-room-game-legend';
-    gameLegend.innerText = 'Which game is this room for?';
+    gameLegend.innerText = 'Choose a Game:';
 
     gameFieldset.appendChild(gameLegend);
 
@@ -907,10 +891,11 @@ function createNewRoomModal() {
     thirtyOneInput.id = 'create-room-thirty_one';
     thirtyOneInput.name = 'game';
     thirtyOneInput.value = 'thirty_one';
-    // Setting required for 1 radio option to make the radio section required
+    thirtyOneInput.autocomplete = 'off';
     thirtyOneInput.required = true;
     
     const thirtyOneLabel = document.createElement('label');
+    thirtyOneLabel.className = 'btn btn-secondary';
     thirtyOneLabel.htmlFor = 'create-room-thirty_one';
     thirtyOneLabel.innerText = 'Thirty One';
     
@@ -919,9 +904,11 @@ function createNewRoomModal() {
     cribbageInput.id = 'create-room-cribbage';
     cribbageInput.name = 'game';
     cribbageInput.value = 'cribbage';
+    cribbageInput.autocomplete = 'off';
     cribbageInput.required = true;
     
     const cribbageLabel = document.createElement('label');
+    cribbageLabel.className = 'btn btn-secondary';
     cribbageLabel.htmlFor = 'create-room-cribbage';
     cribbageLabel.innerText = 'Cribbage';
     
@@ -930,21 +917,93 @@ function createNewRoomModal() {
     natacInput.id = 'create-room-natac';
     natacInput.name = 'game';
     natacInput.value = 'natac';
+    natacInput.autocomplete = 'off';
     natacInput.required = true;
     
     const natacLabel = document.createElement('label');
+    natacLabel.className = 'btn btn-secondary';
     natacLabel.htmlFor = 'create-room-natac';
     natacLabel.innerText = 'Natac';
 
-    gameChoicesContainer.appendChild(thirtyOneInput)
-    gameChoicesContainer.appendChild(thirtyOneLabel)
-    gameChoicesContainer.appendChild(cribbageInput)
-    gameChoicesContainer.appendChild(cribbageLabel)
-    gameChoicesContainer.appendChild(natacInput)
-    gameChoicesContainer.appendChild(natacLabel)
+    gameChoicesContainer.appendChild(thirtyOneInput);
+    gameChoicesContainer.appendChild(thirtyOneLabel);
+    gameChoicesContainer.appendChild(cribbageInput);
+    gameChoicesContainer.appendChild(cribbageLabel);
+    gameChoicesContainer.appendChild(natacInput);
+    gameChoicesContainer.appendChild(natacLabel);
 
     gameFieldset.appendChild(gameLegend);
     gameFieldset.appendChild(gameChoicesContainer);
+    
+    let btnArray = [thirtyOneLabel, cribbageLabel, natacLabel]
+    
+    // Add event listener for label buttons to be active (selected) on click
+    btnArray.forEach(btn => {
+        btn.addEventListener('click', () => {
+            
+            // Set clicked button to active and DE-activate all others
+            btn.classList.add('active');
+            
+            // Loop through array again to find all others
+            btnArray.forEach(btnCompare => {
+                if (btn.innerText !== btnCompare.innerText){
+                    btnCompare.classList.remove('active');
+                }
+            })
+        })
+    })
+
+    const roomFieldset = document.createElement('fieldset');
+    roomFieldset.id = 'create-room-details-fieldset';
+    
+    const roomLegend = document.createElement('legend');
+    roomLegend.id = 'create-room-details-legend';
+    roomLegend.innerText = 'Room Name and Password';
+
+    // Room name
+    const roomContainer = document.createElement('div');
+    roomContainer.id = 'create-room-name-container';
+    
+    const roomLabel = document.createElement('label');
+    roomLabel.htmlFor = 'create-room-name'
+    roomLabel.innerText = 'Room Name:';
+    
+    const roomInput = document.createElement('input');
+    roomInput.id = 'create-room-name';
+    roomInput.type = 'text';
+    // Use same pattern as username - includes min and max length
+    roomInput.title = 'Only letters, numbers, or underscores.\n4-18 characters.';
+    roomInput.pattern = roomNameValidation;
+    roomInput.autocomplete = 'off';
+    roomInput.required = true;
+    // See bootstrap on form help text - can put in instructions for name, password
+    // https://getbootstrap.com/docs/4.3/components/forms/?#help-text
+    
+    roomContainer.appendChild(roomLabel);
+    roomContainer.appendChild(roomInput);
+    
+    // Password (optional)
+    const pwContainer = document.createElement('div');
+    pwContainer.id = 'create-room-password-container';
+    
+    const pwLabel = document.createElement('label');
+    pwLabel.htmlFor = 'create-room-password';
+    pwLabel.innerText = 'Password for Room (optional):';
+    
+    const pwInput = document.createElement('input');
+    pwInput.id = 'create-room-password';
+    pwInput.type = 'password';
+    // No char restrictions; len is 0 OR 4-18
+    pwInput.title = 'Blank or 4-18 characters.';
+    pwInput.pattern = roompwValidation;
+    pwInput.autocomplete = 'off';
+    
+    pwContainer.appendChild(pwLabel);
+    pwContainer.appendChild(pwInput);
+    
+    roomFieldset.appendChild(roomLegend);
+    roomFieldset.appendChild(roomContainer);
+    roomFieldset.appendChild(pwContainer);
 
     // const capacityContainer = document.createElement('div');
     // capacityContainer.id = 'create-room-capacity-container';
@@ -986,7 +1045,7 @@ function createNewRoomModal() {
         }
 
         // Using emitWithAck - Wait for server to accept request. Returns promise
-        const promise = socket.emitWithAck('create_room', {'new_room_name': roomInput.value, 'game': form.elements["game"].value, 'username': username, 'room': currentRoom});
+        const promise = socket.emitWithAck('create_room', {'new_room_name': roomInput.value, 'game': form.elements["game"].value, 'password': pwInput.value, 'username': username, 'room': currentRoom});
                     
         promise
             .then((data) => {
@@ -1017,7 +1076,6 @@ function createNewRoomModal() {
             });
     };
     
-
     // Set `enter` to submit the form
     form.addEventListener('keyup', (event) => {
         event.preventDefault();
@@ -1028,13 +1086,12 @@ function createNewRoomModal() {
     
     submitContainer.appendChild(submitButton);
     
+    form.appendChild(gameFieldset);
+    form.appendChild(roomFieldset);
     // Removing capacity from the options for the time being
     // Capacity will be defaulted to the max players a game can handle
-    form.appendChild(roomContainer);
-    form.appendChild(gameFieldset);
     // form.appendChild(capacityContainer);
     form.appendChild(submitContainer);
-
 
     modalBody.appendChild(form);
     
