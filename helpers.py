@@ -83,6 +83,22 @@ def login_required(f):
 
     return decorated_function
 
+# Not sure if this will be needed
+def username_required(f):
+    """
+    Decorate routes to require username.
+
+    https://flask.palletsprojects.com/en/latest/patterns/viewdecorators/
+    """
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if len(session.get("username", "")) == 0:
+            return redirect("/set_username")
+        return f(*args, **kwargs)
+
+    return decorated_function
+
 
 # Eventually change to pass in existing names so it can check for duplicates
 def get_random_name(exclude: set=set()) -> str:

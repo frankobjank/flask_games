@@ -27,6 +27,7 @@
             <div class="nav">
                 <a class="nav-link" href="/"><h5>Home</h5></a>
                 <!-- This is based on user_id - allows users to set a username without creating an account -->
+                <a class="nav-link" href="/game"><h5>Lobby</h5></a>
                 {% if session["user_id"] %}
                     <a class="nav-link" href="/change_password"><h5>Change Password</h5></a>
                     <a class="nav-link" href="/logout"><h5>Logout</h5></a>

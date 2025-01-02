@@ -86,7 +86,13 @@ def index():
     return fl.render_template("index.html")
 
 
+
 @app.route("/game")
+# Redirect to username if session username is not set
+# @username_required
+# Can't decide if redirecting to set_username on initial GET for game is a good idea
+# I think people should be able to see the lobby before being asked to set a name.
+# Maybe put up a modal popup whenever 'create room' or a room is clicked.
 def game():
     fl.session["last_page"] = fl.url_for("game")
     
@@ -160,6 +166,7 @@ def on_create_room(data):
     #     return {"msg": msg, "accepted": False}
     
     # Add room to dict (and database)
+    
     rooms[new_room_name] = Room(name=new_room_name,
                                 roompw=ws.generate_password_hash(data.get("password", "")), 
                                 game_name=data["game"],
@@ -169,9 +176,9 @@ def on_create_room(data):
     
     # Push new room to all other users in lobby
     # `rooms` is the rooms to add; `room` is room USER IS CURRENTLY IN
+    # Don't need to add all rooms, just new room
     fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
-             "rooms": [room.package_self() for room in rooms.values() if room.name != "lobby"]},
-             to="lobby")
+             "rooms": [rooms[new_room_name].package_self()]}, to="lobby")
     
     # Use pass / fail for status to denote success of request
     return {"accepted": True}
@@ -489,7 +496,10 @@ def on_move(data):
     
     # Exit early if game does not yet exist
     if not game:
-        fio.emit("debug_msg", {"msg": "Game has not been initialized yet."}, to=fl.request.sid)
+        msg = "The game has not started yet."
+        fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+        fio.emit("chat_log", {"msg": msg, "sender": "system", 
+                 "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
         return
     
     # Check that username is current player if game has started
@@ -616,7 +626,15 @@ def on_disconnect():
 # -- End FlaskSocketIO -- #
 
 
-# -- Account Management -- #
+# -- Account Management -- 
+# @app.route("/set_username")
+# def set_username():
+#     fl.session["last_page"] = fl.url_for("set_username")
+#     fl.session["session_cookie"] = fl.request.cookies.get("session")
+
+#     return fl.render_template("set_username.html")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""

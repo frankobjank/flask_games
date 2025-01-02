@@ -130,7 +130,10 @@ footer {
     display: flex;
     justify-content: space-between; /* Adjust spacing between panels */
     align-items: center; /* Align panels vertically in the middle */
+}
 
+#username-input {
+    display: inline-flex;
 }
 
 /* For hover on lobby room table */
@@ -219,7 +222,11 @@ footer {
 }
 
 input[type="radio"]{
-    appearance: none;
+    appearance: none;  /* Remove circles from radio inputs */
+}
+
+.form-control {
+    margin: 1rem;
 }
 
 /* Game */

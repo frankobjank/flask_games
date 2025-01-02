@@ -18,7 +18,7 @@ const roompwValidation = '^$|.{4,18}'  // Empty OR any string len 4-18
 
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Join room - current room is lobby on initial GET
+    // Join room - will join lobby on initial GET
     joinRoom('lobby');
 });
 
@@ -28,7 +28,6 @@ const modalOverlay = document.createElement('div');
 modalOverlay.id = 'modal-overlay';
 // Allows user to click outside of modal to close it
 modalOverlay.onclick = () => {
-    // Selects ALL open modals
     const modals = document.querySelectorAll('.modal.active');
     modals.forEach(modal => {
         closeModal(modal);
@@ -37,7 +36,118 @@ modalOverlay.onclick = () => {
 
 document.querySelector('body').appendChild(modalOverlay);
 
-// Include:
+function createUsernameModal(roomToJoin) {
+    // Copied from createUsernameInput for use on lobby header
+    // Currently only used to enter username when trying to enter a room.
+    // Room will be passed back on set_username response automatically join room after username is set
+
+    // Modal for setting username
+    const usernameModal = document.createElement('div');
+    usernameModal.className = 'modal set-username active';
+    usernameModal.id = 'username-modal';
+    // Prevent clicking outside of the modal
+    usernameModal.dataset.backdrop = 'static';
+    
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'modal-header set-username';
+    modalHeader.innerText = 'Please enter a username to enter the room.'
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'modal-close-button set-username';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        closeModal(usernameModal);
+    }
+
+    modalHeader.appendChild(closeButton);
+    
+    const modalTitle = document.createElement('div');
+    modalTitle.className = 'modal-title set-username';
+    modalTitle.innerText = 'Enter a name:';
+    
+    const modalBody = document.createElement('div');
+    modalBody.id = 'username-modal-body';
+    modalBody.className = 'modal-body set-username';
+
+    const addUsernameLabel = document.createElement('label');
+    addUsernameLabel.htmlFor = 'username-modal-input'
+
+    const addUsernameInput = document.createElement('input');
+    addUsernameInput.className = 'modal-input form-control w-auto';
+    addUsernameInput.id = 'username-modal-input';
+    addUsernameInput.type = 'text';
+    addUsernameInput.autocomplete = 'off';
+    addUsernameInput.placeholder = 'Enter username';
+    addUsernameInput.pattern = nameValidation;
+
+    const submitButton = document.createElement('button');
+    submitButton.className = 'username-modal-button btn btn-secondary form-control w-auto';
+    submitButton.innerText = 'Submit username';
+
+    submitButton.onclick = () => {
+        // Prevent sending blank input
+        if (addUsernameInput.value.length > 0) {
+
+            // Using emitWithAck - for callback. Returns promise
+            const promise = socket.emitWithAck('set_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
+            
+            promise
+                .then((data) => {
+                    // Msg successfully sent / received but server validation failed.
+                    if (!data.accepted) {
+                        console.log(`Error: ${data.msg}`);
+                        return data.accepted;
+                    }
+                    
+                    // Successful request, add username.
+                    username = data.username;
+                    console.log(`Username successfully added: ${data.username}.`);
+
+                    // Remove username input container from lobby header
+                    if (document.querySelector('#username-input-container') !== null) {
+                        document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'))
+                    }
+
+                    // Add welcome to lobby
+                    const welcome = createWelcome();
+                    document.querySelector('#lobby-username-container').appendChild(welcome);
+                    
+                    // Close modal
+                    closeModal(usernameModal);
+
+                    // This is circular - row.onclick opened this modal and resolving the modal activates the onclick.
+                    // There is probably a way to do this with promises.
+                    document.querySelector('#room-tr-' + roomToJoin).click();
+
+                })
+                .catch((error) => {
+                    console.error(`Could not set username: ${error}`);
+                });
+
+        };
+    };
+
+    // Set `enter` to send message
+    addUsernameInput.addEventListener('keyup', (event) => {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            submitButton.click();
+        };
+    });
+    
+    modalBody.appendChild(addUsernameLabel);
+    modalBody.appendChild(addUsernameInput);
+    modalBody.appendChild(submitButton);
+
+    usernameModal.appendChild(modalHeader);
+    usernameModal.appendChild(modalTitle);
+    usernameModal.appendChild(modalBody);
+
+    return usernameModal;
+}
+
+
+// Include (for addRooms()):
     // Option to create new room
     // Option to delete room (but only can be done by creator of room or site admin)
     // Table of rooms - columns:
@@ -74,15 +184,20 @@ function addRooms(newRooms) {
         row.id = 'room-tr-' + room.name;
 
         // Adding onclick to row instead of using button or anchor
+        // Event listener here is async because there is an await in the function
         row.onclick = () => {
 
             // Prevent joining game room if username not set
             if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
+                console.log('Cannot join game room yet: Username is not set.');
+                console.log('Opening modal to set username.');
+
+                // Open modal - there is no close button so user must complete it before continuing.
+                const usernameModal = createUsernameModal(room.name);
+                document.body.appendChild(usernameModal);
                 
-                // Add flash or something to prevent joining game room
-                
-                console.log(`Cannot join game room; Username is '${username}'`);
-                return;
+                // Exit early - will call this function again once username is set
+                return;   
             }
 
             // Leave lobby and join selected room
@@ -326,13 +441,12 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(handSize);
     playerContainer.appendChild(order);
     playerContainer.appendChild(lives);
-    playerContainer.appendChild(current);
     
-    // Add hand, hand score. If not self, will not be filled in except for the end of a round.
+    playerContainer.appendChild(current);
     // Put hand in div
     const hand = document.createElement('div');
     hand.id = name + '-hand-container';
-    
+     
     // Put hand score into div
     const handScore = document.createElement('div');
     handScore.id = name + '-hand-score';
@@ -553,10 +667,8 @@ function addPlayers(players) {
 
         // Check if player already in list
         if (!(playersConnected.includes(players[i]))) {
-            
-            // If player not in list, add to list and player panel
             playersConnected.push(players[i]);
-        }
+        }   
 
         // Check if container exists already
         if (document.querySelector('#' + players[i] + '-container') === null) {
@@ -564,13 +676,12 @@ function addPlayers(players) {
             // Create new container if one does not exist
             playerContainer = createPlayerContainer(players[i]);
             document.querySelector('.player-panel').appendChild(playerContainer);
-        }
 
-        // If container already exists, set their connection status to connected
+        }
         else {
             document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1');
             players[i].connected = true;
-        }
+            }
     }
 
 }
@@ -583,7 +694,7 @@ function removePlayers(players) {
         // Check if player already in list
         if ((players.includes(playersConnected[i]))) {
             
-            let containerID = '#' + playersConnected[i] + '-container'
+            const containerID = '#' + playersConnected[i] + '-container'
 
             // Remove player from player panel
             playerContainer = document.querySelector(containerID);
@@ -603,20 +714,22 @@ function createUsernameInput() {
     const usernameInputContainer = document.createElement('div');
     usernameInputContainer.id = 'username-input-container';
     
+    const addUsernameLabel = document.createElement('label');
+    addUsernameLabel.htmlFor = 'username-input'
+
     const addUsernameInput = document.createElement('input');
-    addUsernameInput.className = 'form-control mx-auto w-auto';
+    addUsernameInput.className = 'lobby-header-input form-control w-auto';
+    addUsernameInput.id = 'username-input';
     addUsernameInput.type = 'text';
     addUsernameInput.autocomplete = 'off';
-    addUsernameInput.placeholder = 'Enter name';
+    addUsernameInput.placeholder = 'Enter username';
     addUsernameInput.pattern = nameValidation;
-    // Add warning when trying to submit non-alphanumeric name? 
-    // Highlight username box when trying to join room if username not set
     
     usernameInputContainer.appendChild(addUsernameInput);
 
     const submitButton = document.createElement('button');
-    submitButton.className = 'btn btn-primary';
-    submitButton.innerText = 'Set username';
+    submitButton.className = 'lobby-header-button btn btn-secondary form-control w-auto';
+    submitButton.innerText = 'Submit username';
 
     submitButton.onclick = () => {
         // Prevent sending blank input
@@ -629,18 +742,17 @@ function createUsernameInput() {
                 .then((data) => {
                     // Msg successfully sent / received but server validation failed.
                     if (!data.accepted) {
-                        console.log(`Error: ${data.msg}`)
+                        console.log(`Error: ${data.msg}`);
                         return;
                     }
                     
                     // Successful request, add username.
                     username = data.username;
                     console.log(`Username successfully added: ${data.username}.`);
-                    
-                    document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'));
-                    
-                    // TODO ---- If username, add create room button, remove if not ----
 
+                    document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'));
+
+                    // Add welcome to lobby
                     const welcome = createWelcome();
                     document.querySelector('#lobby-username-container').appendChild(welcome);
                 })
@@ -666,6 +778,7 @@ function createUsernameInput() {
 
 function createWelcome() {
     const welcome = document.createElement('h4');
+    welcome.id = 'lobby-welcome';
     welcome.innerText = `Welcome ${username}`;
     return welcome;
 }
@@ -710,7 +823,7 @@ function updateLobby(response) {
         newRoomContainer.appendChild(newRoomModal);
         
         const newRoomButton = document.createElement('button');
-        newRoomButton.className = 'create-room-button';
+        newRoomButton.className = 'lobby-header-button btn btn-secondary form-control w-auto';
         newRoomButton.id = 'open-modal-create-room';
         newRoomButton.innerText = 'Create Room';
         newRoomButton.onclick = () => {
@@ -721,21 +834,19 @@ function updateLobby(response) {
         lobbyHeader.appendChild(newRoomContainer);
 
         const lobbyUsername = document.createElement('div');
-        lobbyUsername.className = 'add-username mb-3';
+        lobbyUsername.className = 'add-username';
         lobbyUsername.id = 'lobby-username-container';
-        lobbyHeader.appendChild(lobbyUsername);
 
-        // If no username, add username input area
+        lobbyHeader.appendChild(lobbyUsername);
         if (username === undefined || username.length === 0) {
             const usernameInputContainer = createUsernameInput();
             lobbyUsername.appendChild(usernameInputContainer);
+            
         }
-        
-        // If username, add welcome 
         else if (username.length > 0) {
             const welcome = createWelcome();
             lobbyUsername.appendChild(welcome);
-        }
+            }
 
         // -- End lobby header --
 
@@ -824,10 +935,7 @@ function updateLobby(response) {
         }
 
         // Update in_progress
-        else if (response.col === 'in_progress') {
-            // If this is not optimal to do on server side, maybe the rooms can 
-            // detect when there is a change in in_progress variable and send to 
-            // lobby when that change occurs. It could also do the same for number of players....
+        if (response.col === 'in_progress') {
             
             document.querySelector('#room-td-in_progress-' + response.row).innerText = response.new_value;
         }
@@ -885,6 +993,7 @@ function createNewRoomModal() {
     gameFieldset.appendChild(gameLegend);
 
     const gameChoicesContainer = document.createElement('div');
+    gameChoicesContainer.className = 'btn-group'
     
     const thirtyOneInput = document.createElement('input');
     thirtyOneInput.type = 'radio';
@@ -968,38 +1077,52 @@ function createNewRoomModal() {
     roomLabel.htmlFor = 'create-room-name'
     roomLabel.innerText = 'Room Name:';
     
+    const roomHelpText = 'Room name must be 4-18 characters long and only contain letters, numbers, or underscores.';
+
     const roomInput = document.createElement('input');
+    roomInput.className = 'form-control';
     roomInput.id = 'create-room-name';
     roomInput.type = 'text';
     // Use same pattern as username - includes min and max length
-    roomInput.title = 'Only letters, numbers, or underscores.\n4-18 characters.';
+    roomInput.title = roomHelpText;
     roomInput.pattern = roomNameValidation;
     roomInput.autocomplete = 'off';
     roomInput.required = true;
-    // See bootstrap on form help text - can put in instructions for name, password
-    // https://getbootstrap.com/docs/4.3/components/forms/?#help-text
+
+    // const roomSmall = document.createElement('small');
+    // roomSmall.className = 'form-small';
+    // roomSmall.innerText = roomHelpText;
     
     roomContainer.appendChild(roomLabel);
     roomContainer.appendChild(roomInput);
+    // roomContainer.appendChild(roomSmall);
     
     // Password (optional)
     const pwContainer = document.createElement('div');
     pwContainer.id = 'create-room-password-container';
     
+    const pwHelpText = 'Password must either be blank or 4-18 characters.';
+
     const pwLabel = document.createElement('label');
     pwLabel.htmlFor = 'create-room-password';
     pwLabel.innerText = 'Password for Room (optional):';
     
     const pwInput = document.createElement('input');
+    pwInput.className = 'form-control';
     pwInput.id = 'create-room-password';
     pwInput.type = 'password';
     // No char restrictions; len is 0 OR 4-18
-    pwInput.title = 'Blank or 4-18 characters.';
+    pwInput.title = pwHelpText;
     pwInput.pattern = roompwValidation;
     pwInput.autocomplete = 'off';
+
+    // const pwSmall = document.createElement('small');
+    // pwSmall.className = 'form-small';
+    // pwSmall.innerText = roomHelpText;
     
     pwContainer.appendChild(pwLabel);
     pwContainer.appendChild(pwInput);
+    // pwContainer.appendChild(pwSmall);
     
     roomFieldset.appendChild(roomLegend);
     roomFieldset.appendChild(roomContainer);
@@ -1124,7 +1247,7 @@ function updateGameRoom(response) {
         // Update header
         document.querySelector('#room-name-header').innerText = response.room;
 
-        gameContainer = document.createElement('div');
+        const gameContainer = document.createElement('div');
         gameContainer.className = 'game-container';
         document.querySelector('.outer-container').appendChild(gameContainer);
 
@@ -1150,14 +1273,11 @@ function updateGameRoom(response) {
                 const chatLogPanel = createChatLogPanel(username);
                 gameContainer.appendChild(chatLogPanel);
             }
-            else {
-                // If chat log exists it should persist;
                 // Remove and then append to end of game-container div
-                const chatLogPanel = gameContainer.removeChild(document.querySelector('#chat-log-panel'));
+                const chatLogPanel = gameContainer.removeChild(document.querySelector('#chat-log-panel'));  
 
                 gameContainer.appendChild(chatLogPanel);
-            }         
-        }
+        }         
     }
     
 
@@ -1342,17 +1462,13 @@ function updateGame(response) {
             
             // Update hand size
             document.querySelector(playerID + '-hand-size').innerText = ' hand size: ' + response.hand_sizes[i] + ' ';
-            
-            // If self, update hand with exact cards
             if (username === playerOrder[i]) {
-                populateHand(username, response.hand, response.hand_score)
+                populateHand(username, response.hand, response.hand_score)  
             }
-
-            // For non-self players --- If end mode, show hands. Else, empty hands
             // Using `else if` here implies playerOrder[i] is not the self player
             else if (mode === 'end_round' || mode === 'end_game') {
                 populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i])
-            } 
+            }    
             else {
                 // Remove all cards if there were any
                 document.querySelector(playerID + '-hand-container').replaceChildren()
@@ -1361,12 +1477,10 @@ function updateGame(response) {
                 document.querySelector(playerID + '-hand-score').innerText = '';
             }
             
-            
-            // If current player, mark true
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                // document.querySelector(playerID + '-current').innerText = 'current';
+                  // document.querySelector(playerID + '-current').innerText = 'current';
                 
                 // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
                 document.querySelector(playerID + '-container').setAttribute('current', '1');
@@ -1427,7 +1541,6 @@ async function leaveRoom(username, room) {
     catch (err) {
         throw new Error(`Leave error: ${err}`);
     }
-
 }
 
 // Updating lobby

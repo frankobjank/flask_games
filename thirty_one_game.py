@@ -1,6 +1,7 @@
 from operator import attrgetter
 import random
 
+# TODO - what happens when deck runs out of cards?
 
 # Global constants
 ACE_VALUE = 11
@@ -194,7 +195,6 @@ class State:
         # Send to one specific client
         else:
             self.players[player].log.append(msg)
-
 
 
     def start_game(self) -> None:
