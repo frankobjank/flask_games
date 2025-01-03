@@ -249,7 +249,36 @@ def on_join(data):
 
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
-    # Checks for game rooms; NOT lobby
+    # Lobby should not need to capture session cookie, sids, or names.
+    # This creates a question about how to deal with temporary usernames vs registered usernames
+    # If a registered user goes to the lobby, the lobby will not 'know' who they are
+        # One possible fix for this is to RESERVE fl.session["username"] for registered users and to only use rooms["room_name"].users for usernames
+
+    # For lobby
+    if data["room"] == "lobby":
+
+        # Initial setup - room infrastructure
+        fio.emit("update_lobby", {"action": "setup_room", "room": data["room"],
+                 "username": fl.session.get("username", "")}, to=fl.request.sid)
+        
+        # Join the room
+        fio.join_room(data["room"])
+        
+        print(f"{fl.session.get('username', '')} joined {data['room']}.")
+        
+        # Add rooms to lobby (rows in table)
+        fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
+                 "username": fl.session.get("username", ""), 
+                 "rooms": [room.package_self() for room in rooms.values()
+                           if room.name != "lobby"]}, to=fl.request.sid)
+        
+        # Exit early
+        return "Server callback: lobby join completed."
+
+    # Game room only, not lobby
+    # This can be pared down because it does not have to account for not knowing names and then adding them later. It can be assumed that all game rooms will be joined WITH names, and the only reconnecting event that will happen is matching up session cookies with names.
+        # Problem: this means that even a registered user won't be able to reconnect if they have a new session cookie (i.e. on browser crash or something).
+        # Possible solutions: let a user reconnect with the same name and different session cookie if they are a registered user (i.e. check the database, OR create some kind of distinction between registered users and temporary users in the flask session)
     if data["room"] != "lobby":
         
         # Check password if room has password
@@ -276,15 +305,13 @@ def on_join(data):
             fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
             return msg
         
-        # Ensure username does not conflict with anyone in room - not a true fix, should probably just have usernames not persist in lobby
+        # Ensure username does not conflict with anyone in room - this should be a validation in set_username
         if fl.session.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
-            msg = f"Someone in the room has the same name as you; cannot join."
+            msg = "Someone in the room has the same name as you; cannot join."
             print(msg)
             fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
             return msg
 
-
-    
     user = None
 
     # Use session cookie to see if user exists in room already; update sid and connection status
@@ -331,17 +358,12 @@ def on_join(data):
     if len(fl.session.get("username", "")) == 0:
         fl.session["username"] = user.name
 
-    # For lobby
-    if data["room"] == "lobby":
-        fio.emit("update_lobby", {"action": "setup_room", "room": data["room"],
-                 "username": user.name}, to=fl.request.sid)
 
     # For game room
-    else:
-        # Set up client's username on their end
-        # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
-        fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"],
-                 "username": user.name}, to=fl.request.sid)
+    # Set up client's username on their end
+    # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
+    fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"],
+                "username": user.name}, to=fl.request.sid)
     
     print(f"Users on join: {rooms[data['room']].users} after processing.")
 
@@ -349,16 +371,7 @@ def on_join(data):
     fio.join_room(data["room"])
     
     print(f"{user.name} joined {data['room']}.")
-    
-    # Joining lobby; exit early
-    if data["room"] == "lobby":
-        # When room is added, push changes to all other users in lobby
-        fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
-                 "username": user.name, "rooms": [room.package_self() for room in rooms.values()
-                 if room.name != "lobby"]}, to=fl.request.sid)
         
-        return "Server callback: join completed."
-    
     # Joining game room - NOT lobby
 
     # Log msg that player has joined
@@ -409,7 +422,7 @@ def on_join(data):
         # Empty log for player after update is sent
         game.players[user.name].log = []
 
-    return "Server callback: join completed."
+    return "Server callback: game room join completed."
         
 
 @socketio.on("leave")
