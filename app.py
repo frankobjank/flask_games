@@ -249,6 +249,7 @@ def on_join(data):
 
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
+    # Checks for game rooms; NOT lobby
     if data["room"] != "lobby":
         
         # Check password if room has password
@@ -274,6 +275,14 @@ def on_join(data):
             print(msg)
             fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
             return msg
+        
+        # Ensure username does not conflict with anyone in room - not a true fix, should probably just have usernames not persist in lobby
+        if fl.session.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
+            msg = f"Someone in the room has the same name as you; cannot join."
+            print(msg)
+            fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+            return msg
+
 
     
     user = None
