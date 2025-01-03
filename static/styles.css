@@ -4,7 +4,7 @@
     --bs-nav-link-color: white;
 }
 
-/* General layout */
+/* Home & Header and Footer */
 
 .nav {
     background-color: #000000;
@@ -106,17 +106,6 @@ footer {
     text-align: center;
     text-decoration: none;
     vertical-align: middle;
-}
-
-/* General */
-.game-container {
-    display: flex;
-    justify-content: space-between; /* Adjust spacing between panels */
-    align-items: center; /* Align panels vertically in the middle */
-    /* Optional: Full height */
-    /* height: 100vh; */
-    padding-top: 50px;
-    padding-bottom: 2rem;
 }
 
 /* Lobby */
@@ -230,10 +219,28 @@ input[type="radio"]{
 }
 
 /* Game */
+#game-container {
+    display: flex;
+    justify-content: space-between; /* Adjust spacing between panels */
+    align-items: center; /* Align panels vertically in the middle */
+    /* Optional: Full height */
+    /* height: 100vh; */
+    padding-top: 50px;
+    padding-bottom: 2rem;
+    display: inline-block;
+}
+
+#game-panel {
+}
+
 .panel {
     border: 1px solid black;
     padding: 1rem;
     margin: 1rem;
+}
+
+#return-lobby-button {
+    display: block;
 }
 
 .game-button {
@@ -250,7 +257,7 @@ input[type="radio"]{
     color: gray;
 }
 
-#chat-log-container {
+#chat-log-panel {
     padding-left: 1rem;
     padding-right: 1rem;
     padding-top: 1rem;
@@ -260,7 +267,9 @@ input[type="radio"]{
     color: rgb(46, 45, 45);
     border-radius: 5px;
     /* border: 3px solid #0b0b0b; */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);   
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Display adjacent to game container */
+    display: inline-block;
 }
 
 #chat-log-header {

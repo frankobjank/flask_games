@@ -272,6 +272,7 @@ let players = {};
 function createLobbyButton() {
     const toLobby = document.createElement('button');
     toLobby.className = 'room-nav';
+    toLobby.id = 'return-lobby-button';
     toLobby.innerText = 'Return to Lobby';
     toLobby.onclick = () => {
         // Leave current room and join lobby
@@ -1242,19 +1243,25 @@ function updateGameRoom(response) {
         if (username === undefined) {
             username = response.username;
         }
+        
+        // The outermost level before outer-container
+        const gameRoomContainer = document.createElement('div');
+        gameRoomContainer.id = 'game-room-container'
+        document.querySelector('.outer-container').appendChild(gameRoomContainer);
+
+
+        // Create `to lobby` button - should be above / outside of game container
+        const toLobby = createLobbyButton();
+        gameRoomContainer.appendChild(toLobby);
     
         // Set up game room
         // Update header
         document.querySelector('#room-name-header').innerText = response.room;
 
         const gameContainer = document.createElement('div');
-        gameContainer.className = 'game-container';
-        document.querySelector('.outer-container').appendChild(gameContainer);
+        gameContainer.id = 'game-container';
+        gameRoomContainer.appendChild(gameContainer);
 
-        // Create `to lobby` button
-        const toLobby = createLobbyButton();
-        gameContainer.appendChild(toLobby);
-        
         // Create game, player, chat panels if username is assigned
         if (username.length > 0) {
             
@@ -1271,12 +1278,12 @@ function updateGameRoom(response) {
             
             if (document.querySelector('#chat-log-panel') === null) {
                 const chatLogPanel = createChatLogPanel(username);
-                gameContainer.appendChild(chatLogPanel);
+                gameRoomContainer.appendChild(chatLogPanel);
             }
-                // Remove and then append to end of game-container div
-                const chatLogPanel = gameContainer.removeChild(document.querySelector('#chat-log-panel'));  
+                // Remove and then append to end of game-room-container
+                const chatLogPanel = gameRoomContainer.removeChild(document.querySelector('#chat-log-panel'));  
 
-                gameContainer.appendChild(chatLogPanel);
+                gameRoomContainer.appendChild(chatLogPanel);
         }         
     }
     
@@ -1285,8 +1292,8 @@ function updateGameRoom(response) {
     else if (response.action === 'teardown_room') {
 
         // Teardown game room - Remove game panel if it exists
-        if (document.querySelector('.game-container') !== null) {
-            document.querySelector('.game-container').remove();
+        if (document.querySelector('#game-room-container') !== null) {
+            document.querySelector('#game-room-container').remove();
         }
 
         // Reset msg count to 0 if chat is not persisting
