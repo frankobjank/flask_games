@@ -81,6 +81,7 @@ footer {
     min-width: 30px;
 }
 
+/* Card is the Bootstrap div. Card in a game is game-card */
 .card {
     width: 18rem;
     display: inline-block;
@@ -231,6 +232,34 @@ input[type="radio"]{
 }
 
 #game-panel {
+}
+
+.deck-container {
+    width: 2.75rem;
+    height: 3.75rem;
+    background-color: gray;
+    border: #000000;
+    margin: 2rem;
+}
+
+.discard-container {
+    width: 2.75rem;
+    height: 3.75rem;
+    background-color: #5c5a5a;
+    border: #000000;
+    margin: 2rem;
+}
+
+.game-card {
+    /* Standard playing cards are 2.5" x 3.5" */
+    width: 2.5rem;
+    height: 3.5rem;
+    background-color: #000000;
+    color: white;
+}
+
+#board {
+    display: flex;
 }
 
 .panel {

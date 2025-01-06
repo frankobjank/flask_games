@@ -217,7 +217,9 @@ def on_set_username(data):
         # When this cleanup is run, rooms not used for 24 hours should also be deleted
     for room in rooms.values():
         for user in room.users:
-            if user.name == username:
+            # This doesn't allow anyone to re-join, adding check for cookie
+            # if user.name == username:
+            if user.name == username and user.session_cookie != fl.session["session_cookie"]:
                 msg = "Canceling Set Username request: username already taken."
                 print(msg)
                 return {"msg": msg, "accepted": False}
@@ -412,7 +414,7 @@ def on_join(data):
                     
         # Send game data if game in progress
         print(f"Sending game state to {user.name} on join: \n{game_update}")    
-        fio.emit("update_game", game_update, to=fl.request.sid, room=data["room"])
+        fio.emit("update_board", game_update, to=fl.request.sid, room=data["room"])
         fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
         
         # If player is rejoining, update connection status for all other clients in room
@@ -441,8 +443,9 @@ def on_leave(data):
     for user in rooms[data["room"]].users:
         if fl.session["session_cookie"] == user.session_cookie and fl.session["username"] == user.name:
             user.connected = False
+            
 
-    # For lobby (LEAVING lobby)
+    # For leaving lobby
     if data["room"] == "lobby":
         fio.emit("update_lobby", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
 
@@ -452,19 +455,24 @@ def on_leave(data):
         return "Server callback: successful leave."
     
 
-    # For game room (LEAVING game room)
+    # For leaving game room
 
     # Send updated player count to anyone remaining in lobby
     fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",
-             "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"}, 
-             to="lobby")
+             "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"}, to="lobby")
 
+    # Teardown game room for user leaving
     fio.emit("update_gameroom", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
 
     # Notify the rest of clients in the room that user has left
     fio.emit("chat_log", {"msg": f"{data['username']} has left.", "sender": "system",
                           "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, 
-                          room=data["room"])
+                          to=data["room"])
+    
+    # Update leaving player's connection status to False for all others in game room
+    fio.emit("update_gameroom", {"action": "conn_status", "room": data["room"],
+                                 "players": [data["username"]], "connected": False}, to=data["room"],
+                                 broadcast=True)
 
     # Can leave freely if:
         # Not game OR if game AND game is not in progress:
@@ -473,6 +481,7 @@ def on_leave(data):
     if not rooms[data["room"]].game or (rooms[data["room"]].game 
                                         and not rooms[data["room"]].game.in_progress):
         
+        # Remove all non-connected players
         # Broadbast = True since notification should go to all other players in room
         fio.emit("update_gameroom", {"action": "remove_players", "room": data["room"],
                  "players": list(user.name for user in rooms[data["room"]].users 
@@ -560,7 +569,7 @@ def on_move(data):
             # is sid needed for this? Not sure how to get all the sids of everyone in room
             print(f"Sending response: \n{response} \non {data['action']}")
             
-            fio.emit("update_game", response, to=response["sid"], room=data["room"])
+            fio.emit("update_board", response, to=response["sid"], room=data["room"])
             
             fio.emit("debug_msg", {"msg": 
                     f"Server accepted move event `{data['action']}`. Server response: {response}."}, 

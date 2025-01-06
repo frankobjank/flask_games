@@ -293,27 +293,13 @@ function createLobbyButton() {
     return toLobby;
 }
 
-function createGamePanel() {
-    const gamePanel = document.createElement('div');
-    gamePanel.className = 'game-panel';
-    gamePanel.id = 'game-panel';
-    
-    board = createBoard();
-    continueButton = createContinueButton();
-    startButton = createStartButton();
-
-    gamePanel.appendChild(board);
-    gamePanel.appendChild(continueButton);
-    gamePanel.appendChild(startButton);
-
-    return gamePanel;
-}
 
 function createBoard() {
 
     // Create div for board
     const board = document.createElement('div');
-    board.className = 'board mb-5';
+    board.className = 'board';
+    board.id = 'board';
 
     // Create deck container
     const deckContainer = document.createElement('div');
@@ -324,8 +310,9 @@ function createBoard() {
 
     // Create deck button
     const deck = document.createElement('button');
+    deck.className = 'game-card';
     deck.id = 'deck';
-    deck.innerText = 'Deck';
+    deck.innerText = 'Draw';
     deck.onclick = () => {
         socket.emit('move', {'action': 'draw', 'room': currentRoom});
     }
@@ -342,6 +329,7 @@ function createBoard() {
     
     // Create discard button
     const discard = document.createElement('button');
+    discard.className = 'game-card';
     discard.id = 'discard-button';
     discard.onclick = () => {
         socket.emit('move', {'action': 'pickup', 'room': currentRoom});
@@ -349,13 +337,6 @@ function createBoard() {
     
     // Add discard button to container
     discardContainer.appendChild(discard);
-    
-    // Moved this to player container
-    // // Create container for hand
-    // const handContainer = document.createElement('div');
-    // handContainer.className = 'hand-container';
-    // Add to board
-    // board.appendChild(handContainer);
 
     return board;
 }
@@ -649,7 +630,7 @@ function cardToDisplay(serverCard) {
 function createHandButton(serverCard) {
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
     const cardButton = document.createElement('button');
-    cardButton.className = 'hand-button';
+    cardButton.className = 'game-card hand-button';
     cardButton.id = serverCard;
     cardButton.innerText = cardToDisplay(serverCard);
 
@@ -1243,48 +1224,60 @@ function updateGameRoom(response) {
         if (username === undefined) {
             username = response.username;
         }
+
+        if (username.length === 0) {
+            console.log('Username not set, cannot continue to set up room')
+            return
+        }
+        
+        // Set up game room
+        // Update header
+        document.querySelector('#room-name-header').innerText = response.room;
         
         // The outermost level before outer-container
+        // Contains everything - return to lobby button, chat box, players, board
+        // Game, player, chat panels are removed on leave - Create board from scratch on EVERY join
         const gameRoomContainer = document.createElement('div');
         gameRoomContainer.id = 'game-room-container'
         document.querySelector('.outer-container').appendChild(gameRoomContainer);
 
-
+        // Buttons like return to lobby, start game
+        const controls = document.createElement('div')
+        
         // Create `to lobby` button - should be above / outside of game container
         const toLobby = createLobbyButton();
-        gameRoomContainer.appendChild(toLobby);
+        const continueButton = createContinueButton();
+        const startButton = createStartButton();
+        
+        controls.appendChild(toLobby);
+        controls.appendChild(continueButton);
+        controls.appendChild(startButton);
+        
+        gameRoomContainer.appendChild(controls);
     
-        // Set up game room
-        // Update header
-        document.querySelector('#room-name-header').innerText = response.room;
-
+        // Contains board, players
         const gameContainer = document.createElement('div');
         gameContainer.id = 'game-container';
         gameRoomContainer.appendChild(gameContainer);
 
-        // Create game, player, chat panels if username is assigned
-        if (username.length > 0) {
-            
-            // Create panels from scratch on EVERY join
-            // Game, player, chat panels are removed on leave
-            
-            // Create new game panel
-            const gamePanel = createGamePanel();
-            gameContainer.appendChild(gamePanel);
-            
-            // Create new player panel
-            const playerPanel = createPlayerPanel();
-            gameContainer.appendChild(playerPanel);
-            
-            if (document.querySelector('#chat-log-panel') === null) {
-                const chatLogPanel = createChatLogPanel(username);
-                gameRoomContainer.appendChild(chatLogPanel);
-            }
-                // Remove and then append to end of game-room-container
-                const chatLogPanel = gameRoomContainer.removeChild(document.querySelector('#chat-log-panel'));  
+        // Create board, players
+        const board = createBoard();
+        gameContainer.appendChild(board);
+        
+        // Create new player panel
+        const playerPanel = createPlayerPanel();
+        gameContainer.appendChild(playerPanel);
+        
+        // Create new chat panel if doesn't exist
+        if (document.querySelector('#chat-log-panel') === null) {
+            const chatLogPanel = createChatLogPanel(username);
+            gameRoomContainer.appendChild(chatLogPanel);
+        }
 
-                gameRoomContainer.appendChild(chatLogPanel);
-        }         
+        // Remove and then append to end of game-room-container
+        const chatLogPanel = gameRoomContainer.removeChild(document.querySelector('#chat-log-panel'));  
+
+        gameRoomContainer.appendChild(chatLogPanel);
     }
     
 
@@ -1404,7 +1397,8 @@ function updateGame(response) {
     // Add markers for dealer and knocked
     
     if (response.action === 'update_board') {
-        
+        console.log(`Updating board: with ${response}`)
+
         // Unpack general state
         inProgress = response.in_progress;
         mode = response.mode;
@@ -1567,9 +1561,9 @@ socket.on('update_gameroom', data => {
 });
 
 // Updating game state
-socket.on('update_game', data => {
+socket.on('update_board', data => {
     // For debug:
-    console.log(`Client received 'update_game' event: ${JSON.stringify(data)}.`);
+    console.log(`Client received 'update_board' event: ${JSON.stringify(data)}.`);
     
     updateGame(data);
 });
