@@ -222,7 +222,7 @@ input[type="radio"]{
 /* Game */
 #game-room-container {
     /* This display looked good, not sure what ruby is conventially used for */
-    display: ruby;
+    display: inline-flex;
 }
 
 #game-container {
@@ -243,20 +243,50 @@ input[type="radio"]{
 }
 
 .discard-container {
-    width: 2.75rem;
-    height: 3.75rem;
+    width: 2.6rem;
+    height: 3.6rem;
     background-color: #5c5a5a;
     border: #000000;
     margin: 2rem;
 }
 
-.game-card {
+.hand-container {
+    display: inline-flex;
+}
+
+/* Playing card (as opposed to Bootstrap card) */
+.playing-card {
     /* Standard playing cards are 2.5" x 3.5" */
     width: 2.5rem;
     height: 3.5rem;
-    background-color: #000000;
-    color: white;
+    background-color: white;
     margin: 0.5rem;
+}
+
+/* Back of card */
+.playing-card.card-back {
+    background-image: linear-gradient(45deg, #000 25%, transparent 25%, transparent 50%, #000 50%, #000 75%, transparent 75%, #fff);
+}
+
+/* Front of card */
+.playing-card.card-front {
+    background-color: white;
+}
+
+/* Set colors of cards based on suit data attribute */
+.playing-card.card-front[data-suit='S'] {
+    color: black;
+}
+.playing-card.card-front[data-suit='H'] {
+    color: crimson;
+}
+.playing-card.card-front[data-suit='D'] {
+    /* color: deepskyblue; */
+    color: steelblue;
+}
+.playing-card.card-front[data-suit='C'] {
+    color: seagreen;
+    /* color: olivedrab; */
 }
 
 #board {
@@ -278,12 +308,12 @@ input[type="radio"]{
 }
 
 /* Visual marker for current player */
-.player-container[current='1'] {
+.player-container[data-current='1'] {
     border: 1px solid #000000;
 }
 
 /* Visual marker for disconnected player */
-.player-container[connected='0'] {
+.player-container[data-connected='0'] {
     color: gray;
 }
 

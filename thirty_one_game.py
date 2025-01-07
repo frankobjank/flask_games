@@ -12,7 +12,13 @@ RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
 
 # Suits and unicode for suits
 SUITS = ["spade", "heart", "diamond", "club"]
-SUIT_TO_DISPLAY = {"spade": "\u2664", "heart": "\u2665", "diamond": "\u2666", "club": "\u2667"}
+
+# Uses all `filled in` emojis
+# ♠ "\u2660" - black
+# ♥ "\u2665" - red
+# ♦ "\u2666" - blue
+# ♣ "\u2663" - green
+SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "club": "\u2663"}
 
 
 class Player:
@@ -514,3 +520,14 @@ def unzip_card(card_str: str) -> Card:
 
     # returns 2S, 3C, AH, etc.
     return Card(rank, suit)
+
+# Unicode suit reference
+# ♠ \u2660 - black
+# ♡ \u2661 
+# ♢ \u2662
+# ♣ \u2663 - green
+
+# ♤ \u2664
+# ♥ \u2665 - red
+# ♦ \u2666 - blue
+# ♧ \u2667

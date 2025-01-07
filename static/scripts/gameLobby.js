@@ -310,7 +310,7 @@ function createBoard() {
 
     // Create deck button
     const deck = document.createElement('button');
-    deck.className = 'game-card';
+    deck.className = 'playing-card card-back';
     deck.id = 'deck';
     deck.innerText = 'Draw';
     deck.onclick = () => {
@@ -329,7 +329,7 @@ function createBoard() {
     
     // Create discard button
     const discard = document.createElement('button');
-    discard.className = 'game-card';
+    discard.className = 'playing-card card-back';
     discard.id = 'discard-button';
     discard.onclick = () => {
         socket.emit('move', {'action': 'pickup', 'room': currentRoom});
@@ -427,6 +427,7 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(current);
     // Put hand in div
     const hand = document.createElement('div');
+    hand.className = 'hand-container';
     hand.id = name + '-hand-container';
      
     // Put hand score into div
@@ -592,47 +593,41 @@ function createChatLogPanel(username) {
     return chatLogPanel;
 };
 
-function cardToDisplay(serverCard) {
+function setCardDisplay(cardStr, cardObject) {
     /*
-        '\u2664': ♤,
-        '\u2665': ♥,
-        '\u2666': ♦,
-        '\u2667': ♧
+        '\u2660': ♠, black
+        '\u2665': ♥, red
+        '\u2666': ♦, blue
+        '\u2663': ♣, green
     */
-
-    if (serverCard === null) {
-        return 'No card';
+    
+    if (cardStr === null || cardStr.length !== 2) {
+       return 'Card data missing or corrupted.';
     }
 
-    rank = serverCard[0];
-    suit = serverCard[1];
+    let rank = cardStr[0];
     
+    // Unpack rank - Change T to 10 for display
     if (rank === 'T') {
         rank = '10';
     }
+    
+    // Associate unicode suit character with the letter S, H, D, or C
+    const SUIT_TO_DISPLAY = {'S': '\u2660', 'H': '\u2665', 'D': '\u2666', 'C': '\u2663'}
 
-    if (suit === 'S') {
-        suit = '\u2664';
-    }
-    else if (suit === 'H') {
-        suit = '\u2665';
-    }
-    else if (suit === 'D') {
-        suit = '\u2666';
-    }
-    else if (suit === 'C') {
-        suit = '\u2667';
-    }
-
-    return rank + suit;
+    // Add suit to datalist so css can color based on suit
+    cardObject.dataset.suit = cardStr[1];
+    
+    // Set innertext to rank + suit, i.e. 10♥
+    cardObject.innerText = rank + SUIT_TO_DISPLAY[cardStr[1]];
 }
 
 function createHandButton(serverCard) {
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
     const cardButton = document.createElement('button');
-    cardButton.className = 'game-card hand-button';
+    cardButton.className = 'playing-card card-front hand-button';
     cardButton.id = serverCard;
-    cardButton.innerText = cardToDisplay(serverCard);
+    setCardDisplay(serverCard, cardButton);
 
     // Send server request on click
     cardButton.onclick = () => {
@@ -661,7 +656,7 @@ function addPlayers(players) {
 
         }
         else {
-            document.querySelector('#' + players[i] + '-container').setAttribute('connected', '1');
+            document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
             players[i].connected = true;
             }
     }
@@ -1332,11 +1327,11 @@ function updateGameRoom(response) {
             // Set `connected` attribute; 1 for true and 0 for false
             // Update local `players` object
             if (response.connected) {
-                document.querySelector('#' + player + '-container').setAttribute('connected', '1');
+                document.querySelector('#' + player + '-container').dataset.connected = '1';
                 players[player].connected = true;
             }
             else {
-                document.querySelector('#' + player + '-container').setAttribute('connected', '0');
+                document.querySelector('#' + player + '-container').dataset.connected = '0';
                 players[player].connected = false;
             }
 
@@ -1344,13 +1339,13 @@ function updateGameRoom(response) {
     }
 }
 
-function populateHand(username, hand, hand_score) {
+function populateHand(playerName, hand, hand_score) {
 
     // Update `players` array
-    players[username].hand = hand;
-    players[username].handScore = hand_score;
+    players[playerName].hand = hand;
+    players[playerName].handScore = hand_score;
     
-    const playerHandContainer = document.querySelector('#' + username + '-hand-container');
+    const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
     
     if (playerHandContainer.hasChildNodes()) {
         // Empty old hand to get ready for new hand - replaceChildren with no args
@@ -1360,11 +1355,18 @@ function populateHand(username, hand, hand_score) {
     // Create buttons for hand with array from server
     for (const card of hand) {
         // TODO: Create hands for all non-self players' - should not be clickable
-        playerHandContainer.appendChild(createHandButton(card));
+        const cardButton = createHandButton(card)
+        
+        // Disable card button if non-self player
+        if (username !== playerName) {
+            cardButton.disabled = true;
+        }
+
+        playerHandContainer.appendChild(cardButton);
     }
     
     // Update hand score
-    document.querySelector('#' + username + '-hand-score').innerText = ' hand score: ' + hand_score + ' ';
+    document.querySelector('#' + playerName + '-hand-score').innerText = ' hand score: ' + hand_score + ' ';
 }
 
 function updateGame(response) {
@@ -1439,7 +1441,7 @@ function updateGame(response) {
         }
 
         // Add discard card to display on discard button
-        document.querySelector('#discard-button').innerText = cardToDisplay(discardCard);
+        setCardDisplay(discardCard, document.querySelector('#discard-button'));
         
         // Unpack players
         // Eventually want to rearrange players to be correct player order
@@ -1455,26 +1457,37 @@ function updateGame(response) {
             // Turn each attribute (name, order, etc) into a <span> for display
             const playerID = '#' + playerOrder[i];
 
-
             // Update order
             document.querySelector(playerID + '-order').innerText = ' order: ' + i + ' ';
             
             // Update lives
             document.querySelector(playerID + '-lives').innerText = ' lives: ' + response.lives[i] + ' ';
             
-            // Update hand size
-            document.querySelector(playerID + '-hand-size').innerText = ' hand size: ' + response.hand_sizes[i] + ' ';
+            // Removing hand size from display because it's covered below
+            
+            // Create front-facing hand for self, clickable
             if (username === playerOrder[i]) {
-                populateHand(username, response.hand, response.hand_score)  
+                populateHand(playerOrder[i], response.hand, response.hand_score)  
             }
+
+            // Create front-facing hand for others on game end, not clickable
             // Using `else if` here implies playerOrder[i] is not the self player
             else if (mode === 'end_round' || mode === 'end_game') {
                 populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i])
-            }    
+            }
+
+            // Create back-facing hand for others
             else {
                 // Remove all cards if there were any
                 document.querySelector(playerID + '-hand-container').replaceChildren()
 
+                // Loop hand size to add divs that display backs of cards
+                for (let j = 0; j < response.hand_sizes[i]; j++) {
+                    const fillerCard = document.createElement('div');
+                    fillerCard.className = 'playing-card card-back';
+
+                    document.querySelector(playerID + '-hand-container').appendChild(fillerCard);
+                }
                 // Remove hand score
                 document.querySelector(playerID + '-hand-score').innerText = '';
             }
@@ -1485,15 +1498,14 @@ function updateGame(response) {
                   // document.querySelector(playerID + '-current').innerText = 'current';
                 
                 // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
-                document.querySelector(playerID + '-container').setAttribute('current', '1');
+                document.querySelector(playerID + '-container').dataset.current = '1';
             }
             else {
-                // document.querySelector(playerID + '-current').innerText = '';
-                document.querySelector(playerID + '-container').setAttribute('current', '0');
+                document.querySelector(playerID + '-container').dataset.current = '0';
             }
 
             // Set connected status to True when creating player
-            document.querySelector(playerID + '-container').setAttribute('connected', '1');
+            document.querySelector(playerID + '-container').dataset.connected = '1';
         }
     }
 }
