@@ -220,18 +220,18 @@ input[type="radio"]{
 }
 
 /* Game */
-#game-container {
-    display: flex;
-    justify-content: space-between; /* Adjust spacing between panels */
-    align-items: center; /* Align panels vertically in the middle */
-    /* Optional: Full height */
-    /* height: 100vh; */
-    padding-top: 50px;
-    padding-bottom: 2rem;
-    display: inline-block;
+#game-room-container {
+    /* This display looked good, not sure what ruby is conventially used for */
+    display: ruby;
 }
 
-#game-panel {
+#game-container {
+    display: inline-block;
+    /* Creates space on all sides */
+    margin: 10%;
+}
+
+#controls-container{
 }
 
 .deck-container {
@@ -256,6 +256,7 @@ input[type="radio"]{
     height: 3.5rem;
     background-color: #000000;
     color: white;
+    margin: 0.5rem;
 }
 
 #board {

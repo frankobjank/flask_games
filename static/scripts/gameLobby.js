@@ -788,7 +788,7 @@ function updateLobby(response) {
         // Create lobby container
         const lobbyContainer = document.createElement('div');
         lobbyContainer.className = 'lobby-container';
-        document.querySelector('.outer-container').appendChild(lobbyContainer);
+        document.querySelector('#outer-container').appendChild(lobbyContainer);
         
         // -- Lobby header --
         const lobbyHeader = document.createElement('div');
@@ -1239,10 +1239,11 @@ function updateGameRoom(response) {
         // Game, player, chat panels are removed on leave - Create board from scratch on EVERY join
         const gameRoomContainer = document.createElement('div');
         gameRoomContainer.id = 'game-room-container'
-        document.querySelector('.outer-container').appendChild(gameRoomContainer);
+        document.querySelector('#outer-container').appendChild(gameRoomContainer);
 
         // Buttons like return to lobby, start game
         const controls = document.createElement('div')
+        controls.id = 'controls-container'
         
         // Create `to lobby` button - should be above / outside of game container
         const toLobby = createLobbyButton();
@@ -1358,7 +1359,7 @@ function populateHand(username, hand, hand_score) {
 
     // Create buttons for hand with array from server
     for (const card of hand) {
-        // TODO: Technically non-self players' hands should not be clickable
+        // TODO: Create hands for all non-self players' - should not be clickable
         playerHandContainer.appendChild(createHandButton(card));
     }
     
