@@ -221,7 +221,6 @@ input[type="radio"]{
 
 /* Game */
 #game-room-container {
-    /* This display looked good, not sure what ruby is conventially used for */
     display: inline-flex;
 }
 
@@ -229,25 +228,8 @@ input[type="radio"]{
     display: inline-block;
     /* Creates space on all sides */
     margin: 10%;
-}
-
-#controls-container{
-}
-
-.deck-container {
-    width: 2.75rem;
-    height: 3.75rem;
-    background-color: gray;
-    border: #000000;
-    margin: 2rem;
-}
-
-.discard-container {
-    width: 2.6rem;
-    height: 3.6rem;
-    background-color: #5c5a5a;
-    border: #000000;
-    margin: 2rem;
+    width: 25rem;
+    height: 25rem;
 }
 
 .hand-container {
@@ -260,12 +242,17 @@ input[type="radio"]{
     width: 2.5rem;
     height: 3.5rem;
     background-color: white;
-    margin: 0.5rem;
+    margin: 0.25rem;
+    outline-color: #000;
+    /* Shadow around cards */
+    box-shadow: -1px -1px 2px 0px #10101075;
+    /* For rounded corners */
+    border-radius: 0.3rem;
 }
 
 /* Back of card */
 .playing-card.card-back {
-    background-image: linear-gradient(45deg, #000 25%, transparent 25%, transparent 50%, #000 50%, #000 75%, transparent 75%, #fff);
+    background-color: rgb(83, 86, 87);
 }
 
 /* Front of card */
@@ -282,7 +269,7 @@ input[type="radio"]{
 }
 .playing-card.card-front[data-suit='D'] {
     /* color: deepskyblue; */
-    color: steelblue;
+    color: rgb(53, 109, 155);
 }
 .playing-card.card-front[data-suit='C'] {
     color: seagreen;
@@ -290,7 +277,7 @@ input[type="radio"]{
 }
 
 #board {
-    display: flex;
+    display: inline-flex;
 }
 
 .panel {
@@ -303,8 +290,13 @@ input[type="radio"]{
     display: block;
 }
 
-.game-button {
-    display: block;
+.move-button {
+    margin-left: 0.3rem;
+    margin-right: 0.3rem;
+}
+
+.life-stars-container {
+    color: rgb(192, 55, 64);
 }
 
 /* Visual marker for current player */
@@ -317,11 +309,13 @@ input[type="radio"]{
     color: gray;
 }
 
+#draw-pickup-knock-container {
+    display: inline-flex;
+    margin: 1.5rem;
+}
+
 #chat-log-panel {
-    padding-left: 1rem;
-    padding-right: 1rem;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    padding: 1rem;
     text-align: left;
     background-color: #c8d5e3;
     color: rgb(46, 45, 45);

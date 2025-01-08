@@ -531,3 +531,7 @@ def unzip_card(card_str: str) -> Card:
 # ♥ \u2665 - red
 # ♦ \u2666 - blue
 # ♧ \u2667
+
+# Potentially for back of cards
+# ★ \u2605 - solid star
+# ☆ \u2606 - outlined star

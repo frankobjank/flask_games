@@ -303,79 +303,140 @@ function createBoard() {
 
     // Create deck container
     const deckContainer = document.createElement('div');
-    deckContainer.className = 'deck-container';
+    deckContainer.className = 'card-container';
+    deckContainer.id = 'deck-container';
     
-    // Add deck to board
-    board.appendChild(deckContainer);
-
+    
     // Create deck button
     const deck = document.createElement('button');
     deck.className = 'playing-card card-back';
     deck.id = 'deck';
-    deck.innerText = 'Draw';
+    // Adds text on hover
+    deck.title = 'Draw a card from the deck.'
     deck.onclick = () => {
         socket.emit('move', {'action': 'draw', 'room': currentRoom});
     }
-
+    
     // Add deck button to container
     deckContainer.appendChild(deck);
     
     // Create discard container
     const discardContainer = document.createElement('div');
-    discardContainer.className = 'discard-container';
-    
-    // Add discard to board
-    board.appendChild(discardContainer);
+    discardContainer.className = 'card-container';
+    discardContainer.id = 'discard-container';
     
     // Create discard button
     const discard = document.createElement('button');
-    discard.className = 'playing-card card-back';
+    discard.className = 'playing-card card-front';
     discard.id = 'discard-button';
+    // Adds text on hover
+    // discard.title = 'Pick a card up from discard.'
     discard.onclick = () => {
         socket.emit('move', {'action': 'pickup', 'room': currentRoom});
     }
     
     // Add discard button to container
     discardContainer.appendChild(discard);
-
+    
+    // Add deck/discard to board
+    board.appendChild(deckContainer);
+    board.appendChild(discardContainer);
+    
     return board;
-}
-
-function createStartButton() {
-    // Start game button
-    const start = document.createElement('button');
-    
-    start.id = 'start-button';
-    start.className = 'game-button';
-    start.innerText = 'Start New Game';
-
-    start.onclick = () => {
-        socket.emit('move', {'action': 'start', 'room': currentRoom});
-    }
-
-    return start;
-}
-
-function createContinueButton() {
-    // Continue game button
-    const cont = document.createElement('button');
-    
-    // new session, start game. round end, continue; game end, new game 
-    cont.id = 'continue-button';
-    cont.className = 'game-button';
-    cont.innerText = 'Continue to Next Round';
-    cont.disabled = true;
-
-    cont.onclick = () => {
-        socket.emit('move', {'action': 'continue', 'room': currentRoom});
-    }
-
-    return cont;
 }
 
 // Currently unused; Check number of players and in progress
 function checkNumPlayers(numPlayers) {
     return (2 <= numPlayers <= 7 && !inProgress);
+}
+
+function createMoveButtons() {
+    const moveButtonsContainer = document.createElement('div');
+    moveButtonsContainer.id = 'move-button-container';
+
+    const drawPickupKnockContainer = document.createElement('div');
+    drawPickupKnockContainer.className = 'button-container'
+    drawPickupKnockContainer.id = 'draw-pickup-knock-container'
+
+    // Add draw button - same as clicking the deck
+    const drawButton = document.createElement('button');
+    drawButton.className = 'move-button';
+    drawButton.id = 'draw-button';
+    drawButton.innerText = 'Draw';
+    
+    drawButton.onclick = () => {
+        socket.emit('move', {'action': 'draw', 'room': currentRoom});
+    }
+    
+    // Add pickup button (from discard) - same as clicking the discard pile
+    const pickupButton = document.createElement('button');
+    pickupButton.className = 'move-button';
+    pickupButton.id = 'pickup-button';
+    pickupButton.innerText = 'Pickup';
+    
+    pickupButton.onclick = () => {
+        socket.emit('move', {'action': 'pickup', 'room': currentRoom});
+    }
+    
+    // Add knock button
+    const knockButton = document.createElement('button');
+    knockButton.className = 'move-button';
+    knockButton.id = 'knock-button';
+    knockButton.innerText = 'Knock';
+    
+    knockButton.onclick = () => {
+        socket.emit('move', {'action': 'knock', 'room': currentRoom});
+    }
+    
+    drawPickupKnockContainer.appendChild(drawButton);
+    drawPickupKnockContainer.appendChild(pickupButton);
+    drawPickupKnockContainer.appendChild(knockButton);
+
+    const tempButtonContainer = document.createElement('div');
+    tempButtonContainer.id = 'continue-start-container';
+
+    // Create spot for continue / new round buttons that will be only appear in certain cases
+    const continueButtonContainer = document.createElement('div');
+    continueButtonContainer.className = 'button-container';
+    continueButtonContainer.id = 'continue-button-container';
+    
+    // Continue game button for between rounds
+    const continueButton = document.createElement('button');
+    
+    // new session, start game. round end, continue; game end, new game 
+    continueButton.id = 'continue-button';
+    continueButton.className = 'move-button';
+    continueButton.innerText = 'Continue to Next Round';
+    continueButton.disabled = true;
+
+    continueButton.onclick = () => {
+        socket.emit('move', {'action': 'continue', 'room': currentRoom});
+    }
+
+    continueButtonContainer.appendChild(continueButton);
+
+    // New game button
+    const newGameButtonContainer = document.createElement('div');
+    
+    const newGameButton = document.createElement('button');
+    
+    newGameButton.className = 'move-button';
+    newGameButton.id = 'start-button';
+    newGameButton.innerText = 'Start New Game';
+    
+    newGameButton.onclick = () => {
+        socket.emit('move', {'action': 'start', 'room': currentRoom});
+    }
+    
+    newGameButtonContainer.appendChild(newGameButton);
+    
+    tempButtonContainer.appendChild(continueButtonContainer);
+    tempButtonContainer.appendChild(newGameButtonContainer);
+    
+    moveButtonsContainer.appendChild(drawPickupKnockContainer);
+    moveButtonsContainer.appendChild(tempButtonContainer);
+    
+    return moveButtonsContainer;
 }
 
 function createPlayerPanel() {
@@ -391,26 +452,27 @@ function createPlayerContainer(name) {
     
     const br = document.createElement('br');
     
-    const playerContainer = document.createElement('p');
+    const playerContainer = document.createElement('div');
     playerContainer.className = 'player-container';
 
     // Give container id of 'playerName-container'
     playerContainer.id = name + '-container';
-    playerContainer.innerHTML = name + br.outerHTML;
+    playerContainer.innerText = name;
     
     
-    // Put hand size into span
-    const handSize = document.createElement('span');
-    handSize.id = name + '-hand-size';
+    // // Put hand size into span
+    // const handSize = document.createElement('span');
+    // handSize.id = name + '-hand-size';
+    // playerContainer.appendChild(handSize);
     
     // Put order into span
     const order = document.createElement('span');
-    order.className = name + '-player-order';
+    order.className = 'order-container';
     order.id = name + '-order';
     
     // Put lives into span
     const lives = document.createElement('span');
-    lives.className = name + '-player-lives';
+    lives.className = 'lives-container';
     lives.id = name + '-lives';
     
     // Put current indicator into div
@@ -419,12 +481,11 @@ function createPlayerContainer(name) {
     if (name === currentPlayer) {
         current.textContent = 'current';
     }
+    playerContainer.appendChild(current);
     
-    playerContainer.appendChild(handSize);
     playerContainer.appendChild(order);
     playerContainer.appendChild(lives);
     
-    playerContainer.appendChild(current);
     // Put hand in div
     const hand = document.createElement('div');
     hand.className = 'hand-container';
@@ -437,22 +498,9 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(hand);
     playerContainer.appendChild(handScore);
 
-    // Add knock button only for self
+    // Add game controls (draw, pickup, knock buttons) for self
     if (name === username) {
-        // Add knock button
-        const knockButton = document.createElement('button');
-        knockButton.className = 'knock-button';
-        knockButton.id = name + '-knock';
-        knockButton.innerText = 'knock';
-        
-        // Send server request on click
-        knockButton.onclick = () => {
-            socket.emit('move', {'action': 'knock', 'room': currentRoom});
-            console.log(`Sending knock request to server.`)
-        }
 
-        playerContainer.appendChild(knockButton);
-        
         // Highlight self name and player info
         playerContainer.style.color = 'purple';
     }
@@ -627,6 +675,8 @@ function createHandButton(serverCard) {
     const cardButton = document.createElement('button');
     cardButton.className = 'playing-card card-front hand-button';
     cardButton.id = serverCard;
+    // Adds text on hover
+    // cardButton.title = 'Discard';
     setCardDisplay(serverCard, cardButton);
 
     // Send server request on click
@@ -1237,32 +1287,33 @@ function updateGameRoom(response) {
         document.querySelector('#outer-container').appendChild(gameRoomContainer);
 
         // Buttons like return to lobby, start game
-        const controls = document.createElement('div')
-        controls.id = 'controls-container'
+        const roomNav = document.createElement('div');
+        roomNav.id = 'room-nav-container';
         
         // Create `to lobby` button - should be above / outside of game container
         const toLobby = createLobbyButton();
-        const continueButton = createContinueButton();
-        const startButton = createStartButton();
         
-        controls.appendChild(toLobby);
-        controls.appendChild(continueButton);
-        controls.appendChild(startButton);
-        
-        gameRoomContainer.appendChild(controls);
-    
-        // Contains board, players
+        // roomNav only contains toLobby
+        roomNav.appendChild(toLobby);
+        gameRoomContainer.appendChild(roomNav);
+
+        /* Start game container - contains board, players, controls */
         const gameContainer = document.createElement('div');
         gameContainer.id = 'game-container';
         gameRoomContainer.appendChild(gameContainer);
-
-        // Create board, players
+        
+        // Create board
         const board = createBoard();
         gameContainer.appendChild(board);
         
-        // Create new player panel
+        // Create player panel 
         const playerPanel = createPlayerPanel();
         gameContainer.appendChild(playerPanel);
+        
+        // Add move buttons after player panel so it appears at the bottom
+        const moveButtonsContainer = createMoveButtons()
+        gameContainer.appendChild(moveButtonsContainer);
+        /* End game container */
         
         // Create new chat panel if doesn't exist
         if (document.querySelector('#chat-log-panel') === null) {
@@ -1366,7 +1417,7 @@ function populateHand(playerName, hand, hand_score) {
     }
     
     // Update hand score
-    document.querySelector('#' + playerName + '-hand-score').innerText = ' hand score: ' + hand_score + ' ';
+    document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
 function updateGame(response) {
@@ -1453,17 +1504,36 @@ function updateGame(response) {
             // playerOrder[i] is the player name
             players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i], 'connected': true};
 
-            // Once player array is populated, add to player panel for display
-            // Turn each attribute (name, order, etc) into a <span> for display
-            const playerID = '#' + playerOrder[i];
+            // Once player array is populated, add to player panel display or dataset
+            const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
 
             // Update order
-            document.querySelector(playerID + '-order').innerText = ' order: ' + i + ' ';
+            document.querySelector('#' + playerOrder[i] + '-order').innerText = ' Order: ' + i + ' ';
+            playerContainer.dataset.order = i;
             
             // Update lives
-            document.querySelector(playerID + '-lives').innerText = ' lives: ' + response.lives[i] + ' ';
+            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Lives: ';
+            playerContainer.dataset.lives = response.lives[i];
             
-            // Removing hand size from display because it's covered below
+            // Add stars according to number of lives left
+            if (response.lives[i] > 0) {
+                const lifeStarsContainer = document.createElement('span');
+                lifeStarsContainer.className = 'life-stars-container';
+
+                for (let life = 0; life < response.lives[i]; life++) {
+                    lifeStarsContainer.innerText += '\u2605 ';
+                } 
+                document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
+            }
+            // If 0 lives, add 'on the bike'
+            else {
+                
+                // Remove any stars remaining
+                document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
+                
+                // Add text
+                document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
+            }
             
             // Create front-facing hand for self, clickable
             if (username === playerOrder[i]) {
@@ -1479,33 +1549,36 @@ function updateGame(response) {
             // Create back-facing hand for others
             else {
                 // Remove all cards if there were any
-                document.querySelector(playerID + '-hand-container').replaceChildren()
+                document.querySelector('#' + playerOrder[i] + '-hand-container').replaceChildren()
 
                 // Loop hand size to add divs that display backs of cards
                 for (let j = 0; j < response.hand_sizes[i]; j++) {
-                    const fillerCard = document.createElement('div');
-                    fillerCard.className = 'playing-card card-back';
+                    // Not sure if these should be buttons or divs:
+                        // buttons make consitent styling
+                        // div helps diffentiate them from the actual card buttons
+                    const dummyCard = document.createElement('div');
+                    dummyCard.className = 'playing-card card-back';
 
-                    document.querySelector(playerID + '-hand-container').appendChild(fillerCard);
+                    document.querySelector('#' + playerOrder[i] + '-hand-container').appendChild(dummyCard);
                 }
                 // Remove hand score
-                document.querySelector(playerID + '-hand-score').innerText = '';
+                document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';
             }
             
             if (currentPlayer === playerOrder[i]) {
                 
                 // Make some visual change to show current player. Maybe bold the player name
-                  // document.querySelector(playerID + '-current').innerText = 'current';
+                  // document.querySelector('#' + playerOrder[i] + '-current').innerText = 'current';
                 
                 // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
-                document.querySelector(playerID + '-container').dataset.current = '1';
+                playerContainer.dataset.current = '1';
             }
             else {
-                document.querySelector(playerID + '-container').dataset.current = '0';
+                playerContainer.dataset.current = '0';
             }
 
             // Set connected status to True when creating player
-            document.querySelector(playerID + '-container').dataset.connected = '1';
+            playerContainer.dataset.connected = '1';
         }
     }
 }
