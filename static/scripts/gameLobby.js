@@ -271,7 +271,7 @@ let players = {};
 
 function createLobbyButton() {
     const toLobby = document.createElement('button');
-    toLobby.className = 'room-nav';
+    toLobby.className = 'room-nav btn btn-secondary';
     toLobby.id = 'return-lobby-button';
     toLobby.innerText = 'Return to Lobby';
     toLobby.onclick = () => {
@@ -450,32 +450,48 @@ function createPlayerPanel() {
 
 function createPlayerContainer(name) {
     
-    const br = document.createElement('br');
+    /* Structure:
+        Name
+        Hand
+        Lives
+        Hand Score
+    */
     
     const playerContainer = document.createElement('div');
     playerContainer.className = 'player-container';
 
     // Give container id of 'playerName-container'
     playerContainer.id = name + '-container';
-    playerContainer.innerText = name;
     
-    // Put lives into span
-    const lives = document.createElement('span');
-    lives.className = 'lives-container';
-    lives.id = name + '-lives';
+    const playerNameContainer = document.createElement('div');
+    playerNameContainer.id = name + '-name-container';
     
-    playerContainer.appendChild(lives);
+    const playerNameStrong = document.createElement('strong');
+    playerNameStrong.id = name + '-name-strong';
+    playerNameStrong.innerText = name;
+
+    playerNameContainer.appendChild(playerNameStrong);
+
+    playerContainer.appendChild(playerNameContainer);
     
     // Put hand in div
     const hand = document.createElement('div');
     hand.className = 'hand-container';
     hand.id = name + '-hand-container';
-     
+    
+    // Put lives into span
+    const lives = document.createElement('div');
+    lives.className = 'lives-container';
+    lives.id = name + '-lives';
+    
     // Put hand score into div
     const handScore = document.createElement('div');
     handScore.id = name + '-hand-score';
     
     playerContainer.appendChild(hand);
+
+    // Text displays beneath cards
+    playerContainer.appendChild(lives);
     playerContainer.appendChild(handScore);
 
     // Add game controls (draw, pickup, knock buttons) for self
@@ -806,9 +822,12 @@ function updateLobby(response) {
         if (username === undefined) {
             username = response.username;
         }
+
+        // Remove toLobby button
+        document.querySelector('#room-header-button-span').replaceChildren();
     
         // Update header
-        document.querySelector('#room-name-header').innerText = 'Lobby';
+        document.querySelector('#room-header-h2').innerText = 'Lobby';
         
         // Create lobby container
         const lobbyContainer = document.createElement('div');
@@ -1257,7 +1276,7 @@ function updateGameRoom(response) {
         
         // Set up game room
         // Update header
-        document.querySelector('#room-name-header').innerText = response.room;
+        document.querySelector('#room-header-h2').innerText = response.room;        
         
         // The outermost level before outer-container
         // Contains everything - return to lobby button, chat box, players, board
@@ -1265,17 +1284,19 @@ function updateGameRoom(response) {
         const gameRoomContainer = document.createElement('div');
         gameRoomContainer.id = 'game-room-container'
         document.querySelector('#outer-container').appendChild(gameRoomContainer);
-
-        // Buttons like return to lobby, start game
-        const roomNav = document.createElement('div');
-        roomNav.id = 'room-nav-container';
         
-        // Create `to lobby` button - should be above / outside of game container
+        // Create `to lobby` button - could be above / outside of game container
         const toLobby = createLobbyButton();
-        
+
         // roomNav only contains toLobby
-        roomNav.appendChild(toLobby);
-        gameRoomContainer.appendChild(roomNav);
+        // const roomNav = document.createElement('div');
+        // roomNav.id = 'room-nav-container';
+        // roomNav.appendChild(toLobby);
+        // gameRoomContainer.appendChild(roomNav);
+        
+        
+        // Add return to lobby button to header; must remove on leave
+        document.querySelector('#room-header-button-span').appendChild(toLobby);
 
         /* Start game container - contains board, players, controls */
         const gameContainer = document.createElement('div');

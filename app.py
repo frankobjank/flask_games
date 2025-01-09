@@ -52,13 +52,13 @@ rooms["lobby"] = Room(
     creator="Frankobjank"
 )
 
-rooms["test1"] = Room(
-    name="test1", roompw="", game_name="thirty_one",
+rooms["Test_1"] = Room(
+    name="Test_1", roompw="", game_name="thirty_one",
     capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
 )
 
-rooms["test2"] = Room(
-    name="test2", roompw=ws.generate_password_hash("llll"), 
+rooms["Test_2"] = Room(
+    name="Test_2", roompw=ws.generate_password_hash("llll"), 
     game_name="thirty_one", 
     capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
 )
