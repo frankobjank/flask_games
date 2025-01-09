@@ -824,21 +824,21 @@ function updateLobby(response) {
         }
 
         // Remove toLobby button
-        document.querySelector('#room-header-button-span').replaceChildren();
+        document.querySelector('#sub-header-left').replaceChildren();
     
         // Update header
-        document.querySelector('#room-header-h2').innerText = 'Lobby';
+        document.querySelector('#sub-header-center-h2').innerText = 'Lobby';
         
         // Create lobby container
         const lobbyContainer = document.createElement('div');
         lobbyContainer.className = 'lobby-container';
         document.querySelector('#outer-container').appendChild(lobbyContainer);
         
-        // -- Lobby header --
-        const lobbyHeader = document.createElement('div');
-        lobbyHeader.className = 'lobby-header';
-        lobbyHeader.id = 'lobby-header-container';
-        lobbyContainer.appendChild(lobbyHeader);
+        // // -- Lobby header --
+        // const lobbyHeader = document.createElement('div');
+        // lobbyHeader.className = 'lobby-header';
+        // lobbyHeader.id = 'lobby-header-container';
+        // lobbyContainer.appendChild(lobbyHeader);
         
         // Container for new room button
         const newRoomContainer = document.createElement('div');
@@ -857,13 +857,19 @@ function updateLobby(response) {
         }
         
         newRoomContainer.appendChild(newRoomButton);
-        lobbyHeader.appendChild(newRoomContainer);
-
+        // lobbyHeader.appendChild(newRoomContainer);
+        
+        // Add new room to sub-header instead of lobby header for consistency
+        document.querySelector('#sub-header-left').appendChild(newRoomContainer);
+        
         const lobbyUsername = document.createElement('div');
         lobbyUsername.className = 'add-username';
         lobbyUsername.id = 'lobby-username-container';
-
-        lobbyHeader.appendChild(lobbyUsername);
+        
+        // Add welcome to sub-header-right instead of lobby header - will need to clear on game room setup
+        // lobbyHeader.appendChild(lobbyUsername);
+        document.querySelector('#sub-header-right').appendChild(lobbyUsername);
+        
         if (username === undefined || username.length === 0) {
             // const usernameInputContainer = createUsernameInput();
             // lobbyUsername.appendChild(usernameInputContainer);
@@ -1275,8 +1281,13 @@ function updateGameRoom(response) {
         }
         
         // Set up game room
+
         // Update header
-        document.querySelector('#room-header-h2').innerText = response.room;        
+        document.querySelector('#sub-header-center-h2').innerText = response.room;
+
+        // Remove anything from left and right sub-headers
+        document.querySelector('#sub-header-left').replaceChildren()
+        document.querySelector('#sub-header-right').replaceChildren()
         
         // The outermost level before outer-container
         // Contains everything - return to lobby button, chat box, players, board
@@ -1288,15 +1299,8 @@ function updateGameRoom(response) {
         // Create `to lobby` button - could be above / outside of game container
         const toLobby = createLobbyButton();
 
-        // roomNav only contains toLobby
-        // const roomNav = document.createElement('div');
-        // roomNav.id = 'room-nav-container';
-        // roomNav.appendChild(toLobby);
-        // gameRoomContainer.appendChild(roomNav);
-        
-        
         // Add return to lobby button to header; must remove on leave
-        document.querySelector('#room-header-button-span').appendChild(toLobby);
+        document.querySelector('#sub-header-left').appendChild(toLobby);
 
         /* Start game container - contains board, players, controls */
         const gameContainer = document.createElement('div');

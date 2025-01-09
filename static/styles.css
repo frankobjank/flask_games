@@ -52,9 +52,26 @@ body {
     color: #ffffff
 }
 
-.sub-header {
-    display: inline-flex;
+#sub-header {
+    display: grid;
+    /* Three columns: left, center, right. Equal sizes. */
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
+    justify-items: center;
+}
+
+/* Left, center, right are associated with grid-column 1, 2, 3 */
+#sub-header-left {
+    text-align: center;
+    grid-column: 1;
+}  
+#sub-header-center {
+    text-align: center;
+    grid-column: 2;
+}  
+#sub-header-right {
+    text-align: center;
+    grid-column: 3;
 }
 
 .container-custom {
@@ -116,7 +133,7 @@ footer {
 
 /* Lobby */
 .lobby-container {
-    padding-top: 50px;
+    padding-top: 20px;
     padding-bottom: 2rem;
 }
 
@@ -224,21 +241,6 @@ input[type="radio"]{
     margin: 1rem;
 }
 
-/* Room header */
-#return-lobby-button {
-    margin-left: 4rem;
-    margin-right: 20rem;
-}
-
-#room-header-name-span {
-    /*  */
-    display: flex;
-}
-
-#room-header-h2 {
-    text-align: center;
-}
-
 /* Game */
 #game-room-container {
     display: inline-flex;
@@ -250,6 +252,32 @@ input[type="radio"]{
     margin: 10%;
     width: 25rem;
     height: 25rem;
+}
+
+/* Change this to grid - maybe 9 parts to put up to 8 players around the board */
+/* 
+    Something like:
+
+            1  2  3
+            4  5  6
+            7  8  9
+
+            2: player 2
+
+4:player 3  5: deck, discard  6: player 4
+
+            8: player 1
+*/
+#board {
+    display: inline-flex;
+}
+
+/* Only panel left is chat panel. 
+Can turn game room container into grid - 2fr for players and board and 1fr for chat */
+.panel {
+    border: 1px solid black;
+    padding: 1rem;
+    margin: 1rem;
 }
 
 .hand-container {
@@ -288,22 +316,10 @@ input[type="radio"]{
     color: crimson;
 }
 .playing-card.card-front[data-suit='D'] {
-    /* color: deepskyblue; */
     color: rgb(53, 109, 155);
 }
 .playing-card.card-front[data-suit='C'] {
     color: seagreen;
-    /* color: olivedrab; */
-}
-
-#board {
-    display: inline-flex;
-}
-
-.panel {
-    border: 1px solid black;
-    padding: 1rem;
-    margin: 1rem;
 }
 
 #return-lobby-button {

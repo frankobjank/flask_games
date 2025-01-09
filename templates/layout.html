@@ -43,8 +43,12 @@
                 </div>
             {% endif %}
         </header>
-        <div class="sub-header">
-            {% block header %}{% endblock %}
+        <div id="sub-header">
+            <span id="sub-header-left"></span>
+            <span id="sub-header-center">
+                <h2 id="sub-header-center-h2">{% block header %}{% endblock %}</h2>
+            </span>
+            <span id="sub-header-right"></span>
         </div>
         <main class="container text-center">
             {% block main %}{% endblock %}
