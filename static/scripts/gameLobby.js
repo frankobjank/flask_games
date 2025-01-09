@@ -459,31 +459,11 @@ function createPlayerContainer(name) {
     playerContainer.id = name + '-container';
     playerContainer.innerText = name;
     
-    
-    // // Put hand size into span
-    // const handSize = document.createElement('span');
-    // handSize.id = name + '-hand-size';
-    // playerContainer.appendChild(handSize);
-    
-    // Put order into span
-    const order = document.createElement('span');
-    order.className = 'order-container';
-    order.id = name + '-order';
-    
     // Put lives into span
     const lives = document.createElement('span');
     lives.className = 'lives-container';
     lives.id = name + '-lives';
     
-    // Put current indicator into div
-    const current = document.createElement('div');
-    current.id = name + '-current';
-    if (name === currentPlayer) {
-        current.textContent = 'current';
-    }
-    playerContainer.appendChild(current);
-    
-    playerContainer.appendChild(order);
     playerContainer.appendChild(lives);
     
     // Put hand in div
@@ -1508,7 +1488,6 @@ function updateGame(response) {
             const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
 
             // Update order
-            document.querySelector('#' + playerOrder[i] + '-order').innerText = ' Order: ' + i + ' ';
             playerContainer.dataset.order = i;
             
             // Update lives
@@ -1565,12 +1544,9 @@ function updateGame(response) {
                 document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';
             }
             
+            // Set attribute - I believe it must be a string, so '1' = true and '0' = false
             if (currentPlayer === playerOrder[i]) {
                 
-                // Make some visual change to show current player. Maybe bold the player name
-                  // document.querySelector('#' + playerOrder[i] + '-current').innerText = 'current';
-                
-                // Set attribute - not sure if bool is allowed, so 1 for true and 0 for false
                 playerContainer.dataset.current = '1';
             }
             else {
