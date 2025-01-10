@@ -46,7 +46,8 @@ function createUsernameModal(roomToJoin) {
     usernameModal.className = 'modal set-username active';
     usernameModal.id = 'username-modal';
     // Prevent clicking outside of the modal
-    usernameModal.dataset.backdrop = 'static';
+    // Took this out - this should be allowed
+    // usernameModal.dataset.backdrop = 'static';
     
     const modalHeader = document.createElement('div');
     modalHeader.className = 'modal-header set-username';
@@ -115,8 +116,8 @@ function createUsernameModal(roomToJoin) {
                     // Close modal
                     closeModal(usernameModal);
 
-                    // This is circular - row.onclick opened this modal and resolving the modal activates the onclick.
-                    // There is probably a way to do this with promises.
+                    // This feels circular - row.onclick opened this modal and resolving the modal activates the onclick to join the room
+                    // There is probably a way to do this with promises, not sure which way is 'better'
                     document.querySelector('#room-tr-' + roomToJoin).click();
 
                 })
