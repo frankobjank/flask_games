@@ -251,7 +251,7 @@ def on_join(data):
 
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
-    # Lobby should not need to capture session cookie, sids, or names.
+    # Lobby should not have usernames associated with it because a user could have different names in different rooms.
     # This creates a question about how to deal with temporary usernames vs registered usernames
     # If a registered user goes to the lobby, the lobby will not 'know' who they are
         # One possible fix for this is to RESERVE fl.session["username"] for registered users and to only use rooms["room_name"].users for usernames
@@ -266,7 +266,7 @@ def on_join(data):
         # Join the room
         fio.join_room(data["room"])
         
-        print(f"{fl.session.get('username', '')} joined {data['room']}.")
+        print(f"{fl.session.get('username', '(Name not in flask session)')} joined {data['room']}.")
         
         # Add rooms to lobby (rows in table)
         fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
@@ -300,14 +300,15 @@ def on_join(data):
             # Should already be in lobby, stay in lobby
             return msg
         
-        # Do not allow client to join non-lobby room with no username
-        if len(fl.session.get("username", "")) == 0:
-            msg = f"Username is not set; cannot join {data['room']}."
-            print(msg)
-            fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-            return msg
+        # Allow to join with no username; check if user is RE-JOINING in below loop
+        # # Do not allow client to join non-lobby room with no username
+        # if len(fl.session.get("username", "")) == 0:
+        #     msg = f"Username is not set; cannot join {data['room']}."
+        #     print(msg)
+        #     fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+        #     return msg
         
-        # Ensure username does not conflict with anyone in room - this should be a validation in set_username
+        # Ensure username does not conflict with anyone in room - should be a validation in set_username?
         if fl.session.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
             msg = "Someone in the room has the same name as you; cannot join."
             print(msg)
@@ -331,9 +332,14 @@ def on_join(data):
             # Assign to `user` for using below
             user = room_user
 
-    # If no existing user matches, create new user object.
-    # If a user connects to multiple rooms, a new user object will be created for each one.
+    # Check if username is set (would not be set for a non-registered user)
     if not user:
+        if len(fl.session.get("username", "")) == 0:
+            # If client receives this in callback, should bring up username modal.
+            return "prompt_for_username"
+        
+        # If username exists and no existing user matches, create new user object.
+        # If a user connects to multiple rooms, a new user object will be created for each one.
         user = User(
             name = fl.session.get("username", ""), 
             session_cookie = fl.session.get("session_cookie", ""), 

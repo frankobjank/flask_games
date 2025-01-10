@@ -190,7 +190,12 @@ function addRooms(newRooms) {
 
             // Prevent joining game room if username not set
             if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
-                console.log('Cannot join game room yet: Username is not set.');
+                // TODO - Check with server to see if user is re-joining.
+                    // Rejoining, no username -> should not be possible
+                    // Rejoining, username -> do not prompt player for username; get username from previous join
+                    // First time, no username -> prompt player to set username and only proceed when done
+                    // First time, username -> registered user, no action
+                console.log('Checking with server if rejoining room.');
                 console.log('Opening modal to set username.');
 
                 // Open modal - there is no close button so user must complete it before continuing.
@@ -1606,7 +1611,7 @@ function joinRoom(room) {
     console.log('Client join event.');
     
     // Pass name of room to server
-    socket.emit('join', {'room': room});
+    socket.emit('join', {'room': room, 'requested_username': username});
     
     // Server checks for game state on join and load game if game is in progress
 }
