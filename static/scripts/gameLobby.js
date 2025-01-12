@@ -300,6 +300,33 @@ function createLobbyButton() {
 }
 
 
+function createGameContainer() {
+    const gameContainer = document.createElement('div');
+    gameContainer.id = 'game-container';
+
+    // Create 3x3 grid for game container to add board and players to
+    // Grid IDs are 1-indexed for easier visualization
+    // Board will go in div 5 (2, 2), self in div 8 (2, 3), other spots filled as players are added
+
+    for (let col = 1; col < 4; col++) {
+        for (let row = 1; row < 4; row++) {
+            
+            const gridItem = document.createElement('div');
+            gridItem.class = 'game-grid';
+
+            // Convert row and col to ID number, starting at 1 left->right and ending at 9
+            gridItem.id = 'game-grid-' + (row + ((col - 1) * 3));
+            
+            // Set row and column values
+            gridItem.style.gridArea = `${col} / ${row}`;
+
+            gameContainer.appendChild(gridItem);
+        }
+    }
+
+    return gameContainer;
+}
+
 function createBoard() {
 
     // Create div for board
@@ -443,15 +470,6 @@ function createMoveButtons() {
     moveButtonsContainer.appendChild(tempButtonContainer);
     
     return moveButtonsContainer;
-}
-
-function createPlayerPanel() {
-    // Fill in this panel as players are added via createPlayerContainer
-    const playerPanel = document.createElement('div');
-    playerPanel.className = 'player-panel';
-    playerPanel.id = 'player-panel';
-
-    return playerPanel;
 }
 
 function createPlayerContainer(name) {
@@ -652,7 +670,8 @@ function setCardDisplay(cardStr, cardObject) {
     */
     
     if (cardStr === null || cardStr.length !== 2) {
-       return 'Card data missing or corrupted.';
+        cardObject.innerText = '-'
+        return;
     }
 
     let rank = cardStr[0];
@@ -699,18 +718,27 @@ function addPlayers(players) {
             playersConnected.push(players[i]);
         }   
 
-        // Check if container exists already
+        // Create new player container if one does not exist
         if (document.querySelector('#' + players[i] + '-container') === null) {
             
-            // Create new container if one does not exist
-            playerContainer = createPlayerContainer(players[i]);
-            document.querySelector('.player-panel').appendChild(playerContainer);
-
+            // Changing destination from player panel -> game container grid
+            // Can check for first empty game container
+            // Loop to check for empty grid spaces: check if grid has children or not
+            for (let j = 1; j < 10; j++) {
+                
+                // If grid space does not have child nodes, append new player container
+                if (!document.querySelector('#game-grid-' + j).hasChildNodes()) {
+                    document.querySelector('#game-grid-' + j).appendChild(createPlayerContainer(players[i]));
+                    break;
+                }
+            }
         }
+
+        // Container exists already; set `connected` to True
         else {
             document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
             players[i].connected = true;
-            }
+        }
     }
 
 }
@@ -726,10 +754,11 @@ function removePlayers(players) {
             const containerID = '#' + playersConnected[i] + '-container'
 
             // Remove player from player panel
-            playerContainer = document.querySelector(containerID);
-            document.querySelector('.player-panel').removeChild(playerContainer);
+            remove(document.querySelector(containerID));
+            // Change from player-panel to remove from DOM
+            // document.querySelector('.player-panel').removeChild(playerContainer);
             
-            console.log(`Found ${playerContainer} with id ${containerID}, removing ${playersConnected[i]} from panel`);
+            console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} from panel`);
             
             // Remove player from local list
             playersConnected.splice(i, 1);
@@ -1309,21 +1338,18 @@ function updateGameRoom(response) {
         document.querySelector('#sub-header-left').appendChild(toLobby);
 
         /* Start game container - contains board, players, controls */
-        const gameContainer = document.createElement('div');
-        gameContainer.id = 'game-container';
+        const gameContainer = createGameContainer()
         gameRoomContainer.appendChild(gameContainer);
         
-        // Create board
-        const board = createBoard();
-        gameContainer.appendChild(board);
         
-        // Create player panel 
-        const playerPanel = createPlayerPanel();
-        gameContainer.appendChild(playerPanel);
+        // Select board to add grid to - middle of game container
+        const gridFive = document.querySelector('#game-grid-5');
+        // Create board and add to grid
+        gridFive.appendChild(createBoard());
         
         // Add move buttons after player panel so it appears at the bottom
-        const moveButtonsContainer = createMoveButtons()
-        gameContainer.appendChild(moveButtonsContainer);
+        gridFive.appendChild(createMoveButtons());
+        
         /* End game container */
         
         // Create new chat panel if doesn't exist

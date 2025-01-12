@@ -243,15 +243,21 @@ input[type="radio"]{
 
 /* Game */
 #game-room-container {
-    display: inline-flex;
+    display: grid;
+    /* Two columns: game, chat. */
+    grid-template-columns: 2fr 1fr;
+    align-items: center;
+    justify-items: center;
 }
 
 #game-container {
-    display: inline-block;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     /* Creates space on all sides */
-    margin: 10%;
-    width: 25rem;
-    height: 25rem;
+    /* margin: 10%; */
+    /* width: 25rem; */
+    /* height: 25rem; */
 }
 
 /* Change this to grid - maybe 9 parts to put up to 8 players around the board */
@@ -268,8 +274,15 @@ input[type="radio"]{
 
             8: player 1
 */
+
 #board {
     display: inline-flex;
+    grid-column: 5;
+}
+
+/* Self container */
+.player-container[data-display-order="8"] {
+    grid-column: 8;
 }
 
 /* Only panel left is chat panel. 

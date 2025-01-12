@@ -455,7 +455,7 @@ class State:
     # Packages state for each player individually. Includes sid for socketio
     def package_state(self, player_name) -> dict:
         
-        assert self.mode == "end_game" or self.in_progress, "Only call once game has started or between games"
+        # assert self.mode == "end_game" or self.in_progress, "Only call once game has started or between games"
 
         # Get discard card
         discard_card = None
