@@ -475,7 +475,7 @@ function createMoveButtons() {
 function createPlayerContainer(name) {
     
     /* Structure:
-        Name
+        Name ( - knocked)?
         Hand
         Lives
         Hand Score
@@ -493,9 +493,14 @@ function createPlayerContainer(name) {
     const playerNameStrong = document.createElement('strong');
     playerNameStrong.id = name + '-name-strong';
     playerNameStrong.innerText = name;
-
+    
     playerNameContainer.appendChild(playerNameStrong);
-
+    
+    const knockedStrong = document.createElement('strong');
+    knockedStrong.id = name + '-knocked-strong';
+    
+    playerNameContainer.appendChild(knockedStrong);
+    
     playerContainer.appendChild(playerNameContainer);
     
     // Put hand in div
@@ -1521,13 +1526,15 @@ function updateGame(response) {
             document.querySelector('#start-button').style.display = 'none';
         }
         else {
-            // Show start button when game not in progress
+            // Unhide start button when game not in progress
             document.querySelector('#start-button').style.display = 'block';
         }
-
+        
         // Enable continue button on round end (and NOT on game end)
         if (mode === 'end_round') {
             document.querySelector('#continue-button').disabled = false;
+            // Unhide button when active
+            document.querySelector('#continue-button').style.display = 'block';
             
             // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
             // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
@@ -1537,6 +1544,8 @@ function updateGame(response) {
         // Disable continue button on every other mode
         else {
             document.querySelector('#continue-button').disabled = true;
+            // HIDE button when not active
+            document.querySelector('#continue-button').style.display = 'none';
         }
 
         // Add discard card to display on discard button
@@ -1550,7 +1559,13 @@ function updateGame(response) {
         for (let i = 0; i < playerOrder.length; i++) {
             
             // playerOrder[i] is the player name
+
+            // Update players array
             players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i], 'connected': true};
+            
+            if (playerOrder[i] === response.knocked) {
+                players[playerOrder[i]].knocked = true;    
+            }
 
             // Once player array is populated, add to player panel display or dataset
             const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
@@ -1612,17 +1627,26 @@ function updateGame(response) {
                 document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';
             }
             
-            // Set attribute - I believe it must be a string, so '1' = true and '0' = false
+            // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
             if (currentPlayer === playerOrder[i]) {
-                
                 playerContainer.dataset.current = '1';
             }
             else {
                 playerContainer.dataset.current = '0';
             }
-
+            
             // Set connected status to True when creating player
             playerContainer.dataset.connected = '1';
+            
+            // Set knocked status - add text to name container
+            if (response.knocked === playerOrder[i]) {
+                playerContainer.dataset.knocked = '1';
+                document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = ' - knocked';
+            }
+            else {
+                playerContainer.dataset.knocked = '0';
+                document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = '';
+            }
         }
     }
 }

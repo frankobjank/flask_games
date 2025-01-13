@@ -310,6 +310,8 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     box-shadow: -1px -1px 2px 0px #10101075;
     /* For rounded corners */
     border-radius: 0.3rem;
+    /* Had to remove padding so `10` would appear centered in middle of card */
+    padding: unset;
 }
 
 /* Back of card */
@@ -334,11 +336,6 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 }
 .playing-card.card-front[data-suit='C'] {
     color: seagreen;
-}
-
-/* Rank 10 has not been getting centered correctly because it is longer than the other cards */
-.playing-card.card-front[data-rank='10'] {
-
 }
 
 #return-lobby-button {

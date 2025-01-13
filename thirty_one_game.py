@@ -323,22 +323,29 @@ class State:
                 self.print_and_log("Tie for last place, no change in score.")
 
             # Players tied for last but some scored higher; All tying for last lose one life
-            elif hand_scores[scores_ordered[-1]] > 1:
+            elif len(hand_scores[scores_ordered[-1]]) > 1:
         
                 # Lowest hand = hand_scores[scores_ordered[-1]]
                 for p_name in hand_scores[scores_ordered[-1]]:
+                    self.print_and_log(f"{p_name} loses 1 life.")
                     self.players[p_name].lives -= 1
 
             # Only one player scored the lowest; Subtract one life, or 2 lives if they knocked
             else:
-                        
-                # lowest_hand_score_player = hand_scores[scores_ordered[-1]]
-                if hand_scores[scores_ordered[-1]] != self.knocked:
-                    self.print_and_log(f"{hand_scores[scores_ordered[-1]]} loses 1 life.")
-                    self.players[hand_scores[scores_ordered[-1]]].lives -= 1
+                
+                # Get first (and only) element of scores ordered list
+                lowest_player = hand_scores[scores_ordered[-1]][0]
+                
+                # If didn't knock, lose 1 life
+                if lowest_player != self.knocked:
+                    self.print_and_log(f"{lowest_player} loses 1 life.")
+                    self.players[lowest_player].lives -= 1
+
+                # If knocked, lose 2 lives
                 else:
-                    self.print_and_log(f"{hand_scores[scores_ordered[-1]]} knocked but had the lowest score.\n{hand_scores[scores_ordered[-1]]} loses 2 lives.")
-                    self.players[hand_scores[scores_ordered[-1]]].lives -= 2
+                    self.print_and_log(f"{lowest_player} knocked but had the lowest score.")
+                    self.print_and_log(f"{lowest_player} loses 2 lives.")
+                    self.players[lowest_player].lives -= 2
         
         # List of any players that were brought down to negative lives
         knocked_out = [p_name for p_name in self.player_order if 0 > self.players[p_name].lives]
@@ -436,16 +443,11 @@ class State:
             elif packet["action"] == "pickup":
                 # convert to str here for type consistency
                 taken_card = self.discard.pop()
-                # Extra turn log - removed
-                # self.print_and_log(f"{self.current_player} picked up a card from the discard pile.")
 
             elif packet["action"] == "draw":
                 taken_card = self.draw_card()
-                # Extra turn log - removed
-                # self.print_and_log(f"{self.current_player} drew a card from the deck.")
             
             elif packet["action"] == "discard":
-                # TODO Personal log
                 self.print_and_log("Must have 4 cards to discard.", player=self.current_player)
                 return "reject"
             
@@ -466,7 +468,9 @@ class State:
             self.check_for_blitz(self.players[self.current_player])
             
             # Only set to discard if round has not ended Check for >3 cards in hand before setting mode to discard
-            if self.mode != "end_round" and len(self.players[self.current_player].hand) > 3:
+            # if self.mode != "end_round" and len(self.players[self.current_player].hand) > 3:
+            # Removing check for end_round because discard should happen before the round ends - better for display and real game-feel
+            if len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
             
         elif self.mode == "discard" and packet["action"] == "discard":
