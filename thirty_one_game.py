@@ -271,45 +271,77 @@ class State:
     def end_round(self, blitz_player: str=""):
         # scenarios - win doesn't actually matter, just display who knocked and loser
             # BLITZ - everyone except highest loses a life
-            # tie for loser - display knocked; no one loses
+            # ALL tie for loser - display knocked; no one loses
+            # tie for loser and other higher player - all tied for lowest lose a life
             # 1 loser - display one who knocked and one who lost
             # 1 loser AND loser knocked - loser loses 2 points
-        
+
+        # Use player_order for all calculations here (since it only includes players who are NOT knocked out)
+
+        # Mode = end round; requires input from user to start next round
+        self.mode = "end_round"
+
         self.print_and_log(f"--- END OF ROUND {self.round_num} ---\n")
         self.print_and_log("---     SCORES     ---\n")
         
-        # Mode = end round; requires input from user to start next round
-        self.mode = "end_round"
+        # Calc all hand scores for display and round end calculations
+        hand_scores = {}  # {score: player name}
+
+        # Group using SCORES as keys instead of player
+        for p_name in self.player_order:
+            score = self.calc_hand_score(self.players[p_name])
+            
+            if score in hand_scores.keys():
+                # Adds to list of players if there is a tie
+                hand_scores[score].append(p_name)
+            else:
+                # Starts new list for that score if no tie
+                hand_scores[score] = [p_name]
+
+        # Order scores from highest -> lowest for display
+        scores_ordered = sorted(hand_scores.keys(), reverse=True)
         
+        # Loop through all entries to log all scores
+        for ordered_score in scores_ordered:
+            # Multiple players can have same score - need to use 2nd loop below
+            for p_name in hand_scores[ordered_score]:
+                self.print_and_log(f"{p_name}'s hand was worth {ordered_score}.")
+
         # Blitz player is string of player's name who blitzed
         if blitz_player:
             for p_name in self.player_order:
                 if p_name != blitz_player:
-                    self.print_and_log(f"{p_name} loses 1 extra life.")
+                    self.print_and_log(f"{p_name} loses 1 life.")
                     self.players[p_name].lives -= 1
         
-        # Else, no blitz
+        # Else, no blitz. Find lowest scorer and subtract lives, or handle tie scenario
         else:
-            hand_scores = [self.calc_hand_score(p_object) for p_object in self.players.values()]
-            lowest_hand_score = min(hand_scores)
-
-            if hand_scores.count(lowest_hand_score) > 1:
-                # Can add in house rule of everyone who tied for last place losing a life unless *everyone* tied
+            # House rule - everyone who tied for last place loses a life unless *everyone* tied
+            
+            # All players tied when hand scores length = 1
+            if len(hand_scores) == 1:
                 self.print_and_log("Tie for last place, no change in score.")
-            else:
-                lowest_hand_score_player = ""
-                for p_object in self.players.values():
-                    if self.calc_hand_score(p_object) == lowest_hand_score:
-                        lowest_hand_score_player = p_object.name
-                        
-                if lowest_hand_score_player != self.knocked:
-                    self.print_and_log(f"{lowest_hand_score_player} loses 1 extra life.")
-                    self.players[lowest_hand_score_player].lives -= 1
-                else:
-                    self.print_and_log(f"{lowest_hand_score_player} knocked but had the lowest score.\n{lowest_hand_score_player} loses 2 extra lives.")
-                    self.players[lowest_hand_score_player].lives -= 2
+
+            # Players tied for last but some scored higher; All tying for last lose one life
+            elif hand_scores[scores_ordered[-1]] > 1:
         
-        knocked_out = [p_name for p_name, p_object in self.players.items() if 0 > p_object.lives]
+                # Lowest hand = hand_scores[scores_ordered[-1]]
+                for p_name in hand_scores[scores_ordered[-1]]:
+                    self.players[p_name].lives -= 1
+
+            # Only one player scored the lowest; Subtract one life, or 2 lives if they knocked
+            else:
+                        
+                # lowest_hand_score_player = hand_scores[scores_ordered[-1]]
+                if hand_scores[scores_ordered[-1]] != self.knocked:
+                    self.print_and_log(f"{hand_scores[scores_ordered[-1]]} loses 1 life.")
+                    self.players[hand_scores[scores_ordered[-1]]].lives -= 1
+                else:
+                    self.print_and_log(f"{hand_scores[scores_ordered[-1]]} knocked but had the lowest score.\n{hand_scores[scores_ordered[-1]]} loses 2 lives.")
+                    self.players[hand_scores[scores_ordered[-1]]].lives -= 2
+        
+        # List of any players that were brought down to negative lives
+        knocked_out = [p_name for p_name in self.player_order if 0 > self.players[p_name].lives]
         
         for p_name in knocked_out:
             self.print_and_log(f"{p_name} has been knocked out.")
@@ -318,18 +350,28 @@ class State:
             self.player_order.remove(p_name)
 
         if len(self.player_order) == 1:
-            self.print_and_log(f"\n{[self.player_order][0]} wins!")
+            self.print_and_log(f"\n{self.player_order[0]} wins!")
             self.mode = "end_game"
             self.in_progress = False
 
-            # Give clients time to view the ending score/ board, then reset
+            # Give clients option to view the ending score/ board, leave/join rooms, then start a new game
 
         else:
-            self.print_and_log("\nRemaining Players' Extra Lives:")
+            self.print_and_log("\nRemaining Players' Lives:")
             for p_name in self.player_order:
-                self.print_and_log(f"{p_name} - {self.players[p_name].lives} extra lives")
-                if self.players[p_name].lives == 0:
-                    self.print_and_log(f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}")
+                msg = ""
+                
+                # Send different msgs based on number of lives
+                if self.players[p_name].lives == 1:
+                    # Corrected grammar
+                    msg = f"{p_name} - {self.players[p_name].lives} life"
+                elif self.players[p_name].lives == 0:
+                    # On the bike, etc
+                    msg = f"{p_name} is {self.free_ride_alts[random.randint(0, len(self.free_ride_alts)-1)]}"
+                else:
+                    msg = f"{p_name} - {self.players[p_name].lives} lives"
+                
+                self.print_and_log(msg)
 
 
     def start_turn(self):

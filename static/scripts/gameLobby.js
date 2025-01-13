@@ -684,7 +684,11 @@ function setCardDisplay(cardStr, cardObject) {
     // Associate unicode suit character with the letter S, H, D, or C
     const SUIT_TO_DISPLAY = {'S': '\u2660', 'H': '\u2665', 'D': '\u2666', 'C': '\u2663'}
 
-    // Add suit to datalist so css can color based on suit
+    // Add rank to dataset so css can center `10` correctly
+    // Also allows to select any card of one rank if needed
+    cardObject.dataset.rank = cardStr[0];
+
+    // Add suit to dataset so css can color based on suit
     cardObject.dataset.suit = cardStr[1];
     
     // Set innertext to rank + suit, i.e. 10♥
@@ -1317,7 +1321,7 @@ function updateGameRoom(response) {
         
         // Set up game room
 
-        // Update header
+        // Update header (title of room)
         document.querySelector('#sub-header-center-h2').innerText = response.room;
 
         // Remove anything from left and right sub-headers
@@ -1337,7 +1341,7 @@ function updateGameRoom(response) {
         // Add return to lobby button to header; must remove on leave
         document.querySelector('#sub-header-left').appendChild(toLobby);
 
-        /* Start game container - contains board, players, controls */
+        /* Game container - contains board, players, controls */
         const gameContainer = createGameContainer()
         gameRoomContainer.appendChild(gameContainer);
         
@@ -1350,7 +1354,7 @@ function updateGameRoom(response) {
         // Add move buttons after player panel so it appears at the bottom
         gridFive.appendChild(createMoveButtons());
         
-        /* End game container */
+        /* End of game container */
         
         // Create new chat panel if doesn't exist
         if (document.querySelector('#chat-log-panel') === null) {
@@ -1488,7 +1492,6 @@ function updateGame(response) {
     // Add markers for dealer and knocked
     
     if (response.action === 'update_board') {
-        console.log(`Updating board: with ${response}`)
 
         // Unpack general state
         inProgress = response.in_progress;
@@ -1513,7 +1516,15 @@ function updateGame(response) {
         
         // Disable start button when game in progress; Enable when not in progress
         document.querySelector('#start-button').disabled = inProgress;
-        
+        if (inProgress) {
+            // Hide start button when game in progress
+            document.querySelector('#start-button').style.display = 'none';
+        }
+        else {
+            // Show start button when game not in progress
+            document.querySelector('#start-button').style.display = 'block';
+        }
+
         // Enable continue button on round end (and NOT on game end)
         if (mode === 'end_round') {
             document.querySelector('#continue-button').disabled = false;

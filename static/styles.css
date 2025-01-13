@@ -248,6 +248,7 @@ input[type="radio"]{
     grid-template-columns: 2fr 1fr;
     align-items: center;
     justify-items: center;
+    margin: 3rem;
 }
 
 #game-container {
@@ -333,6 +334,11 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 }
 .playing-card.card-front[data-suit='C'] {
     color: seagreen;
+}
+
+/* Rank 10 has not been getting centered correctly because it is longer than the other cards */
+.playing-card.card-front[data-rank='10'] {
+
 }
 
 #return-lobby-button {
