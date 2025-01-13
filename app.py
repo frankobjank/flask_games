@@ -300,7 +300,15 @@ def on_join(data):
             # Should already be in lobby, stay in lobby
             return msg
         
-        # Allow to join with no username; check if user is RE-JOINING in below loop
+        # Check if game is in progress
+        if rooms[data["room"]].game:
+            if rooms[data["room"]].game.in_progress:
+                msg = "Game is in progress; Unable to join."
+                print(msg)
+                fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+                return msg
+
+        # Allow to join with no username; check if user is RE-JOINING in below loop that creates `user` object
         # # Do not allow client to join non-lobby room with no username
         # if len(fl.session.get("username", "")) == 0:
         #     msg = f"Username is not set; cannot join {data['room']}."

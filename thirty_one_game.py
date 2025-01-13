@@ -27,7 +27,7 @@ class Player:
         self.sid = sid  # Address used for socket io messages
         self.order = 0
         self.hand = []
-        self.lives = 3  # Score starts at 3
+        self.lives = 1  # debug = score starts at 1  # Score starts at 3
         self.log = []  # Individual logs per player
 
     

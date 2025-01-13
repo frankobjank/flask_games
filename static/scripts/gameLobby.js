@@ -190,12 +190,14 @@ function addRooms(newRooms) {
 
             // Prevent joining game room if username not set
             if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
+                
+                console.log('Checking with server if rejoining room.');
                 // TODO - Check with server to see if user is re-joining.
                     // Rejoining, no username -> should not be possible
                     // Rejoining, username -> do not prompt player for username; get username from previous join
                     // First time, no username -> prompt player to set username and only proceed when done
                     // First time, username -> registered user, no action
-                console.log('Checking with server if rejoining room.');
+                
                 console.log('Opening modal to set username.');
 
                 // Open modal - there is no close button so user must complete it before continuing.
@@ -436,11 +438,13 @@ function createMoveButtons() {
     // Continue game button for between rounds
     const continueButton = document.createElement('button');
     
-    // new session, start game. round end, continue; game end, new game 
+    // New session, start game. round end, continue; game end, new game 
     continueButton.id = 'continue-button';
     continueButton.className = 'move-button';
     continueButton.innerText = 'Continue to Next Round';
     continueButton.disabled = true;
+    // Start with button hidden
+    continueButton.style.display = 'none';
 
     continueButton.onclick = () => {
         socket.emit('move', {'action': 'continue', 'room': currentRoom});
@@ -508,7 +512,7 @@ function createPlayerContainer(name) {
     hand.className = 'hand-container';
     hand.id = name + '-hand-container';
     
-    // Put lives into span
+    // Put lives into div
     const lives = document.createElement('div');
     lives.className = 'lives-container';
     lives.id = name + '-lives';
@@ -1509,14 +1513,24 @@ function updateGame(response) {
             addToLog(msg, "system");
         }
         
+        // Removing this from blocking updates since game needs to update to end state on game end
         if (!inProgress) {
             console.log('Received update response but game is not in progress.');
-            return;
+            // return;
         }
         
         if (response.player_order === undefined) {
             console.log('Player order missing from response.');
             return;
+        }
+
+        // Disable knock button (for all) if there has been a knock
+        if (response.knocked) {
+            document.querySelector('#knock-button').disabled = true;
+        }
+        // Enable knock button if no one has knocked
+        else {
+            document.querySelector('#knock-button').disabled = false;
         }
         
         // Disable start button when game in progress; Enable when not in progress
@@ -1527,14 +1541,14 @@ function updateGame(response) {
         }
         else {
             // Unhide start button when game not in progress
-            document.querySelector('#start-button').style.display = 'block';
+            document.querySelector('#start-button').style.display = '';
         }
         
         // Enable continue button on round end (and NOT on game end)
         if (mode === 'end_round') {
             document.querySelector('#continue-button').disabled = false;
             // Unhide button when active
-            document.querySelector('#continue-button').style.display = 'block';
+            document.querySelector('#continue-button').style.display = '';
             
             // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
             // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
@@ -1551,7 +1565,21 @@ function updateGame(response) {
         // Add discard card to display on discard button
         setCardDisplay(discardCard, document.querySelector('#discard-button'));
         
-        // Unpack players
+        // Check for knocked out players
+        for (const player of playersConnected) {
+            if (!playerOrder.contains(player)) {
+                // Replace lives with 'knocked out'
+                document.querySelector('#' + player + '-lives').innerText = 'Knocked out'
+                // Remove all cards
+                document.querySelector('#' + player + '-hand-container').replaceChildren()
+                // Reset `knocked`, `current` status
+                document.querySelector('#' + player + '-knocked-strong').innerText = '';
+                document.querySelector('#' + player + '-container').dataset.knocked = '0';
+                document.querySelector('#' + player + '-container').dataset.current = '0';
+            }
+        }
+
+        // Unpack for players still in the game 
         // Eventually want to rearrange players to be correct player order
         playerOrder = response.player_order;
         
