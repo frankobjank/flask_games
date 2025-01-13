@@ -186,7 +186,7 @@ function addRooms(newRooms) {
 
         // Adding onclick to row instead of using button or anchor
         // Event listener here is async because there is an await in the function
-        row.onclick = () => {
+        row.onclick = async () => {
 
             // Prevent joining game room if username not set
             if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
@@ -198,14 +198,37 @@ function addRooms(newRooms) {
                     // First time, no username -> prompt player to set username and only proceed when done
                     // First time, username -> registered user, no action
                 
-                console.log('Opening modal to set username.');
-
-                // Open modal - there is no close button so user must complete it before continuing.
-                const usernameModal = createUsernameModal(room.name);
-                document.body.appendChild(usernameModal);
-                
-                // Exit early - will call this function again once username is set
-                return;   
+                try {
+                    // Using emitWithAck for callback; Returns promise.
+                    const promise = await socket.emitWithAck('check_rejoin', {'room': room.name});
+                    console.log(`promise ${promise} is type ${typeof promise}`)
+                    promise
+                        .then((data) => {
+                            // Message received / returned, but server failed validation
+                            if (!data.rejoining) {
+    
+                                // Open modal to enter username
+                                const usernameModal = createUsernameModal(room.name);
+                                document.body.appendChild(usernameModal);
+                                
+                                // Exit early - will call this function again once username is set
+                                console.log('Opening modal to set username.');
+                                return;
+                            }
+                            
+                            // If rejoining, proceed with join (continued below)
+                            console.log('Rejoining room, can continue to leaving lobby and joining room.');
+                            // Set username
+                            username = data.username;
+                        })
+                        .catch((error) => {
+                            console.error(`Could not check rejoin with server: ${error}`);
+                            return;
+                        });
+                }
+                catch(err) {
+                    throw new Error(`Error with checking rejoin: ${err}`);
+                }
             }
 
             // Leave lobby and join selected room
@@ -493,16 +516,18 @@ function createPlayerContainer(name) {
     
     const playerNameContainer = document.createElement('div');
     playerNameContainer.id = name + '-name-container';
+
+    const currentPlayerStrong = document.createElement('strong');
+    currentPlayerStrong.id = name + '-current-strong';
+    playerNameContainer.appendChild(currentPlayerStrong);
     
     const playerNameStrong = document.createElement('strong');
     playerNameStrong.id = name + '-name-strong';
     playerNameStrong.innerText = name;
-    
     playerNameContainer.appendChild(playerNameStrong);
     
     const knockedStrong = document.createElement('strong');
     knockedStrong.id = name + '-knocked-strong';
-    
     playerNameContainer.appendChild(knockedStrong);
     
     playerContainer.appendChild(playerNameContainer);
@@ -527,12 +552,11 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(lives);
     playerContainer.appendChild(handScore);
 
-    // Add game controls (draw, pickup, knock buttons) for self
-    if (name === username) {
+    // if (name === username) {
 
-        // Highlight self name and player info
-        playerContainer.style.color = 'purple';
-    }
+    //     // Highlight self name and player info
+    //     playerContainer.style.color = 'purple';
+    // }
 
     return playerContainer;
 }
@@ -1567,12 +1591,13 @@ function updateGame(response) {
         
         // Check for knocked out players
         for (const player of playersConnected) {
-            if (!playerOrder.contains(player)) {
+            if (!response.player_order.includes(player)) {
                 // Replace lives with 'knocked out'
                 document.querySelector('#' + player + '-lives').innerText = 'Knocked out'
                 // Remove all cards
                 document.querySelector('#' + player + '-hand-container').replaceChildren()
                 // Reset `knocked`, `current` status
+                document.querySelector('#' + player + '-current-strong').innerText = '';
                 document.querySelector('#' + player + '-knocked-strong').innerText = '';
                 document.querySelector('#' + player + '-container').dataset.knocked = '0';
                 document.querySelector('#' + player + '-container').dataset.current = '0';
@@ -1658,9 +1683,12 @@ function updateGame(response) {
             // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
             if (currentPlayer === playerOrder[i]) {
                 playerContainer.dataset.current = '1';
+                // Add marker to current player - '\u2192' is right pointing arrow →
+                document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '\u2192';
             }
             else {
                 playerContainer.dataset.current = '0';
+                document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '';
             }
             
             // Set connected status to True when creating player

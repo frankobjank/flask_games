@@ -352,9 +352,9 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 }
 
 /* Visual marker for current player */
-.player-container[data-current='1'] {
+/* .player-container[data-current='1'] {
     border: 1px solid #000000;
-}
+} */
 
 /* Visual marker for disconnected player */
 .player-container[data-connected='0'] {

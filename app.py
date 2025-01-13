@@ -242,6 +242,28 @@ def on_set_username(data):
     return {"username": username, "accepted": True}
 
 
+@socketio.on("check_rejoin")
+def on_check_rejoin(data):
+    # Quick check to see if user is rejoining - if they are, they do not need to set a username
+    
+    rejoining = False
+    username = ""
+
+    for user in rooms[data["room"]].users:
+        
+        # User must be DISconnected in order to rejoin
+        if not user.connected:
+
+            # Check if session cookie matches 
+            if user.session_cookie == fl.session["session_cookie"]:
+                rejoining = True
+                username = user.name
+                break
+
+
+    return {"rejoining": rejoining, "username": username}
+
+
 @socketio.on("join")
 def on_join(data):
     # Change to unique url room solution?
@@ -323,8 +345,12 @@ def on_join(data):
             fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
             return msg
 
+    # Initiate user object for use below
     user = None
 
+    # TODO This loop is potentially redundant and can probably be consolidated with check_rejoin
+        # - a step that will happen right before calling join to know whether to prompt user for name
+    
     # Use session cookie to see if user exists in room already; update sid and connection status
     for room_user in rooms[data["room"]].users:
         if room_user.session_cookie == fl.session["session_cookie"]:
