@@ -186,50 +186,48 @@ function addRooms(newRooms) {
 
         // Adding onclick to row instead of using button or anchor
         // Event listener here is async because there is an await in the function
-        row.onclick = async () => {
+        row.onclick = () => {
+            console.log('Row onclick')
 
-            // Prevent joining game room if username not set
+            // // Prevent joining game room if username not set
             if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
                 
-                console.log('Checking with server if rejoining room.');
-                // TODO - Check with server to see if user is re-joining.
-                    // Rejoining, no username -> should not be possible
-                    // Rejoining, username -> do not prompt player for username; get username from previous join
-                    // First time, no username -> prompt player to set username and only proceed when done
-                    // First time, username -> registered user, no action
+                // Rejoining, no username -> should not be possible
+                // Rejoining, username -> do not prompt player for username; get username from previous join
+                // First time, no username -> prompt player to set username and only proceed when done
+                // First time, username -> registered user, no action
                 
-                try {
-                    // Using emitWithAck for callback; Returns promise.
-                    const promise = await socket.emitWithAck('check_rejoin', {'room': room.name});
-                    console.log(`promise ${promise} is type ${typeof promise}`)
-                    promise
-                        .then((data) => {
-                            // Message received / returned, but server failed validation
-                            if (!data.rejoining) {
-    
-                                // Open modal to enter username
-                                const usernameModal = createUsernameModal(room.name);
-                                document.body.appendChild(usernameModal);
-                                
-                                // Exit early - will call this function again once username is set
-                                console.log('Opening modal to set username.');
-                                return;
-                            }
+                console.log('Checking with server if rejoining room.');
+                // Using emitWithAck for callback; Returns promise.
+                const promise = checkRejoin(room.name);
+
+                console.log(`${promise} is type ${typeof promise}`)
+                
+                promise
+                    .then((data) => {
+                        // Message received / returned, but server failed validation
+                        if (!data.rejoining) {
+
+                            // Open modal to enter username
+                            const usernameModal = createUsernameModal(room.name);
+                            document.body.appendChild(usernameModal);
                             
-                            // If rejoining, proceed with join (continued below)
-                            console.log('Rejoining room, can continue to leaving lobby and joining room.');
-                            // Set username
-                            username = data.username;
-                        })
-                        .catch((error) => {
-                            console.error(`Could not check rejoin with server: ${error}`);
+                            // Exit early - will call this function again once username is set
+                            console.log('Opening modal to set username.');
                             return;
-                        });
-                }
-                catch(err) {
-                    throw new Error(`Error with checking rejoin: ${err}`);
-                }
+                        }
+                        
+                        // If rejoining, proceed with join (continued below)
+                        console.log('Rejoining room, can continue to leaving lobby and joining room.');
+                        // Set username
+                        username = data.username;
+                    })
+                    .catch((error) => {
+                        console.error(`Could not check rejoin with server: ${error}`);
+                        return;
+                    });
             }
+            console.log('After rejoin check, about to call leave room')
 
             // Leave lobby and join selected room
             const promise = leaveRoom(username, currentRoom);
@@ -1731,6 +1729,22 @@ function joinRoom(room) {
     socket.emit('join', {'room': room, 'requested_username': username});
     
     // Server checks for game state on join and load game if game is in progress
+}
+
+// Check if user has been to room and can get username from server
+async function checkRejoin(room) {
+    console.log('Check rejoin');
+    
+    try {
+        console.log('Checking with server if rejoining room.');
+        // Using emitWithAck for callback; Returns promise.
+        const response = await socket.emitWithAck('check_rejoin', {'room': room});
+        console.log(`promise ${response} is type ${typeof response}`)
+        return response;   
+    }
+    catch(err) {
+        throw new Error(`Error with checking rejoin: ${err}`);
+    }
 }
 
 // Leave room - async function so it blocks join from running until room teardown

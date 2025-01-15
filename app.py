@@ -9,12 +9,14 @@ import werkzeug.security as ws
 import flask as fl
 from flask_session import Session
 import flask_socketio as fio
+# flask_socketio requires eventlet to run a production server
+# eventlet is included in requirements.txt but 
 
-# Python files
+# Local Python files
 from helpers import *
 import thirty_one_game
 
-# link to access app for debug http://127.0.0.1:5001
+# link to access app for debug http://127.0.0.1:5000
 
 ##### TODO #####
 # Having temporary usernames persist outside of game room will cause issues with duplicate usernames. 
@@ -33,11 +35,15 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Sets flask logging to Error only
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+# log = logging.getLogger('werkzeug')
+# log.setLevel(logging.ERROR)
 
 # Configure socketio
-socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
+# With logs
+socketio = fio.SocketIO(app, logger=True, engineio_logger=True)
+
+# Without logs
+# socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
 
 users = {}
 
@@ -245,7 +251,7 @@ def on_set_username(data):
 @socketio.on("check_rejoin")
 def on_check_rejoin(data):
     # Quick check to see if user is rejoining - if they are, they do not need to set a username
-    
+    print("Checking session cookie for rejoin")
     rejoining = False
     username = ""
 
@@ -260,7 +266,7 @@ def on_check_rejoin(data):
                 username = user.name
                 break
 
-
+    print(f"rejoining = {rejoining}, username = {username}")
     return {"rejoining": rejoining, "username": username}
 
 
@@ -888,4 +894,10 @@ def apology(message, code=400):
 
 if __name__ == "__main__":
     # Instead of app.run (for default flask)
-    socketio.run(app, port=5001, debug=True)
+    ### defaults to port 5000 ###
+
+    # socketio.run(app, debug=True)  # for debug
+    socketio.run(app)  # for production
+
+# Check flask-socketIO documentation for setting up deployment server:
+# https://flask-socketio.readthedocs.io/en/latest/deployment.html
