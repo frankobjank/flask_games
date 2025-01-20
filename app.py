@@ -1,6 +1,5 @@
 # Python official modules
-import logging  # For changing default flask logging, not needed for eventlet
-import re  # For input validation
+import os
 import sqlite3
 from time import time, localtime, strftime
 import werkzeug.security as ws
@@ -9,8 +8,6 @@ import werkzeug.security as ws
 import flask as fl
 from flask_session import Session
 import flask_socketio as fio
-# flask_socketio requires eventlet to run a production server
-# eventlet is included in requirements.txt but not actually used in this file
 
 # Local Python files
 from helpers import *
@@ -23,12 +20,16 @@ import thirty_one_game
 # Should make usernames link on re-joining a room, but NOT re-joining lobby
 
 # Configure application
-app = fl.Flask(__name__)
 
-# Still unclear if I need this/ what exactly it's used for
-app.config["SECRET_KEY"] = "secret!"
-# or app.secret_key = "replace later"
+def create_app():
+    app = fl.Flask(__name__)
+    app.config.from_mapping(
+        SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev_key'
+    )
+    
+    return app
 
+app = create_app()
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
