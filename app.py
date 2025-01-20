@@ -1,6 +1,6 @@
 # Python official modules
-import logging
-import re
+import logging  # For changing default flask logging, not needed for eventlet
+import re  # For input validation
 import sqlite3
 from time import time, localtime, strftime
 import werkzeug.security as ws
@@ -10,7 +10,7 @@ import flask as fl
 from flask_session import Session
 import flask_socketio as fio
 # flask_socketio requires eventlet to run a production server
-# eventlet is included in requirements.txt but 
+# eventlet is included in requirements.txt but not actually used in this file
 
 # Local Python files
 from helpers import *
@@ -94,7 +94,6 @@ def index():
     # Display game options and option to view All
     print(f"Session on index: {fl.session}")
     return fl.render_template("index.html")
-
 
 
 @app.route("/game")
@@ -231,6 +230,8 @@ def on_set_username(data):
                 return {"msg": msg, "accepted": False}
     
     # Update name in session dict and in room's user list
+    # I think session may not be able to updated on a websocket event
+    # See below - name will be updated via room `users`
     fl.session["username"] = username
     
     # Use session id to see if user already exists in lobby (i.e. on reconnection)
@@ -248,26 +249,92 @@ def on_set_username(data):
     return {"username": username, "accepted": True}
 
 
-@socketio.on("check_rejoin")
-def on_check_rejoin(data):
-    # Quick check to see if user is rejoining - if they are, they do not need to set a username
-    print("Checking session cookie for rejoin")
-    rejoining = False
-    username = ""
+@socketio.on("prejoin")
+def on_prejoin(data):
+    # Validate user join request and find if user has joined before - to recover username
+    response = {
+        "can_join": False,
+        "username": "",
+        "msg": "",
+    }
 
+    # If lobby, exit check early and allow join
+    if data["room"] == "lobby":
+        response["can_join"] = True
+        return response
+    
+    # BELOW CODE APPLIES ONLY TO GAMEROOMS - NOT LOBBY
+
+    # Check if room is full
+    if rooms[data["room"]].is_full():
+        response["can_join"] = False
+        response["msg"] = "room_full"
+        return response
+        
+    # Check if room is password-protected
+    if len(rooms[data["room"]].roompw) > 0:
+        # Check if user provided password
+        if len(data.get("password", "")) == 0:
+            response["can_join"] = False
+            response["msg"] = "prompt_for_password"
+            return response
+        
+        # Check if provided password is correct
+        elif not ws.check_password_hash(rooms[data["room"]].roompw, data["password"]):
+            response["can_join"] = False
+            response["msg"] = "incorrect_password"
+            return response
+        
+        # If password correct, implicitly proceed
+        print("Password correct; proceeding to other checks.")
+
+    # Check if user is rejoining; if rejoining will not need to set a username
+    print("Checking session cookie for rejoin")
     for user in rooms[data["room"]].users:
         
-        # User must be DISconnected in order to rejoin
-        if not user.connected:
+        # Check if session cookie matches 
+        if user.session_cookie == fl.session["session_cookie"]:
+            
+            # User must NOT be connected in order to rejoin
+            if not user.connected:
 
-            # Check if session cookie matches 
-            if user.session_cookie == fl.session["session_cookie"]:
-                rejoining = True
-                username = user.name
+                response["can_join"] = True
+                response["username"] = user.name    
+                # Update sid in user object
+                user.sid = fl.request.sid
                 break
 
-    print(f"rejoining = {rejoining}, username = {username}")
-    return {"rejoining": rejoining, "username": username}
+            # If user is still is connected, prevent from joining
+            elif user.connected:
+                response["can_join"] = False
+                response["msg"] = "name_already_connected"
+                return response
+        
+    # User was not found
+    if len(response["username"]) == 0:
+
+        # Check if game is in progress; don't allow new users to join mid-game
+        if rooms[data["room"]].game and rooms[data["room"]].game.in_progress:
+            response["can_join"] = False
+            response["msg"] = "game_in_progress"
+            return response
+        
+        # Game not in progress, but user must set username - i.e. via modal
+        else:
+            response["can_join"] = False
+            response["msg"] = "prompt_for_username"
+            return response
+        
+    # User was found; make sure name isn't taken
+    elif len(response["username"]) > 0:
+        if fl.session.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
+            response["can_join"] = False
+            response["msg"] = "name_taken"
+            return response
+    
+    # Did not hit any early exits;
+    print(f"End of prejoin checks; returning = {response}")
+    return response
 
 
 @socketio.on("join")
@@ -311,30 +378,23 @@ def on_join(data):
         # Possible solutions: let a user reconnect with the same name and different session cookie if they are a registered user (i.e. check the database, OR create some kind of distinction between registered users and temporary users in the flask session)
     if data["room"] != "lobby":
         
-        # Check password if room has password
-        if len(rooms[data["room"]].roompw) > 0:
-            if not ws.check_password_hash(rooms[data["room"]].roompw, data.get("password", "")):
-                msg = "Incorrect password; Unable to join."
-                print(msg)
-                fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-                return msg
+        # Moved password check and room full check to prejoin
+        # # Check password if room has password
+        # if len(rooms[data["room"]].roompw) > 0:
+        #     if not ws.check_password_hash(rooms[data["room"]].roompw, data.get("password", "")):
+        #         msg = "Incorrect password; Unable to join."
+        #         print(msg)
+        #         fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+        #         return msg
 
         # Check if room full
-        if rooms[data["room"]].is_full():
-            msg = f"{data['room']} is full; Unable to join."
-            print(msg)
-            fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+        # if rooms[data["room"]].is_full():
+        #     msg = f"{data['room']} is full; Unable to join."
+        #     print(msg)
+        #     fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
             
-            # Should already be in lobby, stay in lobby
-            return msg
-        
-        # Check if game is in progress
-        if rooms[data["room"]].game:
-            if rooms[data["room"]].game.in_progress:
-                msg = "Game is in progress; Unable to join."
-                print(msg)
-                fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-                return msg
+        #     # Should already be in lobby, stay in lobby
+        #     return msg
 
         # Allow to join with no username; check if user is RE-JOINING in below loop that creates `user` object
         # # Do not allow client to join non-lobby room with no username
@@ -354,11 +414,13 @@ def on_join(data):
     # Initiate user object for use below
     user = None
 
-    # TODO This loop is potentially redundant and can probably be consolidated with check_rejoin
         # - a step that will happen right before calling join to know whether to prompt user for name
     
-    # Use session cookie to see if user exists in room already; update sid and connection status
+    # This loop may be redundant, but not sure user.connected should be set to true during prejoin
+    # So 2 loops may be necessary
+
     for room_user in rooms[data["room"]].users:
+        # Use session cookie to see if user exists in room already; update sid and connection status
         if room_user.session_cookie == fl.session["session_cookie"]:
 
             print(f"User {room_user.name} was found in room {data['room']}. Updating sid from {room_user.sid} TO {fl.request.sid}")
@@ -372,11 +434,21 @@ def on_join(data):
             # Assign to `user` for using below
             user = room_user
 
+    # REDUNDANT WITH PREJOIN
     # Check if username is set (would not be set for a non-registered user)
     if not user:
+        # Check username exists
         if len(fl.session.get("username", "")) == 0:
             # If client receives this in callback, should bring up username modal.
             return "prompt_for_username"
+
+        # Moving this to prejoin
+        # # Check if game is in progress; don't allow new users to join mid-game
+        # if rooms[data["room"]].game and rooms[data["room"]].game.in_progress:
+        #     msg = "Game is in progress; Unable to join."
+        #     print(msg)
+        #     fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+        #     return msg
         
         # If username exists and no existing user matches, create new user object.
         # If a user connects to multiple rooms, a new user object will be created for each one.
@@ -896,8 +968,8 @@ if __name__ == "__main__":
     # Instead of app.run (for default flask)
     ### defaults to port 5000 ###
 
-    # socketio.run(app, debug=True)  # for debug
-    socketio.run(app)  # for production
+    socketio.run(app, debug=True, port=5001)  # for debug
+    # socketio.run(app)  # for production
 
 # Check flask-socketIO documentation for setting up deployment server:
 # https://flask-socketio.readthedocs.io/en/latest/deployment.html

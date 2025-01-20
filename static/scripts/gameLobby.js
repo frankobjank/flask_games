@@ -190,59 +190,63 @@ function addRooms(newRooms) {
             console.log('Row onclick')
 
             // // Prevent joining game room if username not set
-            if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
+            // if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
                 
-                // Rejoining, no username -> should not be possible
-                // Rejoining, username -> do not prompt player for username; get username from previous join
-                // First time, no username -> prompt player to set username and only proceed when done
-                // First time, username -> registered user, no action
-                
-                console.log('Checking with server if rejoining room.');
-                // Using emitWithAck for callback; Returns promise.
-                const promise = checkRejoin(room.name);
+            // Rejoining, no username -> should not be possible
+            // Rejoining, username -> do not prompt player for username; 
+                // get username from previous join
+            // First time, no username -> prompt player to set username and only proceed when done
+            // First time, username -> registered user, no action
 
-                console.log(`${promise} is type ${typeof promise}`)
-                
-                promise
-                    .then((data) => {
+            if (username && username.length > 0) {
+                console.log(`Username found; joining ${room.name}`);
+                leaveAndJoin(username, room.name);
+                return;
+            }
+
+            // preJoin is async function; handled as a Promise
+            const promise = preJoin(room.name);
+
+            promise
+                .then((data) => {
+                    if (!data.can_join) {
                         // Message received / returned, but server failed validation
-                        if (!data.rejoining) {
-
+                        if (data.msg === 'prompt_for_username') {
+    
                             // Open modal to enter username
                             const usernameModal = createUsernameModal(room.name);
                             document.body.appendChild(usernameModal);
                             
                             // Exit early - will call this function again once username is set
                             console.log('Opening modal to set username.');
-                            return;
                         }
-                        
-                        // If rejoining, proceed with join (continued below)
-                        console.log('Rejoining room, can continue to leaving lobby and joining room.');
-                        // Set username
+                        else if (data.msg === 'prompt_for_password') {
+                            console.log('TODO: Create modal to enter passwords');
+                        }
+                        else {
+                            console.log(`Prejoin failed: ${data.msg}`);
+                        }
+                        return false;
+                    }
+
+                    // Set username if found
+                    if (data.username && data.username.length > 0) {
                         username = data.username;
-                    })
-                    .catch((error) => {
-                        console.error(`Could not check rejoin with server: ${error}`);
-                        return;
-                    });
-            }
-            console.log('After rejoin check, about to call leave room')
-
-            // Leave lobby and join selected room
-            const promise = leaveRoom(username, currentRoom);
-                            
-            // Process leaveRoom as a promise
-            promise
-                .then(() => {
-                    // On successful leave, teardown will be requested by server
-                    console.log(`Successfully left ${currentRoom}.`);
-
-                    joinRoom(room.name);
+                    }
+                    console.log('Join is allowed.');
+                    return true;                        
+                    
+                })
+                .then((cont) => {
+                    console.log(`Rejoining ? ${cont}`)
+                    if (cont) {
+                        leaveAndJoin(username, room.name);
+                    }
                 })
                 .catch((error) => {
-                    console.log(`Could not leave ${currentRoom}: ${error}`);
+                    console.error(`Issue with prejoin: ${error}`);
                 });
+            // }            
         }
 
         const tdname = document.createElement('td');
@@ -305,19 +309,7 @@ function createLobbyButton() {
     toLobby.innerText = 'Return to Lobby';
     toLobby.onclick = () => {
         // Leave current room and join lobby
-        const promise = leaveRoom(username, currentRoom);
-                        
-        // Process leaveRoom as a promise
-        promise
-            .then(() => {
-                // On successful leave, teardown will be requested by server
-                console.log(`Successfully left ${currentRoom}.`);
-
-                joinRoom('lobby');
-            })
-            .catch((error) => {
-                console.log(`Could not leave ${currentRoom}: ${error}`);
-            });
+        leaveAndJoin(username, 'lobby');
     }
     return toLobby;
 }
@@ -1412,7 +1404,7 @@ function updateGameRoom(response) {
         chatLogCount = 0;
 
         // Set current room to null
-        currentRoom = null;
+        currentRoom = `teardown of ${currentRoom}`;
         
         // Reset game vars when leaving room
         inProgress = false;
@@ -1726,24 +1718,31 @@ function joinRoom(room) {
     console.log('Client join event.');
     
     // Pass name of room to server
-    socket.emit('join', {'room': room, 'requested_username': username});
+    socket.emit('join', {'room': room});
     
     // Server checks for game state on join and load game if game is in progress
 }
 
-// Check if user has been to room and can get username from server
-async function checkRejoin(room) {
-    console.log('Check rejoin');
+// Check if user has been to room and can get username from server; also if user can join room
+async function preJoin(room, pw) {
+    console.log('Prejoin called');
     
     try {
-        console.log('Checking with server if rejoining room.');
+        // If room is lobby, can skip prejoin validations
+        if (room === 'lobby') {
+            console.log('Prejoin: room is lobby, can skip validation');
+            return { 'can_join': true };
+        }
         // Using emitWithAck for callback; Returns promise.
-        const response = await socket.emitWithAck('check_rejoin', {'room': room});
-        console.log(`promise ${response} is type ${typeof response}`)
-        return response;   
+        const response = await socket.emitWithAck('prejoin', {'room': room});
+        console.log('Response on prejoin:');
+        for (const [key, value] of Object.entries(response)) {
+            console.log(`${key}: ${value}`);
+        }
+        return response;
     }
     catch(err) {
-        throw new Error(`Error with checking rejoin: ${err}`);
+        throw new Error(`Error with prejoin: ${err}`);
     }
 }
 
@@ -1766,6 +1765,23 @@ async function leaveRoom(username, room) {
     catch (err) {
         throw new Error(`Leave error: ${err}`);
     }
+}
+
+function leaveAndJoin(username, newRoom) {
+    // Leave the current room and join selected room
+    const promise = leaveRoom(username, currentRoom);
+                                
+    // Process leaveRoom as a promise so that teardown happens before setup
+    promise
+        .then(() => {
+            // On successful leave, teardown will be requested by server
+            console.log(`Successfully left ${currentRoom}.`);
+
+            joinRoom(newRoom);
+        })
+        .catch((error) => {
+            console.log(`Could not leave ${currentRoom}: ${error}`);
+        });
 }
 
 // Updating lobby

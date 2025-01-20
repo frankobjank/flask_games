@@ -27,7 +27,7 @@ class User:
 class Room:
     def __init__(self, name: str, roompw: str, game_name: str, capacity: int, date_created: int, creator: str):
         self.name = name
-        self.roompw = roompw
+        self.roompw = roompw  # STORED AS HASH
         self.game_name = game_name
         self.capacity = capacity
         self.date_created = date_created
@@ -51,20 +51,16 @@ class Room:
     
     def package_self(self) -> dict:
         """Put variables to send to client into a dict."""
-        
-        if self.game:
-            in_progress = self.game.in_progress
-        else:
-            in_progress = False
-        
+
         return {
             "name": self.name,
+            "pw_flag": len(self.roompw) != 0,  # True if pw, False if no pw
             "game_name": self.game_name,
             "capacity": self.capacity,
             "date_created": strftime('%D %I:%M %p', localtime(self.date_created)),
             "creator": self.creator,
             "clients_connected": self.get_num_connected(),
-            "in_progress": in_progress
+            "in_progress": False if not self.game else self.game.in_progress
         }
 
 
@@ -147,7 +143,7 @@ def validate_name_input(name: str, max_len: str) -> dict[str, str|bool]:
         response["msg"] = "Canceling request: username contains illegal characters."
         return response
     
-    # Must be between 3 to max_len chars 
+    # Must be between 3 to max_len chars - can probably combine with regex check above
         # Wanted to have different values for username and room name
     if not max_len >= len(name) >= 3:
         response["accepted"] = False

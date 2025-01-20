@@ -58,3 +58,51 @@ session_to_user = {}  # session cookie: User class
 
 sid_to_user = {}
 user_to_sid = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Joining Room from Lobby Pseudocode
+
+User clicks on a row to join
+Client send check_rejoin event
+Server checks if user session cookie is in the room being joined
+
+-- BLOCKING -- 
+If True:
+  Server returns username
+
+Else:
+  Server returns no match
+  At this point the request to join can technically be cancelled
+  Set username will trigger join when username is accepted
+  This avoids chaining the promises and having a blocking operation behind a conditional
+
+  Client prompts user to set username
+  
+  -- BLOCKING --
+  Server validates input
+  If pass validation:
+    Server returns username
+
+Client requests leave lobby
+-- BLOCKING --
+Server removes player and sends teardown request
+
+Client teardown of lobby
+
+Client requests join room
+
+Server adds player and sends room setup request
