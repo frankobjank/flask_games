@@ -166,7 +166,7 @@ footer {
     /* Modal would not appear without setting display */
     display: none;
     /* Advantage of scale over display: none is ability to add animation */
-    transition: 200ms ease-in-out;
+    transition: 500ms;
     /* border: 1px solid black; */
     border-radius: 10px;
     z-index: 10;
@@ -218,12 +218,12 @@ footer {
     position: fixed;
     opacity: 0;
     /* Matches the transition of modal */
-    transition: 200ms ease-in-out;
+    transition: 500ms;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     /* Allows you to click outside of modal (in overlay) */
     pointer-events: none;
 }

@@ -36,31 +36,28 @@ modalOverlay.onclick = () => {
 
 document.querySelector('body').appendChild(modalOverlay);
 
-function createUsernameModal(roomToJoin) {
+function createUsernameModal() {
     // Copied from createUsernameInput for use on lobby header
     // Currently only used to enter username when trying to enter a room.
     // Room will be passed back on set_username response automatically join room after username is set
 
     // Modal for setting username
     const usernameModal = document.createElement('div');
-    usernameModal.className = 'modal set-username active';
+    usernameModal.className = 'modal set-username';
     usernameModal.id = 'username-modal';
-    // Prevent clicking outside of the modal
-    // Took this out - this should be allowed
-    // usernameModal.dataset.backdrop = 'static';
     
     const modalHeader = document.createElement('div');
     modalHeader.className = 'modal-header set-username';
     modalHeader.innerText = 'Please enter a username to enter the room.'
 
-    const closeButton = document.createElement('button');
-    closeButton.className = 'modal-close-button set-username';
-    closeButton.innerHTML = '&times;';
-    closeButton.onclick = () => {
-        closeModal(usernameModal);
-    }
+    // const closeButton = document.createElement('button');
+    // closeButton.className = 'modal-close-button set-username';
+    // closeButton.innerHTML = '&times;';
+    // closeButton.onclick = () => {
+    //     closeModal(usernameModal);
+    // }
 
-    modalHeader.appendChild(closeButton);
+    // modalHeader.appendChild(closeButton);
     
     const modalTitle = document.createElement('div');
     modalTitle.className = 'modal-title set-username';
@@ -81,16 +78,58 @@ function createUsernameModal(roomToJoin) {
     addUsernameInput.placeholder = 'Enter username';
     addUsernameInput.pattern = nameValidation;
 
+    modalBody.appendChild(addUsernameLabel);
+    modalBody.appendChild(addUsernameInput);
+
+    const modalFooter = document.createElement('div');
+    modalFooter.className = 'modal-footer set-username';
+
     const submitButton = document.createElement('button');
-    submitButton.className = 'username-modal-button btn btn-secondary form-control w-auto';
-    submitButton.innerText = 'Submit username';
+    submitButton.className = 'username-modal-button btn btn-primary form-control w-auto';
+    submitButton.id = 'set-username-submit-button';
+    submitButton.innerText = 'Set Username & Join Room';
 
-    submitButton.onclick = () => {
+    // Set submitButton onclick when modal is opened because it contains specific room to join 
+
+    // Set `enter` to send message
+    addUsernameInput.addEventListener('keyup', (event) => {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            submitButton.click();
+        };
+    });
+    
+    // Moving close button from header to body for clarity
+    const closeButton = document.createElement('button');
+    closeButton.className = 'btn btn-danger modal-cancel-button set-username';
+    closeButton.innerText = 'Cancel Join';
+    closeButton.onclick = () => {
+        closeModal(usernameModal);
+    }
+
+    modalFooter.appendChild(submitButton);
+    modalFooter.appendChild(closeButton);
+
+    usernameModal.appendChild(modalHeader);
+    usernameModal.appendChild(modalTitle);
+    usernameModal.appendChild(modalBody);
+    usernameModal.appendChild(modalFooter);
+
+    return usernameModal;
+}
+
+const usernameModal = createUsernameModal();
+document.querySelector('body').appendChild(usernameModal);
+
+function setUsernameOnclick(roomToJoin) {
+
+    document.querySelector('#set-username-submit-button').onclick = () => {
         // Prevent sending blank input
-        if (addUsernameInput.value.length > 0) {
-
+        
+        if (document.querySelector('#username-modal-input').value.length > 0) {
+    
             // Using emitWithAck - for callback. Returns promise
-            const promise = socket.emitWithAck('set_username', {'username_request': addUsernameInput.value, 'room': currentRoom});
+            const promise = socket.emitWithAck('set_username', {'username_request': document.querySelector('#username-modal-input').value, 'room': currentRoom});
             
             promise
                 .then((data) => {
@@ -103,50 +142,31 @@ function createUsernameModal(roomToJoin) {
                     // Successful request, add username.
                     username = data.username;
                     console.log(`Username successfully added: ${data.username}.`);
-
+    
                     // Remove username input container from lobby header
                     if (document.querySelector('#username-input-container') !== null) {
                         document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'))
                     }
-
+    
                     // Add welcome to lobby
                     const welcome = createWelcome();
                     document.querySelector('#lobby-username-container').appendChild(welcome);
                     
                     // Close modal
-                    closeModal(usernameModal);
-
+                    closeModal(document.querySelector('#username-modal'));
+    
                     // This feels circular - row.onclick opened this modal and resolving the modal activates the onclick to join the room
                     // There is probably a way to do this with promises, not sure which way is 'better'
                     document.querySelector('#room-tr-' + roomToJoin).click();
-
+    
                 })
                 .catch((error) => {
                     console.error(`Could not set username: ${error}`);
                 });
-
+    
         };
     };
-
-    // Set `enter` to send message
-    addUsernameInput.addEventListener('keyup', (event) => {
-        event.preventDefault();
-        if (event.key === 'Enter') {
-            submitButton.click();
-        };
-    });
-    
-    modalBody.appendChild(addUsernameLabel);
-    modalBody.appendChild(addUsernameInput);
-    modalBody.appendChild(submitButton);
-
-    usernameModal.appendChild(modalHeader);
-    usernameModal.appendChild(modalTitle);
-    usernameModal.appendChild(modalBody);
-
-    return usernameModal;
-}
-
+}    
 
 // Include (for addRooms()):
     // Option to create new room
@@ -213,9 +233,11 @@ function addRooms(newRooms) {
                         // Message received / returned, but server failed validation
                         if (data.msg === 'prompt_for_username') {
     
+                            // Set submit button onclick for username modal - need to include room to join
+                            setUsernameOnclick(room.name);
+
                             // Open modal to enter username
-                            const usernameModal = createUsernameModal(room.name);
-                            document.body.appendChild(usernameModal);
+                            openModal(document.querySelector('#username-modal'));
                             
                             // Exit early - will call this function again once username is set
                             console.log('Opening modal to set username.');
@@ -238,10 +260,11 @@ function addRooms(newRooms) {
                     
                 })
                 .then((cont) => {
-                    console.log(`Rejoining ? ${cont}`)
+                    console.log(`Rejoining = ${cont}`)
                     if (cont) {
                         leaveAndJoin(username, room.name);
                     }
+
                 })
                 .catch((error) => {
                     console.error(`Issue with prejoin: ${error}`);
@@ -1039,7 +1062,7 @@ function updateLobby(response) {
 
 function createNewRoomModal() {
     // Lookup to dynamically set max capacity (min capacity is 2 for all)
-    const capacityLookup = {'thirty_one': 7, 'cribbage': 3, 'natac': 4};
+    // const capacityLookup = {'thirty_one': 7, 'cribbage': 3, 'natac': 4};
 
     // Modal for setting up a new room
     const newRoomModal = document.createElement('div');

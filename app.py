@@ -971,8 +971,8 @@ if __name__ == "__main__":
     # Instead of app.run (for default flask)
     ### defaults to port 5000 ###
 
-    # socketio.run(app, debug=True, port=5001)  # for debug
-    socketio.run(app)  # for production
+    socketio.run(app, debug=True, port=5001)  # for debug
+    # socketio.run(app)  # for production
 
 # Check flask-socketIO documentation for setting up deployment server:
 # https://flask-socketio.readthedocs.io/en/latest/deployment.html
