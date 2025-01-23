@@ -1221,32 +1221,15 @@ function createNewRoomModal() {
     roomFieldset.appendChild(roomLegend);
     roomFieldset.appendChild(roomContainer);
     roomFieldset.appendChild(pwContainer);
-
-    // const capacityContainer = document.createElement('div');
-    // capacityContainer.id = 'create-room-capacity-container';
-
-    // const capacityLabel = document.createElement('label');
-    // capacityLabel.for = 'create-room-capacity';
-    // capacityLabel.innerHTML = 'Room Capacity: 2 to ';
     
-    // const capacityInput = document.createElement('input');
-    // capacityInput.id = 'create-room-capacity';
-    // capacityInput.type = 'number';
-    // capacityInput.step = '1';
-    // capacityInput.min = '2';
-    // // Eventually max will be determined by which game is chosen
-    // capacityInput.max = '4';
+    form.appendChild(gameFieldset);
+    form.appendChild(roomFieldset);
 
-    // const capacitySpan = document.createElement('span');
-    // capacitySpan.innerText = 'players.'
-
-    // capacityContainer.appendChild(capacityLabel);
-    // capacityContainer.appendChild(capacityInput);
-    
     const submitContainer = document.createElement('div');
     submitContainer.id = 'create-room-submit-container';
     
     const submitButton = document.createElement('button');
+    submitButton.className = 'btn btn-primary';
     submitButton.id = 'create-room-submit';
     submitButton.innerText = 'Create Room';
 
@@ -1300,14 +1283,22 @@ function createNewRoomModal() {
             submitButton.click();
         };
     });
+
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn btn-secondary';
+    cancelButton.id = 'create-room-cancel';
+    cancelButton.innerText = 'Cancel';
+    
+    // Cancel button triggers `close` button
+    cancelButton.onclick = () => {
+        closeButton.click();
+    }
     
     submitContainer.appendChild(submitButton);
+    submitContainer.appendChild(cancelButton);
     
-    form.appendChild(gameFieldset);
-    form.appendChild(roomFieldset);
-    // Removing capacity from the options for the time being
     // Capacity will be defaulted to the max players a game can handle
-    // form.appendChild(capacityContainer);
+    
     form.appendChild(submitContainer);
 
     modalBody.appendChild(form);
