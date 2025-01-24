@@ -109,7 +109,7 @@ function createUsernameModal() {
     
     // Moving close button from header to body for clarity
     const cancelButton = document.createElement('button');
-    cancelButton.className = 'btn btn-danger modal-cancel-button set-username';
+    cancelButton.className = 'btn btn-secondary modal-cancel-button set-username';
     cancelButton.innerText = 'Cancel Join';
     cancelButton.onclick = () => {
         closeModal(usernameModal);
@@ -170,10 +170,133 @@ function setUsernameOnclick(roomToJoin) {
                 .catch((error) => {
                     console.error(`Could not set username: ${error}`);
                 });
-    
         };
     };
 }    
+
+function createPasswordModal() {
+    // Copied from createUsernameModal
+
+    const passwordModal = document.createElement('div');
+    passwordModal.className = 'modal room-password';
+    passwordModal.id = 'password-modal';
+    
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'modal-header room-password';
+    
+    const modalTitle = document.createElement('div');
+    modalTitle.className = 'modal-title room-password';
+    modalTitle.innerText = 'This room requires a password to enter.';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'modal-close-button room-password';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        closeModal(passwordModal);
+    }
+
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeButton);
+    
+    const modalBody = document.createElement('div');
+    modalBody.id = 'password-modal-body';
+    modalBody.className = 'modal-body room-password mt-3 mb-3';
+
+    const labelContainer = document.createElement('span');
+    
+    const roomPasswordLabel = document.createElement('label');
+    roomPasswordLabel.innerText = 'Enter password:';
+    roomPasswordLabel.htmlFor = 'password-modal-input'
+    
+    const inputContainer = document.createElement('span');
+
+    const roomPasswordInput = document.createElement('input');
+    roomPasswordInput.className = 'modal-input';
+    roomPasswordInput.id = 'password-modal-input';
+    roomPasswordInput.type = 'password';
+    roomPasswordInput.autocomplete = 'off';
+    roomPasswordInput.placeholder = 'Enter password';
+    
+    labelContainer.appendChild(roomPasswordLabel);
+    inputContainer.appendChild(roomPasswordInput);
+
+    modalBody.appendChild(labelContainer);
+    modalBody.appendChild(inputContainer);
+
+    const modalFooter = document.createElement('div');
+    modalFooter.className = 'modal-footer room-password';
+
+    const submitButton = document.createElement('button');
+    submitButton.className = 'password-modal-button btn btn-primary form-control w-auto';
+    submitButton.id = 'room-password-submit-button';
+    submitButton.innerText = 'Enter Room';
+
+    // Set submitButton onclick when modal is opened because it contains specific room to join 
+
+    // Set `enter` to send message
+    roomPasswordInput.addEventListener('keyup', (event) => {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            submitButton.click();
+        };
+    });
+    
+    // Moving close button from header to body for clarity
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn btn-secondary modal-cancel-button room-password';
+    cancelButton.innerText = 'Cancel';
+    cancelButton.onclick = () => {
+        closeModal(passwordModal);
+    }
+
+    modalFooter.appendChild(submitButton);
+    modalFooter.appendChild(cancelButton);
+
+    passwordModal.appendChild(modalHeader);
+    passwordModal.appendChild(modalBody);
+    passwordModal.appendChild(modalFooter);
+
+    return passwordModal;
+}
+
+const passwordModal = createPasswordModal();
+document.querySelector('body').appendChild(passwordModal);
+
+function setPasswordOnclick(roomToJoin) {
+
+    document.querySelector('#room-password-submit-button').onclick = () => {
+        // Prevent sending blank input
+        
+        if (document.querySelector('#password-modal-input').value.length > 0) {
+    
+            // Using emitWithAck - for callback. Returns promise
+            const promise = socket.emitWithAck('enter_password', {'password': document.querySelector('#password-modal-input').value, 'room': currentRoom});
+            
+            promise
+                .then((data) => {
+                    // Msg successfully sent / received but server validation failed.
+                    if (!data.accepted) {
+                        console.log(`Error: ${data.msg}`);
+                        return false;
+                    }
+                    
+                    // Successful request, enter room.
+    
+                    // Close modal
+                    closeModal(document.querySelector('#password-modal'));
+                    
+                    // Join new room
+                    document.querySelector('#room-tr-' + roomToJoin).click();
+    
+                })
+                .catch((error) => {
+                    console.error(`Could not enter password: ${error}`);
+                });
+        };
+    };
+}    
+
+
 
 // Include (for addRooms()):
     // Option to create new room
@@ -225,20 +348,30 @@ function addRooms(newRooms) {
             // First time, no username -> prompt player to set username and only proceed when done
             // First time, username -> registered user, no action
 
-            if (username && username.length > 0) {
-                console.log(`Username found; joining ${room.name}`);
-                leaveAndJoin(username, room.name);
-                return;
+            // Get room password from modal input, send to server with preJoin
+            let roomPassword = ''
+
+            if (document.querySelector('#password-modal-input').value) {
+                roomPassword = document.querySelector('#password-modal-input').value
             }
 
+            // I think this was cause of user entering room with no password bug.  
+            // This bypassed server password check. All requests must go through prejoin.
+            // if (username && username.length > 0) {
+            //     console.log(`Username found; joining ${room.name}`);
+            //     leaveAndJoin(username, room.name);
+            //     return;
+            // }
+
             // preJoin is async function; handled as a Promise
-            const promise = preJoin(room.name);
+            const promise = preJoin(room.name, roomPassword);
 
             promise
                 .then((data) => {
                     if (!data.can_join) {
                         // Message received / returned, but server failed validation
                         if (data.msg === 'prompt_for_username') {
+                            console.log('Opening modal to set username.');
     
                             // Set submit button onclick for username modal - need to include room to join
                             setUsernameOnclick(room.name);
@@ -246,15 +379,21 @@ function addRooms(newRooms) {
                             // Open modal to enter username
                             openModal(document.querySelector('#username-modal'));
                             
-                            // Exit early - will call this function again once username is set
-                            console.log('Opening modal to set username.');
                         }
+
                         else if (data.msg === 'prompt_for_password') {
-                            console.log('TODO: Create modal to enter passwords');
+                            console.log('Opening modal to enter password');
+                            
+                            // Set submit button onclick for password modal
+                            setPasswordOnclick(room.name);
+
+                            openModal(document.querySelector('#password-modal'));
                         }
+
                         else {
                             console.log(`Prejoin failed: ${data.msg}`);
                         }
+                        
                         return false;
                     }
 
@@ -295,10 +434,11 @@ function addRooms(newRooms) {
         tdplayers.innerText = `${room.clients_connected} / ${room.capacity}`;
         row.appendChild(tdplayers);
         
-        const tdcreator = document.createElement('td');
-        tdcreator.className = 'room-td';
-        tdcreator.innerText = room.creator;
-        row.appendChild(tdcreator);
+        // Removing created by
+        // const tdcreator = document.createElement('td');
+        // tdcreator.className = 'room-td';
+        // tdcreator.innerText = room.creator;
+        // row.appendChild(tdcreator);
         
         const tddate = document.createElement('td');
         tddate.className = 'room-td';
@@ -1006,10 +1146,11 @@ function updateLobby(response) {
         theadPlayers.innerText = 'Players';
         thead.appendChild(theadPlayers);
 
-        const theadCreator = document.createElement('th');
-        theadCreator.id = 'room-thead-creator';
-        theadCreator.innerText = 'Created By';
-        thead.appendChild(theadCreator);
+        // Removing created by
+        // const theadCreator = document.createElement('th');
+        // theadCreator.id = 'room-thead-creator';
+        // theadCreator.innerText = 'Created By';
+        // thead.appendChild(theadCreator);
 
         const theadDate = document.createElement('th');
         theadDate.id = 'room-thead-date_created';
@@ -1755,11 +1896,11 @@ async function preJoin(room, pw) {
             return { 'can_join': true };
         }
         // Using emitWithAck for callback; Returns promise.
-        const response = await socket.emitWithAck('prejoin', {'room': room});
-        console.log('Response on prejoin:');
-        for (const [key, value] of Object.entries(response)) {
-            console.log(`${key}: ${value}`);
-        }
+        const response = await socket.emitWithAck('prejoin', {'room': room, 'password': pw});
+        // console.log('Response on prejoin:');
+        // for (const [key, value] of Object.entries(response)) {
+        //     console.log(`${key}: ${value}`);
+        // }
         return response;
     }
     catch(err) {

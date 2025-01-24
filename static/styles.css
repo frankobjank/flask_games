@@ -245,6 +245,10 @@ footer {
     max-height: 30%;
 }
 
+#password-modal {
+    max-height: 30%;
+}
+
 #create-room-modal {
     max-height: 60%;
 }
