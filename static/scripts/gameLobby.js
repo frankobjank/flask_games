@@ -269,29 +269,8 @@ function setPasswordOnclick(roomToJoin) {
         
         if (document.querySelector('#password-modal-input').value.length > 0) {
     
-            // Using emitWithAck - for callback. Returns promise
-            const promise = socket.emitWithAck('enter_password', {'password': document.querySelector('#password-modal-input').value, 'room': currentRoom});
-            
-            promise
-                .then((data) => {
-                    // Msg successfully sent / received but server validation failed.
-                    if (!data.accepted) {
-                        console.log(`Error: ${data.msg}`);
-                        return false;
-                    }
-                    
-                    // Successful request, enter room.
-    
-                    // Close modal
-                    closeModal(document.querySelector('#password-modal'));
-                    
-                    // Join new room
-                    document.querySelector('#room-tr-' + roomToJoin).click();
-    
-                })
-                .catch((error) => {
-                    console.error(`Could not enter password: ${error}`);
-                });
+            // Join new room
+            document.querySelector('#room-tr-' + roomToJoin).click();
         };
     };
 }    
@@ -339,15 +318,6 @@ function addRooms(newRooms) {
         row.onclick = () => {
             console.log('Row onclick')
 
-            // // Prevent joining game room if username not set
-            // if (currentRoom === 'lobby' && (username === '' || username === undefined)) {
-                
-            // Rejoining, no username -> should not be possible
-            // Rejoining, username -> do not prompt player for username; 
-                // get username from previous join
-            // First time, no username -> prompt player to set username and only proceed when done
-            // First time, username -> registered user, no action
-
             // Get room password from modal input, send to server with preJoin
             let roomPassword = ''
 
@@ -355,19 +325,18 @@ function addRooms(newRooms) {
                 roomPassword = document.querySelector('#password-modal-input').value
             }
 
-            // I think this was cause of user entering room with no password bug.  
-            // This bypassed server password check. All requests must go through prejoin.
-            // if (username && username.length > 0) {
-            //     console.log(`Username found; joining ${room.name}`);
-            //     leaveAndJoin(username, room.name);
-            //     return;
-            // }
-
             // preJoin is async function; handled as a Promise
             const promise = preJoin(room.name, roomPassword);
 
             promise
                 .then((data) => {
+                    
+                    // Check password first. Close and reset password modal if correct.
+                    if (data.password_accepted) {
+                        closeModal(document.querySelector('#password-modal'));
+                        document.querySelector('#password-modal-input').value = '';
+                    }
+
                     if (!data.can_join) {
                         // Message received / returned, but server failed validation
                         if (data.msg === 'prompt_for_username') {
@@ -401,6 +370,7 @@ function addRooms(newRooms) {
                     if (data.username && data.username.length > 0) {
                         username = data.username;
                     }
+
                     console.log('Join is allowed.');
                     return true;                        
                     
@@ -1159,7 +1129,7 @@ function updateLobby(response) {
 
         const theadInProgress = document.createElement('th');
         theadInProgress.id = 'room-thead-in_progress';
-        theadInProgress.innerText = 'Game Running?';
+        theadInProgress.innerText = 'Game in progress';
         thead.appendChild(theadInProgress);
         // -- End Lobby thead --
 

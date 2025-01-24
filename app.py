@@ -256,62 +256,6 @@ def on_set_username(data):
     return {"username": username, "accepted": True}
 
 
-@socketio.on("enter_password")
-def on_enter_password(data):
-    username = data.get("username_request", "")
-
-    if len(fl.session.get("username", "")) > 0:
-        print("Canceling Set Username request: username already set.")
-        # Sending callback received to `emitWithAck`
-        return {"msg": "Canceling Set Username request: username already set.", "accepted": False}
-    
-    validation = validate_name_input(name=username, max_len=12)
-
-    if not validation["accepted"]:
-        print(validation["msg"])
-        return {"msg": validation["msg"], "accepted": False}
-    
-    # TODO username validation - check db for duplicate, check existing rooms for duplicate
-
-    # TODO If username is accepted, add to database ! As a temporary user. 
-    # Temporary user can be anyone in db who doesn't have a password
-    # On cleanup (every 3 hours?) users who are in DB without a password who were created over 24 hours ago can be deleted. First check if they are currently in any room.
-
-    # Check for dupe name in all rooms
-    # This double loop is inefficient -
-        # Can optimize by storing all users not in db in a set to check against
-        # This would eliminate duplicates between rooms
-        # Maybe store all usernames in a db, with temporary flag for those who did not create an account? and temporary entry is deleted .. 24 hours after last disconnect?
-        # When this cleanup is run, rooms not used for 24 hours should also be deleted
-    for room in rooms.values():
-        for user in room.users:
-            # This doesn't allow anyone to re-join, adding check for cookie
-            # if user.name == username:
-            if user.name == username and user.session_cookie != fl.session["session_cookie"]:
-                msg = "Canceling Set Username request: username already taken."
-                print(msg)
-                return {"msg": msg, "accepted": False}
-    
-    # Update name in session dict and in room's user list
-    # I think session may not be able to updated on a websocket event
-    # See below - name will be updated via room `users`
-    fl.session["username"] = username
-    
-    # Use session id to see if user already exists in lobby (i.e. on reconnection)
-    # If found, set user.name to name requested
-    # Setting username should only happen in lobby, therefore only need to search lobby to find user
-    # Can make users a dict to shorten lookup time?
-    for user in rooms["lobby"].users:
-        if fl.session["session_cookie"] == user.session_cookie and len(user.name) == 0:
-            
-            user.name = username
-            # Break after first match
-            break
-    
-    # Return accepted username and response True
-    return {"username": username, "accepted": True}
-
-
 @socketio.on("prejoin")
 def on_prejoin(data):
     # Validate user join request and find if user has joined before - to recover username
@@ -348,16 +292,16 @@ def on_prejoin(data):
             response["msg"] = "incorrect_password"
             return response
         
-        # If password correct, implicitly proceed
+        # Password implicitly correct, proceed
         print("Password correct; proceeding to other checks.")
 
     # Check if user is rejoining; if rejoining will not need to set a username
-    # TODO Can also use IP address for this, as browser crash or taking a break and
-    # resuming later are still big issues
     print("Checking session cookie for rejoin")
     for user in rooms[data["room"]].users:
         
         # Check if session cookie matches 
+        # TODO Can also use IP address for this, as browser crash or taking a break and
+        # resuming later are still big issues    
         if user.session_cookie == fl.session["session_cookie"]:
             
             # User must NOT be connected in order to rejoin
