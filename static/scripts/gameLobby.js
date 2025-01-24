@@ -48,38 +48,46 @@ function createUsernameModal() {
     
     const modalHeader = document.createElement('div');
     modalHeader.className = 'modal-header set-username';
-    modalHeader.innerText = 'Please enter a username to enter the room.'
-
-    // const closeButton = document.createElement('button');
-    // closeButton.className = 'modal-close-button set-username';
-    // closeButton.innerHTML = '&times;';
-    // closeButton.onclick = () => {
-    //     closeModal(usernameModal);
-    // }
-
-    // modalHeader.appendChild(closeButton);
     
     const modalTitle = document.createElement('div');
     modalTitle.className = 'modal-title set-username';
-    modalTitle.innerText = 'Enter a name:';
+    modalTitle.innerText = 'Please enter a username to enter the room.';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'modal-close-button set-username';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        closeModal(usernameModal);
+    }
+
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeButton);
     
     const modalBody = document.createElement('div');
     modalBody.id = 'username-modal-body';
-    modalBody.className = 'modal-body set-username';
+    modalBody.className = 'modal-body set-username mt-3 mb-3';
 
+    const labelContainer = document.createElement('span');
+    
     const addUsernameLabel = document.createElement('label');
+    addUsernameLabel.innerText = 'Enter a name:';
     addUsernameLabel.htmlFor = 'username-modal-input'
+    
+    const inputContainer = document.createElement('span');
 
     const addUsernameInput = document.createElement('input');
-    addUsernameInput.className = 'modal-input form-control w-auto';
+    addUsernameInput.className = 'modal-input';
     addUsernameInput.id = 'username-modal-input';
     addUsernameInput.type = 'text';
     addUsernameInput.autocomplete = 'off';
     addUsernameInput.placeholder = 'Enter username';
     addUsernameInput.pattern = nameValidation;
+    
+    labelContainer.appendChild(addUsernameLabel);
+    inputContainer.appendChild(addUsernameInput);
 
-    modalBody.appendChild(addUsernameLabel);
-    modalBody.appendChild(addUsernameInput);
+    modalBody.appendChild(labelContainer);
+    modalBody.appendChild(inputContainer);
 
     const modalFooter = document.createElement('div');
     modalFooter.className = 'modal-footer set-username';
@@ -100,18 +108,17 @@ function createUsernameModal() {
     });
     
     // Moving close button from header to body for clarity
-    const closeButton = document.createElement('button');
-    closeButton.className = 'btn btn-danger modal-cancel-button set-username';
-    closeButton.innerText = 'Cancel Join';
-    closeButton.onclick = () => {
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn btn-danger modal-cancel-button set-username';
+    cancelButton.innerText = 'Cancel Join';
+    cancelButton.onclick = () => {
         closeModal(usernameModal);
     }
 
     modalFooter.appendChild(submitButton);
-    modalFooter.appendChild(closeButton);
+    modalFooter.appendChild(cancelButton);
 
     usernameModal.appendChild(modalHeader);
-    usernameModal.appendChild(modalTitle);
     usernameModal.appendChild(modalBody);
     usernameModal.appendChild(modalFooter);
 

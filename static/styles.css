@@ -144,9 +144,10 @@ footer {
     align-items: center; /* Align panels vertically in the middle */
 }
 
-#username-input {
-    display: inline-flex;
-}
+/* Removed this from DOM */
+/* #username-input { */
+    /* display: inline-flex; */
+/* } */
 
 /* For hover on lobby room table */
 .room-table .room-tbody .room-tr:hover .room-td {
@@ -173,7 +174,7 @@ footer {
     background-color: rgb(255, 255, 255);
     width: 500px;
     max-width: 80%;
-    max-height: 80%;
+    /* max-height: 80%; */
 }
 
 .modal.active {
@@ -211,7 +212,13 @@ footer {
 }
 
 .modal-body {
-    padding: 10px 15px;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+/* Override bootstrap border for modal footers */
+.modal-footer {
+    border: none;
 }
 
 #modal-overlay {
@@ -233,12 +240,17 @@ footer {
     pointer-events: all;
 }
 
-input[type="radio"]{
-    appearance: none;  /* Remove circles from radio inputs */
+/* Set different heights depending on how much needs to fit on modal */
+#username-modal {
+    max-height: 30%;
 }
 
-.form-control {
-    margin: 1rem;
+#create-room-modal {
+    max-height: 60%;
+}
+
+input[type="radio"]{
+    appearance: none;  /* Remove circles from radio inputs */
 }
 
 /* Game */

@@ -175,10 +175,16 @@ def on_create_room(data):
     #     print(msg)
     #     return {"msg": msg, "accepted": False}
     
+    # Set password to empty string if not given, else generate hash
+    password = data.get("password", "")
+    if len(password) == 0:
+        roompw = ""
+    else:
+        roompw = ws.generate_password_hash(password)
+
     # Add room to dict (and database)
-    
     rooms[new_room_name] = Room(name=new_room_name,
-                                roompw=ws.generate_password_hash(data.get("password", "")), 
+                                roompw=roompw, 
                                 game_name=data["game"],
                                 capacity=GAMES_TO_CAPACITY[data["game"]],
                                 date_created=int(time()),
