@@ -131,41 +131,42 @@ document.querySelector('body').appendChild(usernameModal);
 function setUsernameOnclick(roomToJoin) {
 
     document.querySelector('#set-username-submit-button').onclick = () => {
-        // Prevent sending blank input
         
+        // Prevent sending blank input
         if (document.querySelector('#username-modal-input').value.length > 0) {
-    
-            // Using emitWithAck - for callback. Returns promise
-            const promise = socket.emitWithAck('set_username', {'username_request': document.querySelector('#username-modal-input').value, 'room': currentRoom});
             
-            promise
-                .then((data) => {
-                    // Msg successfully sent / received but server validation failed.
-                    if (!data.accepted) {
-                        console.log(`Error: ${data.msg}`);
-                        return data.accepted;
-                    }
+            document.querySelector('#room-tr-' + roomToJoin).click();
+            // // Using emitWithAck - for callback. Returns promise
+            // const promise = socket.emitWithAck('set_username', {'username_request': document.querySelector('#username-modal-input').value, 'room': currentRoom});
+            
+            // promise
+            //     .then((data) => {
+            //         // Msg successfully sent / received but server validation failed.
+            //         if (!data.accepted) {
+            //             console.log(`Error: ${data.msg}`);
+            //             return data.accepted;
+            //         }
                     
-                    // Successful request, add username.
-                    username = data.username;
-                    document.querySelector('#room-tr-' + roomToJoin).dataset.roomUsername = data.username;
-                    console.log(`Username successfully added: ${data.username}.`);
+            //         // Successful request, add username.
+            //         username = data.username;
+            //         document.querySelector('#room-tr-' + roomToJoin).dataset.roomUsername = data.username;
+            //         console.log(`Username successfully added: ${data.username}.`);
                         
-                    // Close modal and reset input
-                    closeModal(document.querySelector('#username-modal'));
-                    document.querySelector('#username-modal-input').value = '';
+            //         // Close modal and reset input
+            //         closeModal(document.querySelector('#username-modal'));
+            //         document.querySelector('#username-modal-input').value = '';
                     
-                    // Start leave and join process
-                    leaveAndJoin(username, roomToJoin);
+            //         // Start leave and join process
+            //         leaveAndJoin(username, roomToJoin);
                     
-                    // Row Onclick calls prejoin - since name has been set, should pass prejoin
-                    // This feels circular - row.onclick opened this modal and resolving the modal activates the onclick to join the room
-                    // There is probably a way to do this with promises, not sure which way is 'better'
-                    // document.querySelector('#room-tr-' + roomToJoin).click();
-                })
-                .catch((error) => {
-                    console.error(`Could not set username: ${error}`);
-                });
+            //         // Row Onclick calls prejoin - since name has been set, should pass prejoin
+            //         // This feels circular - row.onclick opened this modal and resolving the modal activates the onclick to join the room
+            //         // There is probably a way to do this with promises, not sure which way is 'better'
+            //         // document.querySelector('#room-tr-' + roomToJoin).click();
+            //     })
+            //     .catch((error) => {
+            //         console.error(`Could not set username: ${error}`);
+            //     });
         };
     };
 }    
@@ -308,7 +309,8 @@ function setPasswordOnclick(roomToJoin) {
     else {
         
         usernameInput.readOnly = false;
-        usernameInput.value = '';
+        // Should be happening automatically on modal close
+        // usernameInput.value = '';
     }
 
     document.querySelector('#room-password-submit-button').onclick = () => {
@@ -359,6 +361,7 @@ function addRooms(newRooms) {
         const row = document.createElement('tr');
         row.className = 'room-tr';
         row.id = 'room-tr-' + room.name;
+        // The problem is this is reset every lobby reload - server could send info
         row.dataset.roomUsername = '';
 
         // Adding onclick to row instead of using button or anchor
@@ -366,14 +369,20 @@ function addRooms(newRooms) {
         row.onclick = () => {
             console.log('Row onclick')
 
-            if (room.pw_flag) {
-                // If room has password, hand prejoin processing to password modal
-                openModal(document.querySelector('#password-modal'));
-                return;
+            let reqUsername = '';
+
+            // Use different usernames for prejoin depending on password flag 
+            // different modals are used depending on existence of password
+            if (room.pw_flag > 0) {
+                reqUsername = document.querySelector('#combined-username-modal-input').value;
+            }
+            else {
+                reqUsername = document.querySelector('#username-modal-input').value;
             }
 
             // preJoin is async function; handled as a Promise
-            const promise = preJoin(room.name, roomPassword);
+            const promise = preJoin(room.name, document.querySelector('#password-modal-input').value,
+                                    reqUsername);
 
             promise
                 .then((data) => {
@@ -392,9 +401,13 @@ function addRooms(newRooms) {
                         else if (data.ask === 'password') {
                             console.log('Opening modal to enter password');
                             
+                            // Pass username to row data if username found
+                            if (data.username && data.username.length > 0) {
+                                row.dataset.roomUsername = data.username;
+                            }
+                            
                             // Set submit button onclick for password modal
                             setPasswordOnclick(room.name);
-
                             openModal(document.querySelector('#password-modal'));
                         }
 
@@ -408,6 +421,7 @@ function addRooms(newRooms) {
                     // Set username if found
                     if (data.username && data.username.length > 0) {
                         username = data.username;
+                        row.dataset.roomUsername = data.username;
                     }
 
                     console.log('Join is allowed.');
@@ -1888,6 +1902,12 @@ function closeModal(modal) {
     if (modal == null) return;
     modal.classList.remove('active');
     modalOverlay.classList.remove('active');
+
+    // Clear all modal input values on close
+    let inputs = modal.querySelectorAll('input');
+    inputs.forEach(i => {
+        i.value = '';
+    });
 }
 
 // Socket functions / events
@@ -1903,7 +1923,7 @@ function joinRoom(room, requestedName='') {
 }
 
 // Check if user has been to room and can get username from server; also if user can join room
-async function preJoin(room, roompw) {
+async function preJoin(room, roompw, reqUsername) {
     console.log('Prejoin called');
     
     try {
@@ -1913,7 +1933,7 @@ async function preJoin(room, roompw) {
             return { 'can_join': true };
         }
         // Using emitWithAck for callback; Returns promise.
-        const response = await socket.emitWithAck('prejoin', {'room': room, 'password': roompw});
+        const response = await socket.emitWithAck('prejoin', {'room': room, 'password': roompw, 'req_username': reqUsername});
         // console.log('Response on prejoin:');
         // for (const [key, value] of Object.entries(response)) {
         //     console.log(`${key}: ${value}`);
@@ -1961,9 +1981,11 @@ function leaveAndJoin(username, newRoom) {
 
             joinRoom(newRoom, username);
 
-            // Empty password and username modals on successful join
-            document.querySelector('#username-modal-input').value = '';
-            document.querySelector('#password-modal-input').value = '';
+            // Close all open modals (and clear all inputs)
+            const modals = document.querySelectorAll('.modal.active');
+            modals.forEach(modal => {
+                closeModal(modal);
+            })
         })
         .catch((error) => {
             console.log(`Could not leave ${currentRoom}: ${error}`);

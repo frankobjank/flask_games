@@ -270,15 +270,8 @@ def on_prejoin(data):
     
     # BELOW CODE APPLIES ONLY TO GAMEROOMS - NOT LOBBY
 
-    # Check if room is password-protected
-    if len(rooms[data["room"]].roompw) > 0:
-        
-        # Check if password given is correct
-        if not check_room_password(actual_roompw=rooms[data["room"]].roompw, user_roompw=data.get("password", "")):
-            response["can_join"] = False
-            response["msg"] = "Incorrect password."
-            response["ask"] = "password"
-            return response
+    # If can_join is set to true, do not return so additional checks can be made
+    # Check for password AT THE END so that username can be retrieved before password checks are made
 
     # Check if room is full
     if rooms[data["room"]].is_full():
@@ -297,12 +290,13 @@ def on_prejoin(data):
             
             # User must NOT be connected in order to rejoin
             if not user.connected:
-
+                    
                 response["can_join"] = True
                 response["username"] = user.name    
                 # Update sid in user object - redundant with join - maybe this should happen on join only
                 user.sid = fl.request.sid
                 break
+
 
             # If user is still is connected, prevent from joining
             elif user.connected:
@@ -325,21 +319,19 @@ def on_prejoin(data):
             if len(fl.session.get("username", "")) > 0:
                 response["can_join"] = True
                 response["username"] = fl.session["username"]
-                return response
             
-            # Else, not registered and must enter a username
+            # Else, not registered check username if provided
             if len(data.get("req_username", "")) > 0:
 
                 # Username accepted, allow client to join
-                if check_username_request(req_username=data.get("req_username", ""),
+                if check_username_request(req_username=data["req_username"],
                                           cookie_to_compare=fl.session["session_cookie"], rooms=rooms):
-                    
+                    response["username"] = data["req_username"]
                     response["can_join"] = True
-                    return response
                 
                 else:
                     response["can_join"] = False
-                    response["msg"] = "Please enter a name."
+                    response["msg"] = "Name not valid."
                     
                     # Tell client to use password modal if room is password protected
                     if len(rooms[data["room"]].roompw) > 0:
@@ -350,6 +342,17 @@ def on_prejoin(data):
                         response["ask"] = "username"
                     
                     return response
+            
+            # Request username
+            else:
+                response["can_join"] = False
+                response["msg"] = "Please enter a name."
+                
+                if len(rooms[data["room"]].roompw) > 0:
+                    response["ask"] = "password"
+                else:
+                    response["ask"] = "username"
+                return response
         
     # User was found; make sure name isn't taken
     elif len(response["username"]) > 0:
@@ -357,7 +360,17 @@ def on_prejoin(data):
             response["can_join"] = False
             response["msg"] = "name_taken"
             return response
-    
+        
+    # Check if room is password-protected - save until end to gather username info first
+    if len(rooms[data["room"]].roompw) > 0:
+        
+        # Check if password given is correct
+        if not check_room_password(actual_roompw=rooms[data["room"]].roompw, user_roompw=data.get("password", "")):
+            response["can_join"] = False
+            response["msg"] = "Incorrect password."
+            response["ask"] = "password"
+            return response
+        
     # Did not hit any early exits;
     print(f"End of prejoin checks; returning = {response}")
     return response
