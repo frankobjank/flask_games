@@ -1846,11 +1846,11 @@ function closeModal(modal) {
 // Socket functions / events
 
 // Join room
-function joinRoom(room) {
+function joinRoom(room, requestedName='') {
     console.log('Client join event.');
     
     // Pass name of room to server
-    socket.emit('join', {'room': room});
+    socket.emit('join', {'room': room, 'username': requestedName});
     
     // Server checks for game state on join and load game if game is in progress
 }
@@ -1909,7 +1909,7 @@ function leaveAndJoin(username, newRoom) {
             // On successful leave, teardown will be requested by server
             console.log(`Successfully left ${currentRoom}.`);
 
-            joinRoom(newRoom);
+            joinRoom(newRoom, username);
         })
         .catch((error) => {
             console.log(`Could not leave ${currentRoom}: ${error}`);

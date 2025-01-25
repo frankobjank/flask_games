@@ -205,9 +205,9 @@ def on_set_username(data):
     username = data.get("username_request", "")
 
     if len(fl.session.get("username", "")) > 0:
-        print("Canceling Set Username request: username already set.")
+        print("Canceling Set Username request: user is registered user.")
         # Sending callback received to `emitWithAck`
-        return {"msg": "Canceling Set Username request: username already set.", "accepted": False}
+        return {"msg": "Canceling Set Username request: user is registered user.", "accepted": False}
     
     validation = validate_name_input(name=username, max_len=12)
 
@@ -235,11 +235,6 @@ def on_set_username(data):
                 msg = "Canceling Set Username request: username already taken."
                 print(msg)
                 return {"msg": msg, "accepted": False}
-    
-    # Update name in session dict and in room's user list
-    # I think session may not be able to updated on a websocket event
-    # See below - name will be updated via room `users`
-    fl.session["username"] = username
     
     # Use session id to see if user already exists in lobby (i.e. on reconnection)
     # If found, set user.name to name requested
@@ -309,7 +304,7 @@ def on_prejoin(data):
 
                 response["can_join"] = True
                 response["username"] = user.name    
-                # Update sid in user object
+                # Update sid in user object - redundant with join - maybe this should happen on join only
                 user.sid = fl.request.sid
                 break
 
@@ -336,7 +331,7 @@ def on_prejoin(data):
         
     # User was found; make sure name isn't taken
     elif len(response["username"]) > 0:
-        if fl.session.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
+        if response["username"] in [user.name for user in rooms[data["room"]].users if user.connected]:
             response["can_join"] = False
             response["msg"] = "name_taken"
             return response
@@ -365,16 +360,16 @@ def on_join(data):
 
         # Initial setup - room infrastructure
         fio.emit("update_lobby", {"action": "setup_room", "room": data["room"],
-                 "username": fl.session.get("username", "")}, to=fl.request.sid)
+                 "username": data.get("username", "")}, to=fl.request.sid)
         
         # Join the room
         fio.join_room(data["room"])
         
-        print(f"{fl.session.get('username', '(Name not in flask session)')} joined {data['room']}.")
+        print(f"{fl.session.get('username', 'Non-registered_user')} joined {data['room']}.")
         
         # Add rooms to lobby (rows in table)
         fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
-                 "username": fl.session.get("username", ""), 
+                 "username": data.get("username", ""), 
                  "rooms": [room.package_self() for room in rooms.values()
                            if room.name != "lobby"]}, to=fl.request.sid)
         
@@ -414,7 +409,7 @@ def on_join(data):
         #     return msg
         
         # Ensure username does not conflict with anyone in room - should be a validation in set_username?
-        if fl.session.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
+        if data.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
             msg = "Someone in the room has the same name as you; cannot join."
             print(msg)
             fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
@@ -423,10 +418,8 @@ def on_join(data):
     # Initiate user object for use below
     user = None
 
-        # - a step that will happen right before calling join to know whether to prompt user for name
-    
     # This loop may be redundant, but not sure user.connected should be set to true during prejoin
-    # So 2 loops may be necessary
+        # 2 loops may be necessary
 
     for room_user in rooms[data["room"]].users:
         # Use session cookie to see if user exists in room already; update sid and connection status
@@ -447,7 +440,7 @@ def on_join(data):
     # Check if username is set (would not be set for a non-registered user)
     if not user:
         # Check username exists
-        if len(fl.session.get("username", "")) == 0:
+        if len(data.get("username", "")) == 0:
             # If client receives this in callback, should bring up username modal.
             return "prompt_for_username"
 
@@ -462,7 +455,7 @@ def on_join(data):
         # If username exists and no existing user matches, create new user object.
         # If a user connects to multiple rooms, a new user object will be created for each one.
         user = User(
-            name = fl.session.get("username", ""), 
+            name = data.get("username", ""), 
             session_cookie = fl.session.get("session_cookie", ""), 
             sid = fl.request.sid,
             connected = True
@@ -483,16 +476,11 @@ def on_join(data):
     #     print(f"Random name chosen = {user.name}")
 
 
-    # Store username in session if username is not set yet
-    if len(fl.session.get("username", "")) == 0:
-        fl.session["username"] = user.name
-
-
     # For game room
     # Set up client's username on their end
     # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
-    fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"],
-                "username": user.name}, to=fl.request.sid)
+    fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"], "username": user.name},
+             to=fl.request.sid)
     
     print(f"Users on join: {rooms[data['room']].users} after processing.")
 
@@ -568,7 +556,9 @@ def on_leave(data):
     # In lieu of removing user from room users dict:
     # Set connected to False so that user persists
     for user in rooms[data["room"]].users:
-        if fl.session["session_cookie"] == user.session_cookie and fl.session["username"] == user.name:
+
+        # Check session cookie and sid to identify correct user
+        if fl.session["session_cookie"] == user.session_cookie and fl.request.sid == user.sid:
             user.connected = False
             
 
@@ -577,6 +567,7 @@ def on_leave(data):
         fio.emit("update_lobby", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
 
         # Will update lobby player counts when leaving game room, but not lobby
+            # since lobby count is irrelevant
 
         # Exit early
         return "Server callback: successful leave."
@@ -623,7 +614,7 @@ def on_leave(data):
 def on_move(data):
 
     # For debug:
-    print(f"Received move event `{data['action']}` from client `{fl.session.get('username')}`.")
+    print(f"Received move event `{data['action']}` from sid `{fl.request.sid}`.")
     
     # If client requests start, check number of players in room
     if data["action"] == "start":
@@ -664,12 +655,19 @@ def on_move(data):
                  "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
         return
     
-    # Check that username is current player if game has started
-    # Only allow input from all players to click continue during round ending
-    if game.in_progress and game.mode != "end_round" and fl.session.get("username", "") != game.current_player:
+    # Loop through room's users to find player name
+    player = None
+
+    for user in rooms[data["room"]].users:
+        if user.connected and user.sid == fl.request.sid:
+            player = user
+
+    # If game has started, check that username is current player
+    # Only allow input from all players to click continue during round ending (for 31)
+    if game.in_progress and game.mode != "end_round" and player.name != game.current_player:
         
         print("Not accepting move from non-current player while game is in progress.")
-        fio.emit("debug_msg", {"msg":f"Server rejected move request; Client not current player."},
+        fio.emit("debug_msg", {"msg":f"Server rejected move request; {player.name} not current player."},
                  to=fl.request.sid)
         
         return
@@ -678,7 +676,7 @@ def on_move(data):
     if game.update(data) == "reject":
         
         # Send on server reject
-        print(f"Rejecting `{data['action']}` from `{fl.session.get('username')}`")
+        print(f"Rejecting `{data['action']}` from `{player.name}`")
         fio.emit("debug_msg", {"msg": f"Server rejected move event `{data['action']}`"}, 
                 to=fl.request.sid)
 
@@ -693,7 +691,6 @@ def on_move(data):
             response = game.package_state(username)
             
             # have to specify the 'to' parameter of 'emit' to send to specific player
-            # is sid needed for this? Not sure how to get all the sids of everyone in room
             print(f"Sending response: \n{response} \non {data['action']}")
             
             fio.emit("update_board", response, to=response["sid"], room=data["room"])
@@ -732,17 +729,18 @@ def on_debug_msg(data):
     print("debug msg\n\n")
     print(data)
 
+
 @socketio.on("disconnect")
 def on_disconnect():
     print(f"Session on disconnect: {fl.session}")
 
-    # Getting username via flask session
-    print("On disconnect; getting username via flask session.")
-    username = fl.session.get("username", "")
+    # # Getting username via flask session
+    # print("On disconnect; getting username via flask session.")
+    # username = fl.session.get("username", "")
     
-    if len(username) == 0:
-        print("Username not found, exiting on_disconnect")
-        return
+    # if len(username) == 0:
+    #     print("Username not found, exiting on_disconnect")
+    #     return
 
     # If username available, remove from rooms
 
@@ -752,8 +750,10 @@ def on_disconnect():
     for room_name, room_object in rooms.items():
         for user in room_object.users:
 
-            # Added session cookie validation to avoid removing the wrong user
-            if user.name == username and user.session_cookie == fl.session["session_cookie"]:
+            # Removing player name since there is no guaranteed universal usernames across the app
+            # For now using session cookie, though storing session cookie only one session cookie
+                # in flask might be problematic if user opens multiple sessions on one computer.
+            if user.session_cookie == fl.session["session_cookie"]:
                 user.connected = False
                 
                 # Remove player if no game
@@ -778,7 +778,6 @@ def on_disconnect():
                         print(f"Sending update to room {room_name} to remove `{user.name}`")
                     
                     # If game is in progress, let other clients in room know that the player has disconnected 
-                    # Can add visual indicator on client-side
                     else:
                         print("Game exists and is in progress; sending disconnect notice to other clients.")
 
@@ -788,15 +787,7 @@ def on_disconnect():
 # -- End FlaskSocketIO -- #
 
 
-# -- Account Management -- 
-# @app.route("/set_username")
-# def set_username():
-#     fl.session["last_page"] = fl.url_for("set_username")
-#     fl.session["session_cookie"] = fl.request.cookies.get("session")
-
-#     return fl.render_template("set_username.html")
-
-
+# -- Account Management --
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""

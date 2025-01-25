@@ -12,7 +12,7 @@ class User:
     def __init__(self, name: str="", session_cookie: str="", sid: str="", connected: bool=False):
         self.name = name
         self.session_cookie = session_cookie
-        self.sid = sid  # A user object is unique to a room, so only one sid is needed at any time
+        self.sid = sid  # A `user` object is unique to a room, so only one sid is needed per `user`
         self.connected = connected  # Indicate whether user is connected or disconnected
 
 
@@ -27,7 +27,7 @@ class User:
 class Room:
     def __init__(self, name: str, roompw: str, game_name: str, capacity: int, date_created: int, creator: str):
         self.name = name
-        self.roompw = roompw  # STORED AS HASH
+        self.roompw = roompw  # STORED AS HASH or empty string "" if no pw
         self.game_name = game_name
         self.capacity = capacity
         self.date_created = date_created
