@@ -3,6 +3,7 @@ from functools import wraps
 import random
 import re
 from time import strftime, localtime
+from werkzeug.security import check_password_hash
 
 # Names to randomly assign
 NAMES = ["Henk", "Jenkins", "Stone", "Bubbles", "Pickles", "Skwisgaar", "Gertrude", "Marmaduke", "Geraldine", "Squirrel", "Zacefron", "Ringo", "Thanos"]
@@ -154,3 +155,40 @@ def validate_name_input(name: str, max_len: str) -> dict[str, str|bool]:
     response["accepted"] = True
 
     return response
+
+
+def check_room_password(actual_roompw, user_roompw):        
+    # Check if room password provided is correct
+    return check_password_hash(actual_roompw, user_roompw)
+
+
+def check_username_request(req_username, cookie_to_compare, rooms):
+    
+    validation = validate_name_input(name=req_username, max_len=12)
+
+    if not validation["accepted"]:
+        print(validation["msg"])
+        return False
+    
+    # TODO username validation - check db for duplicate, check existing rooms for duplicate
+
+    # TODO If username is accepted, add to database ! As a temporary user. 
+    # Temporary user can be anyone in db who doesn't have a password
+    # On cleanup (every 3 hours?) users who are in DB without a password who were created over 24 hours ago can be deleted. First check if they are currently in any room.
+
+    # Check for dupe name in all rooms
+    # This double loop is inefficient -
+        # Can optimize by storing all users not in db in a set to check against
+        # This would eliminate duplicates between rooms
+        # Maybe store all usernames in a db, with temporary flag for those who did not create an account? and temporary entry is deleted .. 24 hours after last disconnect?
+        # When this cleanup is run, rooms not used for 24 hours should also be deleted
+    
+    for room in rooms.values():
+        for user in room.users:
+            # Need to check cookie, otherwise did not allow any rejoin
+            if user.name == req_username and user.session_cookie != cookie_to_compare:
+                print("Canceling Set Username request: username already taken.")
+                return False
+    
+    return True
+

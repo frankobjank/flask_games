@@ -236,57 +236,31 @@ def on_set_username(data):
                 print(msg)
                 return {"msg": msg, "accepted": False}
     
-    # Use session id to see if user already exists in lobby (i.e. on reconnection)
-    # If found, set user.name to name requested
-    # Setting username should only happen in lobby, therefore only need to search lobby to find user
-    # Can make users a dict to shorten lookup time?
-    for user in rooms["lobby"].users:
-        if fl.session["session_cookie"] == user.session_cookie and len(user.name) == 0:
+    # # Use session id to see if user already exists in lobby (i.e. on reconnection)
+    # # If found, set user.name to name requested
+    # # Setting username should only happen in lobby, therefore only need to search lobby to find user
+    # # Can make users a dict to shorten lookup time?
+    # for user in rooms["lobby"].users:
+    #     if fl.session["session_cookie"] == user.session_cookie and len(user.name) == 0:
             
-            user.name = username
-            # Break after first match
-            break
+    #         user.name = username
+    #         # Break after first match
+    #         break
     
     # Return accepted username and response True
     return {"username": username, "accepted": True}
 
 
-@socketio.on("room_password_check")
-def on_room_password_check(data):
-    # Validate user join request and find if user has joined before - to recover username
-    response = {
-        "can_join": False,
-        "username": "",
-        "msg": "",
-    }
-    # Check if room is password-protected
-    if len(rooms[data["room"]].roompw) > 0:
-        # Check if user provided password
-        if len(data.get("password", "")) == 0:
-            response["can_join"] = False
-            response["msg"] = "prompt_for_password"
-            return response
-        
-        # Check if provided password is correct
-        elif not ws.check_password_hash(rooms[data["room"]].roompw, data["password"]):
-            response["can_join"] = False
-            response["msg"] = "incorrect_password"
-            return response
-        
-        # Password implicitly correct, proceed
-        print("Password correct; proceeding to other checks.")
-
-
-    return response
-
 # Going to move password check to its own check before prejoin
 @socketio.on("prejoin")
 def on_prejoin(data):
+    # data contains keys: "room", "password", "req_username"
     # Validate user join request and find if user has joined before - to recover username
     response = {
         "can_join": False,
         "username": "",
         "msg": "",
+        "ask": ""
     }
 
     # If lobby, exit check early and allow join
@@ -295,6 +269,16 @@ def on_prejoin(data):
         return response
     
     # BELOW CODE APPLIES ONLY TO GAMEROOMS - NOT LOBBY
+
+    # Check if room is password-protected
+    if len(rooms[data["room"]].roompw) > 0:
+        
+        # Check if password given is correct
+        if not check_room_password(actual_roompw=rooms[data["room"]].roompw, user_roompw=data.get("password", "")):
+            response["can_join"] = False
+            response["msg"] = "Incorrect password."
+            response["ask"] = "password"
+            return response
 
     # Check if room is full
     if rooms[data["room"]].is_full():
@@ -323,23 +307,49 @@ def on_prejoin(data):
             # If user is still is connected, prevent from joining
             elif user.connected:
                 response["can_join"] = False
-                response["msg"] = "name_already_connected"
+                response["msg"] = "This name is already connected."
                 return response
         
     # User was not found
     if len(response["username"]) == 0:
-
+            
         # Check if game is in progress; don't allow new users to join mid-game
         if rooms[data["room"]].game and rooms[data["room"]].game.in_progress:
             response["can_join"] = False
-            response["msg"] = "game_in_progress"
+            response["msg"] = "Cannot join - game is in progress"
             return response
         
         # Game not in progress, but user must set username - i.e. via modal
         else:
-            response["can_join"] = False
-            response["msg"] = "prompt_for_username"
-            return response
+            # Check if user is registered and use name
+            if len(fl.session.get("username", "")) > 0:
+                response["can_join"] = True
+                response["username"] = fl.session["username"]
+                return response
+            
+            # Else, not registered and must enter a username
+            if len(data.get("req_username", "")) > 0:
+
+                # Username accepted, allow client to join
+                if check_username_request(req_username=data.get("req_username", ""),
+                                          cookie_to_compare=fl.session["session_cookie"], rooms=rooms):
+                    
+                    response["can_join"] = True
+                    return response
+                
+                else:
+                    response["can_join"] = False
+                    response["msg"] = "Please enter a name."
+                    
+                    # Tell client to use password modal if room is password protected
+                    if len(rooms[data["room"]].roompw) > 0:
+                        response["ask"] = "password"
+                    
+                    # Or use username modal if no password
+                    else:
+                        response["ask"] = "username"
+                    
+                    return response
         
     # User was found; make sure name isn't taken
     elif len(response["username"]) > 0:
@@ -394,32 +404,6 @@ def on_join(data):
         # Possible solutions: let a user reconnect with the same name and different session cookie if they are a registered user (i.e. check the database, OR create some kind of distinction between registered users and temporary users in the flask session)
     if data["room"] != "lobby":
         
-        # Moved password check and room full check to prejoin
-        # # Check password if room has password
-        # if len(rooms[data["room"]].roompw) > 0:
-        #     if not ws.check_password_hash(rooms[data["room"]].roompw, data.get("password", "")):
-        #         msg = "Incorrect password; Unable to join."
-        #         print(msg)
-        #         fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-        #         return msg
-
-        # Check if room full
-        # if rooms[data["room"]].is_full():
-        #     msg = f"{data['room']} is full; Unable to join."
-        #     print(msg)
-        #     fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-            
-        #     # Should already be in lobby, stay in lobby
-        #     return msg
-
-        # Allow to join with no username; check if user is RE-JOINING in below loop that creates `user` object
-        # # Do not allow client to join non-lobby room with no username
-        # if len(fl.session.get("username", "")) == 0:
-        #     msg = f"Username is not set; cannot join {data['room']}."
-        #     print(msg)
-        #     fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-        #     return msg
-        
         # Ensure username does not conflict with anyone in room - should be a validation in set_username?
         if data.get("username", "") in [user.name for user in rooms[data["room"]].users if user.connected]:
             msg = "Someone in the room has the same name as you; cannot join."
@@ -454,16 +438,8 @@ def on_join(data):
         # Check username exists
         if len(data.get("username", "")) == 0:
             # If client receives this in callback, should bring up username modal.
-            return "prompt_for_username"
+            return "Error: Cannot join; username not set"
 
-        # Moving this to prejoin
-        # # Check if game is in progress; don't allow new users to join mid-game
-        # if rooms[data["room"]].game and rooms[data["room"]].game.in_progress:
-        #     msg = "Game is in progress; Unable to join."
-        #     print(msg)
-        #     fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-        #     return msg
-        
         # If username exists and no existing user matches, create new user object.
         # If a user connects to multiple rooms, a new user object will be created for each one.
         user = User(
@@ -478,19 +454,10 @@ def on_join(data):
 
         print(f"Added user to room {data['room']}")
     
-    # # Assign random name if session cookie not found
-    # if len(user.name) == 0:
-        
-    #     # ALLOW USER TO CREATE THEIR OWN USERNAME - will have to implement on client side
-
-    #     # Pass in current room names to avoid duplicates
-    #     user.name = get_random_name(exclude = {connected_user.name for connected_user in rooms[data["room"]].users})
-    #     print(f"Random name chosen = {user.name}")
-
 
     # For game room
     # Set up client's username on their end
-    # THIS MUST HAPPEN BEFORE ADD_PLAYERS SO USERNAME IS SET
+    # THIS MUST HAPPEN BEFORE <add_players> SO USERNAME IS SET
     fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"], "username": user.name},
              to=fl.request.sid)
     

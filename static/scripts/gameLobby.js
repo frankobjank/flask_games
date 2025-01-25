@@ -148,6 +148,7 @@ function setUsernameOnclick(roomToJoin) {
                     
                     // Successful request, add username.
                     username = data.username;
+                    document.querySelector('#room-tr-' + roomToJoin).dataset.roomUsername = data.username;
                     console.log(`Username successfully added: ${data.username}.`);
                         
                     // Close modal and reset input
@@ -295,12 +296,27 @@ document.querySelector('body').appendChild(passwordModal);
 
 function setPasswordOnclick(roomToJoin) {
 
+    usernameInput = document.querySelector('#combined-username-modal-input');
+    
+    // Fill in username as readonly value in username field if username has been provided for room already
+    if (document.querySelector('#room-tr-' + roomToJoin).dataset.roomUsername.length > 0) {
+        
+        usernameInput.readOnly = true;
+        usernameInput.value = document.querySelector('#room-tr-' + roomToJoin).dataset.roomUsername;
+    }
+    // Otherwise, empty the value and remove readOnly
+    else {
+        
+        usernameInput.readOnly = false;
+        usernameInput.value = '';
+    }
+
     document.querySelector('#room-password-submit-button').onclick = () => {
         
         // Prevent sending blank input
         if (document.querySelector('#password-modal-input').value.length > 0) {
-    
-            // Row onclick to join room - re-runs prejoin with input provided here
+            
+            // Activate row onclick, i.e. prejoin. Can pull values here by id.
             document.querySelector('#room-tr-' + roomToJoin).click();
         };
     };
@@ -343,6 +359,7 @@ function addRooms(newRooms) {
         const row = document.createElement('tr');
         row.className = 'room-tr';
         row.id = 'room-tr-' + room.name;
+        row.dataset.roomUsername = '';
 
         // Adding onclick to row instead of using button or anchor
         // Event listener here is async because there is an await in the function
@@ -350,13 +367,9 @@ function addRooms(newRooms) {
             console.log('Row onclick')
 
             if (room.pw_flag) {
+                // If room has password, hand prejoin processing to password modal
                 openModal(document.querySelector('#password-modal'));
-            }
-            // Get room password from modal input, send to server with preJoin
-            let roomPassword = ''
-
-            if (document.querySelector('#password-modal-input').value) {
-                roomPassword = document.querySelector('#password-modal-input').value;
+                return;
             }
 
             // preJoin is async function; handled as a Promise
@@ -365,16 +378,9 @@ function addRooms(newRooms) {
             promise
                 .then((data) => {
                     
-                    // Might move password check to regular join
-                    // Check password first. Close and reset password modal if correct.
-                    if (data.password_accepted) {
-                        closeModal(document.querySelector('#password-modal'));
-                        document.querySelector('#password-modal-input').value = '';
-                    }
-
                     if (!data.can_join) {
                         // Message received / returned, but server failed validation
-                        if (data.msg === 'prompt_for_username') {
+                        if (data.ask === 'username') {
                             console.log('Opening modal to set username.');
     
                             // Set submit button onclick for username modal - need to include room to join
@@ -383,7 +389,7 @@ function addRooms(newRooms) {
                             openModal(document.querySelector('#username-modal'));
                         }
 
-                        else if (data.msg === 'prompt_for_password') {
+                        else if (data.ask === 'password') {
                             console.log('Opening modal to enter password');
                             
                             // Set submit button onclick for password modal
@@ -418,7 +424,6 @@ function addRooms(newRooms) {
                 .catch((error) => {
                     console.error(`Issue with prejoin: ${error}`);
                 });
-            // }            
         }
 
         const tdname = document.createElement('td');
@@ -1898,7 +1903,7 @@ function joinRoom(room, requestedName='') {
 }
 
 // Check if user has been to room and can get username from server; also if user can join room
-async function preJoin(room, roompw, username) {
+async function preJoin(room, roompw) {
     console.log('Prejoin called');
     
     try {
@@ -1955,6 +1960,10 @@ function leaveAndJoin(username, newRoom) {
             console.log(`Successfully left ${currentRoom}.`);
 
             joinRoom(newRoom, username);
+
+            // Empty password and username modals on successful join
+            document.querySelector('#username-modal-input').value = '';
+            document.querySelector('#password-modal-input').value = '';
         })
         .catch((error) => {
             console.log(`Could not leave ${currentRoom}: ${error}`);
