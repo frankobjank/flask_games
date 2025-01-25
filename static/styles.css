@@ -214,6 +214,7 @@ footer {
 .modal-body {
     display: flex;
     justify-content: space-evenly;
+    align-items: center;
 }
 
 /* Override bootstrap border for modal footers */

@@ -251,6 +251,35 @@ def on_set_username(data):
     return {"username": username, "accepted": True}
 
 
+@socketio.on("room_password_check")
+def on_room_password_check(data):
+    # Validate user join request and find if user has joined before - to recover username
+    response = {
+        "can_join": False,
+        "username": "",
+        "msg": "",
+    }
+    # Check if room is password-protected
+    if len(rooms[data["room"]].roompw) > 0:
+        # Check if user provided password
+        if len(data.get("password", "")) == 0:
+            response["can_join"] = False
+            response["msg"] = "prompt_for_password"
+            return response
+        
+        # Check if provided password is correct
+        elif not ws.check_password_hash(rooms[data["room"]].roompw, data["password"]):
+            response["can_join"] = False
+            response["msg"] = "incorrect_password"
+            return response
+        
+        # Password implicitly correct, proceed
+        print("Password correct; proceeding to other checks.")
+
+
+    return response
+
+# Going to move password check to its own check before prejoin
 @socketio.on("prejoin")
 def on_prejoin(data):
     # Validate user join request and find if user has joined before - to recover username
@@ -273,23 +302,6 @@ def on_prejoin(data):
         response["msg"] = "room_full"
         return response
         
-    # Check if room is password-protected
-    if len(rooms[data["room"]].roompw) > 0:
-        # Check if user provided password
-        if len(data.get("password", "")) == 0:
-            response["can_join"] = False
-            response["msg"] = "prompt_for_password"
-            return response
-        
-        # Check if provided password is correct
-        elif not ws.check_password_hash(rooms[data["room"]].roompw, data["password"]):
-            response["can_join"] = False
-            response["msg"] = "incorrect_password"
-            return response
-        
-        # Password implicitly correct, proceed
-        print("Password correct; proceeding to other checks.")
-
     # Check if user is rejoining; if rejoining will not need to set a username
     print("Checking session cookie for rejoin")
     for user in rooms[data["room"]].users:

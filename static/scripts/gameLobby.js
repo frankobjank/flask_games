@@ -6,7 +6,7 @@ const socket = io();
 // TODO: Add leaveRoom() functions to all nav buttons that direct user to different page
 
 // Client username - assign on connect if not logged into account
-var username;
+let username = '';
 
 // Used on join to keep track of current room
 var currentRoom;
@@ -95,7 +95,7 @@ function createUsernameModal() {
     const submitButton = document.createElement('button');
     submitButton.className = 'username-modal-button btn btn-primary form-control w-auto';
     submitButton.id = 'set-username-submit-button';
-    submitButton.innerText = 'Set Username & Join Room';
+    submitButton.innerText = 'Enter Room';
 
     // Set submitButton onclick when modal is opened because it contains specific room to join 
 
@@ -110,7 +110,7 @@ function createUsernameModal() {
     // Moving close button from header to body for clarity
     const cancelButton = document.createElement('button');
     cancelButton.className = 'btn btn-secondary modal-cancel-button set-username';
-    cancelButton.innerText = 'Cancel Join';
+    cancelButton.innerText = 'Cancel';
     cancelButton.onclick = () => {
         closeModal(usernameModal);
     }
@@ -149,23 +149,18 @@ function setUsernameOnclick(roomToJoin) {
                     // Successful request, add username.
                     username = data.username;
                     console.log(`Username successfully added: ${data.username}.`);
-    
-                    // Remove username input container from lobby header
-                    if (document.querySelector('#username-input-container') !== null) {
-                        document.querySelector('#lobby-username-container').removeChild(document.querySelector('#username-input-container'))
-                    }
-    
-                    // Add welcome to lobby
-                    const welcome = createWelcome();
-                    document.querySelector('#lobby-username-container').appendChild(welcome);
-                    
-                    // Close modal
+                        
+                    // Close modal and reset input
                     closeModal(document.querySelector('#username-modal'));
-    
+                    document.querySelector('#username-modal-input').value = '';
+                    
+                    // Start leave and join process
+                    leaveAndJoin(username, roomToJoin);
+                    
+                    // Row Onclick calls prejoin - since name has been set, should pass prejoin
                     // This feels circular - row.onclick opened this modal and resolving the modal activates the onclick to join the room
                     // There is probably a way to do this with promises, not sure which way is 'better'
-                    document.querySelector('#room-tr-' + roomToJoin).click();
-    
+                    // document.querySelector('#room-tr-' + roomToJoin).click();
                 })
                 .catch((error) => {
                     console.error(`Could not set username: ${error}`);
@@ -176,6 +171,7 @@ function setUsernameOnclick(roomToJoin) {
 
 function createPasswordModal() {
     // Copied from createUsernameModal
+    // This will be a combined username - room password modal
 
     const passwordModal = document.createElement('div');
     passwordModal.className = 'modal room-password';
@@ -202,13 +198,45 @@ function createPasswordModal() {
     modalBody.id = 'password-modal-body';
     modalBody.className = 'modal-body room-password mt-3 mb-3';
 
-    const labelContainer = document.createElement('span');
+    // Username
+    const usernameDiv = document.createElement('div');
+    // Allows space-between flex to carry through from modal-body
+    usernameDiv.display = 'contents';
+
+    const userLabelContainer = document.createElement('span');
+    
+    const usernameLabel = document.createElement('label');
+    usernameLabel.innerText = 'Enter a name:';
+    usernameLabel.htmlFor = 'combined-username-modal-input'
+    
+    const userInputContainer = document.createElement('span');
+
+    const usernameInput = document.createElement('input');
+    usernameInput.className = 'modal-input';
+    usernameInput.id = 'combined-username-modal-input';
+    usernameInput.type = 'text';
+    usernameInput.autocomplete = 'off';
+    usernameInput.placeholder = 'Enter username';
+    usernameInput.pattern = nameValidation;
+    
+    userLabelContainer.appendChild(usernameLabel);
+    userInputContainer.appendChild(usernameInput);
+
+    usernameDiv.appendChild(userLabelContainer);
+    usernameDiv.appendChild(userInputContainer);
+
+    // Room password
+    const pwDiv = document.createElement('div');
+    // Allows space-between flex to carry through from modal-body
+    pwDiv.display = 'contents';
+    
+    const pwLabelContainer = document.createElement('span');
     
     const roomPasswordLabel = document.createElement('label');
-    roomPasswordLabel.innerText = 'Enter password:';
+    roomPasswordLabel.innerText = 'Room password:';
     roomPasswordLabel.htmlFor = 'password-modal-input'
     
-    const inputContainer = document.createElement('span');
+    const pwInputContainer = document.createElement('span');
 
     const roomPasswordInput = document.createElement('input');
     roomPasswordInput.className = 'modal-input';
@@ -217,11 +245,14 @@ function createPasswordModal() {
     roomPasswordInput.autocomplete = 'off';
     roomPasswordInput.placeholder = 'Enter password';
     
-    labelContainer.appendChild(roomPasswordLabel);
-    inputContainer.appendChild(roomPasswordInput);
+    pwLabelContainer.appendChild(roomPasswordLabel);
+    pwInputContainer.appendChild(roomPasswordInput);
 
-    modalBody.appendChild(labelContainer);
-    modalBody.appendChild(inputContainer);
+    pwDiv.appendChild(pwLabelContainer);
+    pwDiv.appendChild(pwInputContainer);
+    
+    modalBody.appendChild(usernameDiv);
+    modalBody.appendChild(pwDiv);
 
     const modalFooter = document.createElement('div');
     modalFooter.className = 'modal-footer room-password';
@@ -265,11 +296,11 @@ document.querySelector('body').appendChild(passwordModal);
 function setPasswordOnclick(roomToJoin) {
 
     document.querySelector('#room-password-submit-button').onclick = () => {
-        // Prevent sending blank input
         
+        // Prevent sending blank input
         if (document.querySelector('#password-modal-input').value.length > 0) {
     
-            // Join new room
+            // Row onclick to join room - re-runs prejoin with input provided here
             document.querySelector('#room-tr-' + roomToJoin).click();
         };
     };
@@ -318,11 +349,14 @@ function addRooms(newRooms) {
         row.onclick = () => {
             console.log('Row onclick')
 
+            if (room.pw_flag) {
+                openModal(document.querySelector('#password-modal'));
+            }
             // Get room password from modal input, send to server with preJoin
             let roomPassword = ''
 
             if (document.querySelector('#password-modal-input').value) {
-                roomPassword = document.querySelector('#password-modal-input').value
+                roomPassword = document.querySelector('#password-modal-input').value;
             }
 
             // preJoin is async function; handled as a Promise
@@ -331,6 +365,7 @@ function addRooms(newRooms) {
             promise
                 .then((data) => {
                     
+                    // Might move password check to regular join
                     // Check password first. Close and reset password modal if correct.
                     if (data.password_accepted) {
                         closeModal(document.querySelector('#password-modal'));
@@ -345,9 +380,7 @@ function addRooms(newRooms) {
                             // Set submit button onclick for username modal - need to include room to join
                             setUsernameOnclick(room.name);
 
-                            // Open modal to enter username
                             openModal(document.querySelector('#username-modal'));
-                            
                         }
 
                         else if (data.msg === 'prompt_for_password') {
@@ -392,6 +425,11 @@ function addRooms(newRooms) {
         tdname.className = 'room-td';
         tdname.innerText = room.name;
         row.appendChild(tdname);
+
+        const tdpassword = document.createElement('td');
+        tdpassword.className = 'room-td';
+        tdpassword.innerText = room.pw_flag;
+        row.appendChild(tdpassword);
         
         const tdgame = document.createElement('td');
         tdgame.className = 'room-td';
@@ -1021,7 +1059,7 @@ function updateLobby(response) {
         currentRoom = response.room;
         
         // Assign username if not yet defined
-        if (username === undefined) {
+        if (username.length === 0) {
             username = response.username;
         }
 
@@ -1059,28 +1097,26 @@ function updateLobby(response) {
         }
         
         newRoomContainer.appendChild(newRoomButton);
-        // lobbyHeader.appendChild(newRoomContainer);
         
-        // Add new room to sub-header instead of lobby header for consistency
+        // Add new room to sub-header-left
         document.querySelector('#sub-header-left').appendChild(newRoomContainer);
         
-        const lobbyUsername = document.createElement('div');
-        lobbyUsername.className = 'add-username';
-        lobbyUsername.id = 'lobby-username-container';
+        // const lobbyUsername = document.createElement('div');
+        // lobbyUsername.className = 'add-username';
+        // lobbyUsername.id = 'lobby-username-container';
         
-        // Add welcome to sub-header-right instead of lobby header - will need to clear on game room setup
-        // lobbyHeader.appendChild(lobbyUsername);
-        document.querySelector('#sub-header-right').appendChild(lobbyUsername);
+        // // Add welcome to sub-header-right - will need to clear on game room setup
+        // document.querySelector('#sub-header-right').appendChild(lobbyUsername);
         
-        if (username === undefined || username.length === 0) {
-            // const usernameInputContainer = createUsernameInput();
-            // lobbyUsername.appendChild(usernameInputContainer);
+        // if (username === undefined || username.length === 0) {
+        //     // const usernameInputContainer = createUsernameInput();
+        //     // lobbyUsername.appendChild(usernameInputContainer);
             
-        }
-        else if (username.length > 0) {
-            const welcome = createWelcome();
-            lobbyUsername.appendChild(welcome);
-            }
+        // }
+        // else if (username.length > 0) {
+        //     const welcome = createWelcome();
+        //     lobbyUsername.appendChild(welcome);
+        // }
 
         // -- End lobby header --
 
@@ -1105,6 +1141,11 @@ function updateLobby(response) {
         theadRoom.id = 'room-thead-name';
         theadRoom.innerText = 'Room';
         thead.appendChild(theadRoom);
+
+        const theadPassword = document.createElement('th');
+        theadPassword.id = 'room-thead-password';
+        theadPassword.innerText = 'Password Required';
+        thead.appendChild(theadPassword);
 
         const theadGame = document.createElement('th');
         theadGame.id = 'room-thead-game';
@@ -1465,9 +1506,10 @@ function updateGameRoom(response) {
         currentRoom = response.room;
         
         // Assign username if not yet defined
-        if (username === undefined) {
+        // if (username.length === 0) {
+            // I think username can be assigned no matter what, the double `if` statement looked odd
             username = response.username;
-        }
+        // }
 
         if (username.length === 0) {
             console.log('Username not set, cannot continue to set up room')
@@ -1856,7 +1898,7 @@ function joinRoom(room, requestedName='') {
 }
 
 // Check if user has been to room and can get username from server; also if user can join room
-async function preJoin(room, pw) {
+async function preJoin(room, roompw, username) {
     console.log('Prejoin called');
     
     try {
@@ -1866,7 +1908,7 @@ async function preJoin(room, pw) {
             return { 'can_join': true };
         }
         // Using emitWithAck for callback; Returns promise.
-        const response = await socket.emitWithAck('prejoin', {'room': room, 'password': pw});
+        const response = await socket.emitWithAck('prejoin', {'room': room, 'password': roompw});
         // console.log('Response on prejoin:');
         // for (const [key, value] of Object.entries(response)) {
         //     console.log(`${key}: ${value}`);
@@ -1899,6 +1941,9 @@ async function leaveRoom(username, room) {
     }
 }
 
+// This should only be called AFTER all join validations.
+// Previous room must be left in order to join new room
+    // so failing a validation on join at this point will leave user in liminal space
 function leaveAndJoin(username, newRoom) {
     // Leave the current room and join selected room
     const promise = leaveRoom(username, currentRoom);
