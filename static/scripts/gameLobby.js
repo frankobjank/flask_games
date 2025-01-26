@@ -14,9 +14,10 @@ var currentRoom;
 // Global var chosenGame set in game.html - from flask session
 
 // Use for validation when creating new usernames / room names
-const nameValidation = '[a-zA-Z0-9_]{4,12}'  // Alphanumeric, underscores, len 3-12
-const roomNameValidation = '[a-zA-Z0-9_]{4,18}'  // Alphanumeric, underscores, len 3-18
-const roompwValidation = '^$|.{4,18}'  // Empty OR any string len 4-18
+const nameValidation = '[a-zA-Z0-9_]{4,12}';  // Alphanumeric, underscores, len 3-12
+const roomNameValidation = '[a-zA-Z0-9_]{4,18}';  // Alphanumeric, underscores, len 3-18
+const roompwValidation = '^$|.{4,18}';  // Empty OR any string len 4-18
+const GAME_DISPLAY_NAMES = { 'thirty_one': '31', 'cribbage': 'Cribbage', 'natac': 'Natac' };
 
 // On page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -366,6 +367,12 @@ function addRooms(newRooms) {
         // The problem is this is reset every lobby reload - server could send info
         row.dataset.roomUsername = '';
 
+        row.dataset.roomName = room.name;
+        row.dataset.pwFlag = room.pw_flag;
+        row.dataset.gameName = room.game_name;
+        row.dataset.clientsConnected = room.clients_connected;
+        row.dataset.inProgress = room.in_progress;
+
         // Adding onclick to row instead of using button or anchor
         // Event listener here is async because there is an await in the function
         row.onclick = () => {
@@ -445,16 +452,23 @@ function addRooms(newRooms) {
         const tdname = document.createElement('td');
         tdname.className = 'room-td';
         tdname.innerText = room.name;
+        
+        // Add padlock to room name that is password-protected
+        if (room.pw_flag) {
+            // Whitespace padding between icon and name
+            tdname.innerHTML += '&nbsp;&nbsp;';
+
+            const lockI = document.createElement('i');
+            lockI.className = 'bi-lock-fill';
+            
+            tdname.appendChild(lockI);
+        }
+
         row.appendChild(tdname);
 
-        const tdpassword = document.createElement('td');
-        tdpassword.className = 'room-td';
-        tdpassword.innerText = room.pw_flag;
-        row.appendChild(tdpassword);
-        
         const tdgame = document.createElement('td');
         tdgame.className = 'room-td';
-        tdgame.innerText = room.game_name;
+        tdgame.innerText = GAME_DISPLAY_NAMES[room.game_name];
         row.appendChild(tdgame);
         
         const tdplayers = document.createElement('td');
@@ -462,12 +476,6 @@ function addRooms(newRooms) {
         tdplayers.id = 'room-td-players-' + room.name;
         tdplayers.innerText = `${room.clients_connected} / ${room.capacity}`;
         row.appendChild(tdplayers);
-        
-        // Removing created by
-        // const tdcreator = document.createElement('td');
-        // tdcreator.className = 'room-td';
-        // tdcreator.innerText = room.creator;
-        // row.appendChild(tdcreator);
         
         const tddate = document.createElement('td');
         tddate.className = 'room-td';
@@ -477,7 +485,14 @@ function addRooms(newRooms) {
         const tdin_progress = document.createElement('td');
         tdin_progress.className = 'room-td';
         tdin_progress.id = 'room-td-in_progress-' + room.name;
-        tdin_progress.innerText = room.in_progress;
+        // tdin_progress.innerText = room.in_progress;
+        
+        // Create a div to change between red and green depending on status
+        const status = document.createElement('div');
+        status.className = 'room-td-in_progress';
+
+        tdin_progress.appendChild(status);
+
         row.appendChild(tdin_progress);
 
         tbody.appendChild(row);
@@ -1087,19 +1102,8 @@ function updateLobby(response) {
         // Remove toLobby button
         document.querySelector('#sub-header-left').replaceChildren();
         
-        let gameName = '';
-        if (chosenGame === 'thirty_one') {
-            gameName = '31';
-        }
-        else if (chosenGame === 'cribbage') {
-            gameName = 'Cribbage';
-        }
-        else if (chosenGame === 'natac') {
-            gameName = 'Natac';
-        }
-
         // Update header
-        document.querySelector('#sub-header-center-h2').innerText = `Lobby - ${gameName}`;
+        document.querySelector('#sub-header-center-h2').innerText = `Lobby - ${GAME_DISPLAY_NAMES[chosenGame]}`;
         
         // Create lobby container
         const lobbyContainer = document.createElement('div');
@@ -1174,11 +1178,6 @@ function updateLobby(response) {
         theadRoom.innerText = 'Room';
         thead.appendChild(theadRoom);
 
-        const theadPassword = document.createElement('th');
-        theadPassword.id = 'room-thead-password';
-        theadPassword.innerText = 'Password Required';
-        thead.appendChild(theadPassword);
-
         const theadGame = document.createElement('th');
         theadGame.id = 'room-thead-game';
         theadGame.innerText = 'Game';
@@ -1188,12 +1187,6 @@ function updateLobby(response) {
         theadPlayers.id = 'room-thead-players';
         theadPlayers.innerText = 'Players';
         thead.appendChild(theadPlayers);
-
-        // Removing created by
-        // const theadCreator = document.createElement('th');
-        // theadCreator.id = 'room-thead-creator';
-        // theadCreator.innerText = 'Created By';
-        // thead.appendChild(theadCreator);
 
         const theadDate = document.createElement('th');
         theadDate.id = 'room-thead-date_created';
@@ -1245,6 +1238,9 @@ function updateLobby(response) {
         // Update in_progress
         if (response.col === 'in_progress') {
             
+            // Update row dataset
+            document.querySelector('#room-tr-' + response.row).dataset.inProgress = response.new_value;
+
             document.querySelector('#room-td-in_progress-' + response.row).innerText = response.new_value;
         }
         
