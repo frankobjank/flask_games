@@ -1,14 +1,19 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Game
+    Game - session["game"]
 {% endblock %}
 
 {% block header %}
-    Lobby
+    <!-- Not static, will be adjusted depending on room -->
 {% endblock %}
 
 {% block main %}
+    
+    <!-- Import game var from flask session -->
+    <script type="text/javascript">
+        var chosenGame = `{{ session["game"] }}`;
+    </script>
 
     <!-- JS For Lobby & Game -->
     <script type="text/javascript" src="{{ url_for('static', filename='scripts/gameLobby.js') }}"></script>

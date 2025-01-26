@@ -11,6 +11,8 @@ let username = '';
 // Used on join to keep track of current room
 var currentRoom;
 
+// Global var chosenGame set in game.html - from flask session
+
 // Use for validation when creating new usernames / room names
 const nameValidation = '[a-zA-Z0-9_]{4,12}'  // Alphanumeric, underscores, len 3-12
 const roomNameValidation = '[a-zA-Z0-9_]{4,18}'  // Alphanumeric, underscores, len 3-18
@@ -1084,9 +1086,20 @@ function updateLobby(response) {
 
         // Remove toLobby button
         document.querySelector('#sub-header-left').replaceChildren();
-    
+        
+        let gameName = '';
+        if (chosenGame === 'thirty_one') {
+            gameName = '31';
+        }
+        else if (chosenGame === 'cribbage') {
+            gameName = 'Cribbage';
+        }
+        else if (chosenGame === 'natac') {
+            gameName = 'Natac';
+        }
+
         // Update header
-        document.querySelector('#sub-header-center-h2').innerText = 'Lobby';
+        document.querySelector('#sub-header-center-h2').innerText = `Lobby - ${gameName}`;
         
         // Create lobby container
         const lobbyContainer = document.createElement('div');

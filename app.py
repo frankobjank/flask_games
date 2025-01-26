@@ -95,6 +95,7 @@ def after_request(response):
 def index():
     # Display game options and option to view All
     print(f"Session on index: {fl.session}")
+    
     return fl.render_template("index.html")
 
 
@@ -109,11 +110,9 @@ def game():
     
     # Load lobby on GET
 
-    # For random name
-    # username = fl.session.get("username", "")
-    # if len(username) == 0:
-    #     username = get_random_name()
-    
+    # Set game that user chooses
+    fl.session["game"] = fl.request.args["game"]
+
     # Make sure session cookie is captured
     fl.session["session_cookie"] = fl.request.cookies.get("session")
 
@@ -194,8 +193,10 @@ def on_create_room(data):
     # Push new room to all other users in lobby
     # `rooms` is the rooms to add; `room` is room USER IS CURRENTLY IN
     # Don't need to add all rooms, just new room
-    fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
-             "rooms": [rooms[new_room_name].package_self()]}, to="lobby")
+    # Only add room for users with session var matching the game type
+    if data["game"] == fl.session["game"]:
+        fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
+                 "rooms": [rooms[new_room_name].package_self()]}, to="lobby")
     
     # Use pass / fail for status to denote success of request
     return {"accepted": True}
@@ -382,8 +383,6 @@ def on_join(data):
     # Change to unique url room solution?
         # potentially with option of making public and being added to a lobby
     
-    print(f"Users on join: {rooms[data['room']].users} before processing.")
-
     fio.emit("debug_msg", {"msg": "Server received join event."}, to=fl.request.sid)
     
     # Lobby should not have usernames associated with it because a user could have different names in different rooms.
@@ -404,10 +403,12 @@ def on_join(data):
         print(f"{fl.session.get('username', 'Non-registered_user')} joined {data['room']}.")
         
         # Add rooms to lobby (rows in table)
+        # Only include rooms pertaining to chosen game
         fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
                  "username": data.get("username", ""), 
                  "rooms": [room.package_self() for room in rooms.values()
-                           if room.name != "lobby"]}, to=fl.request.sid)
+                           if room.name != "lobby" and room.game_name == fl.session["game"]]}, 
+                           to=fl.request.sid)
         
         # Exit early
         return "Server callback: lobby join completed."
