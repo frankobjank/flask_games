@@ -52,6 +52,7 @@ rooms = {}
 
 GAMES_TO_CAPACITY = {"thirty_one": 7, "cribbage": 3, "natac": 4}
 
+# Would it be optimal to split into lobbies for each game?
 rooms["lobby"] = Room(
     # This limits the lobby to 10000 people. Instead can skip capacity validation 
     # on join for lobby
