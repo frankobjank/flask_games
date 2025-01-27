@@ -180,13 +180,8 @@ class State:
         return max(max(combo.values()) for combo in hand_scores)
 
 
-    def add_player(self, name, sid) -> None:
-        self.players[name] = Player(name, sid)
-
-
-    def set_sid(self, name, sid) -> None:
-        # Needed for when player is reconnecting with new sid
-        self.players[name].sid = sid
+    def add_player(self, name) -> None:
+        self.players[name] = Player(name)
 
 
     def print_and_log(self, msg, player="all") -> None:
