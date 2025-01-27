@@ -485,7 +485,7 @@ function addRooms(newRooms) {
         const tdin_progress = document.createElement('td');
         tdin_progress.className = 'room-td';
         tdin_progress.id = 'room-td-in_progress-' + room.name;
-        // tdin_progress.innerText = room.in_progress;
+        tdin_progress.innerText = room.in_progress;
         
         // Create a div to change between red and green depending on status
         const status = document.createElement('div');

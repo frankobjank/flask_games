@@ -12,3 +12,4 @@ scrap
 scratch*
 flask_games.code-workspace
 flask_session/
+*.log
