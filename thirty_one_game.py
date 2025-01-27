@@ -423,7 +423,6 @@ class State:
             taken_card = None
             if packet["action"] == "knock":
                 if len(self.knocked) > 0:
-                    # TODO Personal log
                     self.print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", player=self.current_player)
                     return "accept"
                 self.knocked = self.current_player

@@ -418,4 +418,5 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 #chat-input-container {
     position: static;
     display: flex;
+    align-items: center;
 }

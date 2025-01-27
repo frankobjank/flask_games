@@ -825,10 +825,9 @@ function createChatLogPanel(username) {
     const chatLogHeader = document.createElement('h4');
     chatLogHeader.className = 'chat log header';
     chatLogHeader.id = 'chat-log-header';
-    // Header should display room name - and player name?
-    // Moving away from innerHTML -> innerText
-    // chatLogHeader.innerHTML = '<h4>' + username + ' - ' + currentRoom + '</h4>';
-    chatLogHeader.innerText = username + ' - ' + currentRoom;
+    // chatLogHeader.innerText = username + ' - ' + currentRoom;
+    // Need to decide what looks good in the header - just Chat for now
+    chatLogHeader.innerText = 'Chat';
     
 
     const chatLogMessages = document.createElement('div');
@@ -1102,6 +1101,9 @@ function updateLobby(response) {
         // Remove toLobby button
         document.querySelector('#sub-header-left').replaceChildren();
         
+        // Update page title
+        document.querySelector('title').innerText = 'The Space: Lobby';
+
         // Update header
         document.querySelector('#sub-header-center-h2').innerText = `Lobby - ${GAME_DISPLAY_NAMES[chosenGame]}`;
         
@@ -1546,8 +1548,11 @@ function updateGameRoom(response) {
         
         // Set up game room
 
+        // Update page title
+        document.querySelector('title').innerText = `The Space: ${GAME_DISPLAY_NAMES[chosenGame]}`;
+
         // Update header (title of room)
-        document.querySelector('#sub-header-center-h2').innerText = response.room;
+        document.querySelector('#sub-header-center-h2').innerText = `${response.room} - ${GAME_DISPLAY_NAMES[chosenGame]}`;
 
         // Remove anything from left and right sub-headers
         document.querySelector('#sub-header-left').replaceChildren()
