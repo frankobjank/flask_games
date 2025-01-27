@@ -22,9 +22,9 @@ SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "c
 
 
 class Player:
-    def __init__(self, name: str, sid: str) -> None:
+    def __init__(self, name: str) -> None:  #, sid: str) -> None:
         self.name = name
-        self.sid = sid  # Address used for socket io messages
+        # self.sid = sid  # Address used for socket io messages
         self.order = 0
         self.hand = []
         self.lives = 1  # debug = score starts at 1  # Score starts at 3
@@ -544,7 +544,9 @@ class State:
             "hand": self.players[player_name].zip_hand(),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
-            "sid": self.players[player_name].sid,
+
+            # Removing because it is redundant data that caused issues if not updated correctly
+            # "sid": self.players[player_name].sid,
         }
     
 

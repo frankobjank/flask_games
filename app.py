@@ -532,6 +532,10 @@ def on_join(data):
 
         # Empty log for player after update is sent
         game.players[user.name].log = []
+    
+    # If a game has started, no matter game state, UPDATE the player's sid
+    # It's also possible server to use sids from active players in room rather than the game state storing sids
+
 
     return "Server callback: game room join completed."
         
@@ -637,7 +641,7 @@ def on_move(data):
             if user.connected:
                 fio.emit("debug_msg", {"msg": f"Adding {user} to game."}, to=fl.request.sid)
                 print(f"Adding {user} to game.")
-                rooms[data["room"]].game.add_player(user.name, user.sid)
+                rooms[data["room"]].game.add_player(user.name)
 
     game = rooms[data["room"]].game
     
@@ -655,6 +659,7 @@ def on_move(data):
     for user in rooms[data["room"]].users:
         if user.connected and user.sid == fl.request.sid:
             player = user
+            break
 
     # If game has started, check that username is current player
     # Only allow input from all players to click continue during round ending (for 31)
@@ -687,19 +692,24 @@ def on_move(data):
             # have to specify the 'to' parameter of 'emit' to send to specific player
             print(f"Sending response: \n{response} \non {data['action']}")
             
-            fio.emit("update_board", response, to=response["sid"], room=data["room"])
+            recipient_sid = ""
+            # Lookup sid for user in room.users - this can be optimized with a dict
+            for user in rooms[data["room"]].users:
+                if user.connected and user.name == response["recipient"]:
+                    recipient_sid = user.sid
+                    break
+
+            fio.emit("update_board", response, to=recipient_sid, room=data["room"])
             
             fio.emit("debug_msg", {"msg": 
                     f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
-                    to=response["sid"])
+                    to=recipient_sid)
     
             # Empty log for player after update is sent
             game.players[username].log = []
 
         # If in_progress var has changed, send update to lobby. 
-        
         if in_progress_before_update != game.in_progress:
-            # Send updated player count to anyone remaining in lobby
             fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], 
                      "col": "in_progress", "new_value": game.in_progress}, to="lobby")
     
@@ -727,16 +737,6 @@ def on_debug_msg(data):
 @socketio.on("disconnect")
 def on_disconnect():
     print(f"Session on disconnect: {fl.session}")
-
-    # # Getting username via flask session
-    # print("On disconnect; getting username via flask session.")
-    # username = fl.session.get("username", "")
-    
-    # if len(username) == 0:
-    #     print("Username not found, exiting on_disconnect")
-    #     return
-
-    # If username available, remove from rooms
 
     # Room id is unavailable;
     # Remove player from every room since disconnect implies leaving all rooms
