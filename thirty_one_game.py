@@ -22,12 +22,11 @@ SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "c
 
 
 class Player:
-    def __init__(self, name: str) -> None:  #, sid: str) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
-        # self.sid = sid  # Address used for socket io messages
         self.order = 0
         self.hand = []
-        self.lives = 1  # debug = score starts at 1  # Score starts at 3
+        self.lives = 3  # debug = score starts at 1  # Score starts at 3
         self.log = []  # Individual logs per player
 
     
@@ -359,7 +358,7 @@ class State:
             # Give clients option to view the ending score/ board, leave/join rooms, then start a new game
 
         else:
-            self.print_and_log("\nRemaining Players' Lives:")
+            self.print_and_log("\nRemaining Players' Extra Lives:")
             for p_name in self.player_order:
                 msg = ""
                 
@@ -382,9 +381,6 @@ class State:
 
         # Set mode to main phase
         self.mode = "main_phase"
-
-        # Add to log to print in client
-        self.print_and_log(f"It is {self.current_player}'s turn.")
 
 
     def end_turn(self):

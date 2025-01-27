@@ -1819,7 +1819,7 @@ function updateGame(response) {
             playerContainer.dataset.order = i;
             
             // Update lives
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Lives: ';
+            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
             playerContainer.dataset.lives = response.lives[i];
             
             // Add stars according to number of lives left
