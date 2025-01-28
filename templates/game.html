@@ -9,8 +9,14 @@
         var chosenGame = `{{ session["game"] }}`;
     </script>
 
-    <!-- JS For Lobby & Game -->
-    <script type="text/javascript" src="{{ url_for('static', filename='scripts/gameLobby.js') }}"></script>
+    <!-- JS For Lobby -->
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/lobby.js') }}"></script>
+    
+    <!-- JS For thirty_one -->
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/thirty_one.js') }}"></script>
+
+    <!-- JS For chat panel -->
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts/chat.js') }}"></script>
 
     <!-- Outer container includes whole lobby or game containers -->
     <div id="outer-container"></div>
