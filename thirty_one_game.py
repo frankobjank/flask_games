@@ -26,7 +26,7 @@ class Player:
         self.name = name
         self.order = 0
         self.hand = []
-        self.lives = 3  # debug = score starts at 1  # Score starts at 3
+        self.lives = 1  # debug = score starts at 1  # Score starts at 3
         self.log = []  # Individual logs per player
 
     
@@ -225,7 +225,18 @@ class State:
 
     def new_round(self) -> None:
 
-        assert len(self.player_order) != 0, "Player order must be set before round begins"
+        # Moved removal of players here so they stay in the client up until start of next round
+        for p_name in self.player_order:
+
+            # Use try/except clause because some players will have negative lives for more than 1 round
+            if 0 > self.players[p_name].lives:
+                try:
+                    # Adjust player order only; Keep players dict static
+                    self.player_order.remove(p_name)
+                except ValueError:
+                    pass
+
+        assert len(self.player_order) != 0, "Player order must not be 0 on round start."
         
         self.round_num += 1
         self.turn_num = 0
@@ -344,22 +355,34 @@ class State:
         # List of any players that were brought down to negative lives
         knocked_out = [p_name for p_name in self.player_order if 0 > self.players[p_name].lives]
         
+        # Announce knock outs but should only remove from game on start of next round for 
+        # game real-ness; i.e. so players can view their hand and hand score at end of round
         for p_name in knocked_out:
             self.print_and_log(f"{p_name} has been knocked out.")
             
-            # Adjust player order; Keep players dict static
-            self.player_order.remove(p_name)
+            # `-1` can represent a knockout to client
+            self.players[p_name].lives = -1
+            
+            # # Adjust player order; Keep players dict static
+            # self.player_order.remove(p_name)
 
-        if len(self.player_order) == 1:
+        players_remaining = len(self.player_order) - len(knocked_out)
+
+        if players_remaining == 1:
             self.print_and_log(f"\n{self.player_order[0]} wins!")
             self.mode = "end_game"
             self.in_progress = False
-
-            # Give clients option to view the ending score/ board, leave/join rooms, then start a new game
+            # mode `end_game` gives clients time to view the scores, leave/join rooms
 
         else:
+            # More than 1 player remaining; continuing game
             self.print_and_log("\nRemaining Players' Extra Lives:")
             for p_name in self.player_order:
+                
+                # Skip knocked out player
+                if p_name in knocked_out:
+                    continue
+                
                 msg = ""
                 
                 # Send different msgs based on number of lives

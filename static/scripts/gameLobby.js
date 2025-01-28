@@ -607,11 +607,6 @@ function createBoard() {
     return board;
 }
 
-// Currently unused; Check number of players and in progress
-function checkNumPlayers(numPlayers) {
-    return (2 <= numPlayers <= 7 && !inProgress);
-}
-
 function createMoveButtons() {
     const moveButtonsContainer = document.createElement('div');
     moveButtonsContainer.id = 'move-button-container';
@@ -977,7 +972,7 @@ function addPlayers(players) {
         // Container exists already; set `connected` to True
         else {
             document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
-            players[i].connected = true;
+            // players[i].connected = true;
         }
     }
 
@@ -1615,7 +1610,6 @@ function updateGameRoom(response) {
         
         // Reset game vars when leaving room
         inProgress = false;
-        mode = '';
         currentPlayer = '';
         discardCard = '';
         playerOrder = [];
@@ -1650,22 +1644,22 @@ function updateGameRoom(response) {
             // Update local `players` object
             if (response.connected) {
                 document.querySelector('#' + player + '-container').dataset.connected = '1';
-                players[player].connected = true;
+                // players[player].connected = true;
             }
             else {
                 document.querySelector('#' + player + '-container').dataset.connected = '0';
-                players[player].connected = false;
+                // players[player].connected = false;
             }
 
         }
     }
 }
 
-function populateHand(playerName, hand, hand_score) {
+function populateHand(playerName, hand, hand_score, mode) {
 
     // Update `players` array
-    players[playerName].hand = hand;
-    players[playerName].handScore = hand_score;
+    // players[playerName].hand = hand;
+    // players[playerName].handScore = hand_score;
     
     const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
     
@@ -1676,13 +1670,16 @@ function populateHand(playerName, hand, hand_score) {
 
     // Create buttons for hand with array from server
     for (const card of hand) {
-        // TODO: Create hands for all non-self players' - should not be clickable
         const cardButton = createHandButton(card)
         
-        // Disable card button if non-self player
-        if (username !== playerName) {
+        // Disable card button for all if end of round or non-self player
+        if (mode === 'end_round' || mode === 'end_game' || username !== playerName) {
             cardButton.disabled = true;
         }
+        // // Disable card button if non-self player
+        // else if (username !== playerName) {
+        //     cardButton.disabled = true;
+        // }
 
         playerHandContainer.appendChild(cardButton);
     }
@@ -1725,7 +1722,6 @@ function updateGame(response) {
 
         // Unpack general state
         inProgress = response.in_progress;
-        mode = response.mode;
         currentPlayer = response.current_player;
         discardCard = response.discard;
 
@@ -1737,7 +1733,6 @@ function updateGame(response) {
         // Removing this from blocking updates since game needs to update to end state on game end
         if (!inProgress) {
             console.log('Received update response but game is not in progress.');
-            // return;
         }
         
         if (response.player_order === undefined) {
@@ -1766,7 +1761,7 @@ function updateGame(response) {
         }
         
         // Enable continue button on round end (and NOT on game end)
-        if (mode === 'end_round') {
+        if (response.mode === 'end_round') {
             document.querySelector('#continue-button').disabled = false;
             // Unhide button when active
             document.querySelector('#continue-button').style.display = '';
@@ -1787,17 +1782,23 @@ function updateGame(response) {
         setCardDisplay(discardCard, document.querySelector('#discard-button'));
         
         // Check for knocked out players
+        // Display should only be reset when next round round starts. Server can wait to kick them out
+        // Until beginning of next round
         for (const player of playersConnected) {
             if (!response.player_order.includes(player)) {
                 // Replace lives with 'knocked out'
                 document.querySelector('#' + player + '-lives').innerText = 'Knocked out'
                 // Remove all cards
                 document.querySelector('#' + player + '-hand-container').replaceChildren()
-                // Reset `knocked`, `current` status
+                // Remove hand score
+                document.querySelector('#' + player + '-hand-score').innerText = '';
+                
+                // Reset `current` status
                 document.querySelector('#' + player + '-current-strong').innerText = '';
+                document.querySelector('#' + player + '-container').dataset.current = '0';
+                // Reset `knocked`
                 document.querySelector('#' + player + '-knocked-strong').innerText = '';
                 document.querySelector('#' + player + '-container').dataset.knocked = '0';
-                document.querySelector('#' + player + '-container').dataset.current = '0';
             }
         }
 
@@ -1811,11 +1812,11 @@ function updateGame(response) {
             // playerOrder[i] is the player name
 
             // Update players array
-            players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i], 'connected': true};
+            // players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i], 'connected': true};
             
-            if (playerOrder[i] === response.knocked) {
-                players[playerOrder[i]].knocked = true;    
-            }
+            // if (playerOrder[i] === response.knocked) {
+            //     players[playerOrder[i]].knocked = true;    
+            // }
 
             // Once player array is populated, add to player panel display or dataset
             const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
@@ -1824,41 +1825,52 @@ function updateGame(response) {
             playerContainer.dataset.order = i;
             
             // Update lives
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
-            playerContainer.dataset.lives = response.lives[i];
             
-            // Add stars according to number of lives left
-            if (response.lives[i] > 0) {
-                const lifeStarsContainer = document.createElement('span');
-                lifeStarsContainer.className = 'life-stars-container';
+            // Server will set to -1 if knocked out
+            if (response.lives[i] === '-1') {
+                document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
+            }
 
-                for (let life = 0; life < response.lives[i]; life++) {
-                    lifeStarsContainer.innerText += '\u2605 ';
-                } 
-                document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
-            }
-            // If 0 lives, add 'on the bike'
+            // If not knocked out, set number of extra lives
             else {
-                
-                // Remove any stars remaining
-                document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
-                
-                // Add text
-                document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
+                document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
+                playerContainer.dataset.lives = response.lives[i];
+
+                // Add stars according to number of lives left
+                if (response.lives[i] > '0') {
+                    const lifeStarsContainer = document.createElement('span');
+                    lifeStarsContainer.className = 'life-stars-container';
+    
+                    for (let life = 0; life < response.lives[i]; life++) {
+                        lifeStarsContainer.innerText += '\u2605 ';
+                    } 
+                    document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
+                }
+
+                // If 0 lives, add 'on the bike'
+                else if (response.lives[i] === '0') {
+                    
+                    // Remove any stars remaining
+                    document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
+                    
+                    // Add text
+                    document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
+                }
             }
+            
             
             // Create front-facing hand for self, clickable
             if (username === playerOrder[i]) {
-                populateHand(playerOrder[i], response.hand, response.hand_score)  
+                populateHand(playerOrder[i], response.hand, response.hand_score, response.mode)  
             }
 
             // Create front-facing hand for others on game end, not clickable
             // Using `else if` here implies playerOrder[i] is not the self player
-            else if (mode === 'end_round' || mode === 'end_game') {
-                populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i])
+            else if (response.mode === 'end_round' || response.mode === 'end_game') {
+                populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
             }
 
-            // Create back-facing hand for others
+            // Create back-facing hand for others if not end of round / game
             else {
                 // Remove all cards if there were any
                 document.querySelector('#' + playerOrder[i] + '-hand-container').replaceChildren()
