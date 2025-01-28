@@ -355,16 +355,13 @@ class State:
         # List of any players that were brought down to negative lives
         knocked_out = [p_name for p_name in self.player_order if 0 > self.players[p_name].lives]
         
-        # Announce knock outs but should only remove from game on start of next round for 
+        # Announce knock outs here; wait until start of next round to remove player for
         # game real-ness; i.e. so players can view their hand and hand score at end of round
         for p_name in knocked_out:
             self.print_and_log(f"{p_name} has been knocked out.")
             
             # `-1` can represent a knockout to client
             self.players[p_name].lives = -1
-            
-            # # Adjust player order; Keep players dict static
-            # self.player_order.remove(p_name)
 
         players_remaining = len(self.player_order) - len(knocked_out)
 

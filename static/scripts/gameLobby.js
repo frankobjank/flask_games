@@ -510,11 +510,6 @@ var playerOrder = [];
 var chatLogCount = 0;  // Number of entries in chat log
 let playersConnected = [];  // Keep track of player names connected
 
-// Multi-dimensional array of player `objects` that can be looked up by username
-    // Player objects should include:
-    // player = {name: '', order: 0, lives: 0, handSize: 0, hand: [], handScore: 0};
-let players = {};
-
 
 function createLobbyButton() {
     const toLobby = document.createElement('button');
@@ -972,7 +967,6 @@ function addPlayers(players) {
         // Container exists already; set `connected` to True
         else {
             document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
-            // players[i].connected = true;
         }
     }
 
@@ -1614,6 +1608,7 @@ function updateGameRoom(response) {
         discardCard = '';
         playerOrder = [];
         playersConnected = [];
+        mode = '';
         
     }
 
@@ -1641,14 +1636,11 @@ function updateGameRoom(response) {
             console.log(`Update conn status for ${player}: ${response.connected}`);
 
             // Set `connected` attribute; 1 for true and 0 for false
-            // Update local `players` object
             if (response.connected) {
                 document.querySelector('#' + player + '-container').dataset.connected = '1';
-                // players[player].connected = true;
             }
             else {
                 document.querySelector('#' + player + '-container').dataset.connected = '0';
-                // players[player].connected = false;
             }
 
         }
@@ -1656,10 +1648,6 @@ function updateGameRoom(response) {
 }
 
 function populateHand(playerName, hand, hand_score, mode) {
-
-    // Update `players` array
-    // players[playerName].hand = hand;
-    // players[playerName].handScore = hand_score;
     
     const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
     
@@ -1811,13 +1799,6 @@ function updateGame(response) {
             
             // playerOrder[i] is the player name
 
-            // Update players array
-            // players[playerOrder[i]] = {'name': playerOrder[i], 'order': i, 'lives': response.lives[i], 'handSize': response.hand_sizes[i], 'connected': true};
-            
-            // if (playerOrder[i] === response.knocked) {
-            //     players[playerOrder[i]].knocked = true;    
-            // }
-
             // Once player array is populated, add to player panel display or dataset
             const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
 
@@ -1825,37 +1806,36 @@ function updateGame(response) {
             playerContainer.dataset.order = i;
             
             // Update lives
+        
+            // If not knocked out, set number of extra lives
+            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
+            playerContainer.dataset.lives = response.lives[i];
             
-            // Server will set to -1 if knocked out
-            if (response.lives[i] === '-1') {
-                document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
+            // Use NUMBERS for comparisons, not strings!
+            // Add stars according to number of lives left
+            if (response.lives[i] > 0) {
+                const lifeStarsContainer = document.createElement('span');
+                lifeStarsContainer.className = 'life-stars-container';
+
+                for (let life = 0; life < response.lives[i]; life++) {
+                    lifeStarsContainer.innerText += '\u2605 ';
+                } 
+                document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
             }
 
-            // If not knocked out, set number of extra lives
-            else {
-                document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
-                playerContainer.dataset.lives = response.lives[i];
-
-                // Add stars according to number of lives left
-                if (response.lives[i] > '0') {
-                    const lifeStarsContainer = document.createElement('span');
-                    lifeStarsContainer.className = 'life-stars-container';
-    
-                    for (let life = 0; life < response.lives[i]; life++) {
-                        lifeStarsContainer.innerText += '\u2605 ';
-                    } 
-                    document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
-                }
-
-                // If 0 lives, add 'on the bike'
-                else if (response.lives[i] === '0') {
-                    
-                    // Remove any stars remaining
-                    document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
-                    
-                    // Add text
-                    document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
-                }
+            // If 0 lives, add 'on the bike'
+            else if (response.lives[i] === 0) {
+                
+                // Remove any stars remaining
+                document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
+                
+                // Add text
+                document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
+            }
+                        
+            // Server will set lives to -1 if knocked out
+            else if (response.lives[i] === -1) {
+                document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
             }
             
             
