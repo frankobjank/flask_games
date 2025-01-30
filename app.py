@@ -71,6 +71,12 @@ rooms["Test_2"] = Room(
     capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
 )
 
+rooms["Test_3"] = Room(
+    name="Test_2", roompw=ws.generate_password_hash("llll"), 
+    game_name="cribbage", 
+    capacity=GAMES_TO_CAPACITY["cribbage"], date_created=int(time()), creator="Frankobjank"
+)
+
 
 # Uses session cookie
 # If there's nothing in flask or socketio that tracks when users join
