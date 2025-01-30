@@ -1,9 +1,3 @@
-// Strategies of splitting js files
-// 1. Can put everything involving sockets in one file and import any functions that the socket functions use
-    // Modals, objects created on different js pages but submit buttons defined on socket page
-    // If submit buttons are created on different js page than the DOM object, those functions may have to be imported by any other pages needing to use them when DOM object is built
-// OR 2. `export` socket using getSocket solution so all files can access the socket
-
 // Room, Socket Variables
 // Initializing socket
 const socket = io();

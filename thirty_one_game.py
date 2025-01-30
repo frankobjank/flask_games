@@ -26,7 +26,7 @@ class Player:
         self.name = name
         self.order = 0
         self.hand = []
-        self.lives = 1  # debug = score starts at 1  # Score starts at 3
+        self.lives = 3  # debug = score starts at 1  # Score starts at 3
         self.log = []  # Individual logs per player
 
     
