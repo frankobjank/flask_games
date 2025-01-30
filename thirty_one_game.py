@@ -143,6 +143,22 @@ class State:
         player_object.sort_hand()
 
 
+    def hand_to_discard(self, card_to_discard: Card) -> None:
+
+        # Find in card in hand by comparing suit and rank
+        for card in self.players[self.current_player].hand:
+            if card.suit == card_to_discard.suit and card.rank == card_to_discard.rank:
+                # Remove from hand
+                self.players[self.current_player].hand.remove(card)
+                break
+        
+        # Add to discard
+        self.discard.append(card_to_discard)
+
+        # 'debug' log the actual card discarded; don't send to players
+        print(f"{self.current_player} discarded: {card_to_discard}")
+
+
     def calc_hand_score(self, player_object:Player) -> int:
         # Return if hand is empty
         if len(player_object.hand) == 0:
@@ -483,36 +499,26 @@ class State:
             # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
             
-            # Check for blitz; can skip discard if blitz
+            # Check for blitz; can skip discard phase if blitz
             if self.calc_hand_score(self.players[self.current_player]) == 31:
                 self.blitzed_players.append(self.current_player)
+                
+                # Auto-discard lowest card in hand - looks better than ending with 4 cards in hand 
+                lowest_card = min(self.players[self.current_player].hand, key= lambda x: x.value)
+                self.hand_to_discard(card_to_discard=lowest_card)
+
+                # End round after card discarded
                 self.end_round()
             
             # Only set to discard if round has not ended Check for >3 cards in hand before setting mode to discard
             # Removing check for end_round because discard should happen before the round ends - better for display and real game-feel
-            # Elif skips the discard phase on blitz
-            elif len(self.players[self.current_player].hand) > 3:
+            if len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
             
         elif self.mode == "discard" and packet["action"] == "discard":
-            # Unzip from client
-            chosen_card = unzip_card(packet["card"])
             
-            # Find in card in hand by comparing suit and rank
-            for card in self.players[self.current_player].hand:
-                if card.suit == chosen_card.suit and card.rank == chosen_card.rank:
-                    # Remove from hand
-                    self.players[self.current_player].hand.remove(card)
-                    break
-            
-            # Add to discard
-            self.discard.append(chosen_card)
-            # 'debug' log the actual card discarded; don't send to players
-            print(f"{self.current_player} discarded: {chosen_card}")
-            
-            # Extra turn log - removed
-            # self.print_and_log(f"{self.current_player} discarded.")
-            
+            # Unzip card from client
+            self.hand_to_discard(card_to_discard=unzip_card(packet["card"]))
             self.end_turn()
         
         # If not returned early, move was accepted
