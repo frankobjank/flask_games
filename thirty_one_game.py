@@ -118,6 +118,7 @@ class State:
         self.current_player = ""  # player name
         self.dealer = ""  # player name
         self.knocked = ""  # player name
+        self.blitzed_players = []  # player names; technically possible for more than 1 blitz
         self.discard = []
         self.free_ride_alts = ["getting a free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "having a tummy ache", "having a long day"]
         
@@ -244,11 +245,15 @@ class State:
         # Calculate new first player index based on round number
         first_player_index = ((self.round_num)-1) % len(self.player_order)
         
-        # Set dealer, first player, current player
+        # Set dealer, first player, current player, blitzed players
         self.first_player = self.player_order[first_player_index]
         self.current_player = self.player_order[first_player_index]
         self.dealer = self.player_order[first_player_index-1]
-
+        self.blitzed_players = []
+        
+        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
+        self.print_and_log("\n--- DEALING ---")
+        
         # Shuffle cards
         self.shuffle_deck()
         
@@ -260,22 +265,23 @@ class State:
             if p_name in self.player_order:
                 # Deal for players who are still in the game
                 self.deal(p_object)
-                self.check_for_blitz(p_object)
+                
+                # Check for blitz
+                # It's possible for more than one player to be dealt a blitz; blitzed players must be list
+                if self.calc_hand_score(p_object) == 31:
+                    self.blitzed_players.append(p_name)
 
         # Set a discard card; reset knocked
         self.discard = [self.draw_card()]
         self.knocked = ""
-        
-        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
-        self.print_and_log("\n--- DEALING ---")
 
         # Move on to turn
         self.start_turn()
 
 
-    def end_round(self, blitz_player: str=""):
+    def end_round(self):
         # scenarios - win doesn't actually matter, just display who knocked and loser
-            # BLITZ - everyone except highest loses a life
+            # BLITZ or blitz tie - everyone except highest loses a life
             # ALL tie for loser - display knocked; no one loses
             # tie for loser and other higher player - all tied for lowest lose a life
             # 1 loser - display one who knocked and one who lost
@@ -285,6 +291,10 @@ class State:
 
         # Mode = end round; requires input from user to start next round
         self.mode = "end_round"
+
+        if len(self.blitzed_players) > 0:
+            for p_name in self.blitzed_players:
+                self.print_and_log(f"{p_name} BLITZED!!!")
 
         self.print_and_log(f"--- END OF ROUND {self.round_num} ---\n")
         self.print_and_log("---     SCORES     ---\n")
@@ -312,10 +322,11 @@ class State:
             for p_name in hand_scores[ordered_score]:
                 self.print_and_log(f"{p_name}'s hand was worth {ordered_score}.")
 
-        # Blitz player is string of player's name who blitzed
-        if blitz_player:
+        # List contains all names of players who blitzed
+        if len(self.blitzed_players) > 0:
             for p_name in self.player_order:
-                if p_name != blitz_player:
+                # If multiple blitzed players, everyone except blitzed players lose a life
+                if p_name not in self.blitzed_players:
                     self.print_and_log(f"{p_name} loses 1 life.")
                     self.players[p_name].lives -= 1
         
@@ -402,6 +413,10 @@ class State:
         # Set mode to main phase
         self.mode = "main_phase"
 
+        # Check if any player(s) were dealt a blitz; skip to round end
+        if len(self.blitzed_players) > 0:
+            self.end_round()
+
 
     def end_turn(self):
         # Calculate new current player
@@ -414,12 +429,6 @@ class State:
         # If not, start next turn
         else:
             self.start_turn()
-
-
-    def check_for_blitz(self, player_object):
-        if self.calc_hand_score(player_object) == 31:
-            self.print_and_log(f"{player_object.name} BLITZED!!!")
-            self.end_round(blitz_player = player_object.name)
 
 
     def update(self, packet: dict):
@@ -474,13 +483,15 @@ class State:
             # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
             
-            # Check for blitz, which will override mode to be end_round instead of discard
-            self.check_for_blitz(self.players[self.current_player])
+            # Check for blitz; can skip discard if blitz
+            if self.calc_hand_score(self.players[self.current_player]) == 31:
+                self.blitzed_players.append(self.current_player)
+                self.end_round()
             
             # Only set to discard if round has not ended Check for >3 cards in hand before setting mode to discard
-            # if self.mode != "end_round" and len(self.players[self.current_player].hand) > 3:
             # Removing check for end_round because discard should happen before the round ends - better for display and real game-feel
-            if len(self.players[self.current_player].hand) > 3:
+            # Elif skips the discard phase on blitz
+            elif len(self.players[self.current_player].hand) > 3:
                 self.mode = "discard"
             
         elif self.mode == "discard" and packet["action"] == "discard":
