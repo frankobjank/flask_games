@@ -159,6 +159,32 @@ class State:
         print(f"{self.current_player} discarded: {card_to_discard}")
 
 
+    def find_discard_card(self) -> Card:
+        """Find card to automatically discard on a blitz."""
+        
+        # Either one card out of suit, or lowest card of a hand that only has one suit
+        discard_card = None
+        
+        suits = {}
+        for card in self.players[self.current_player].hand:
+            if card.suit in suits.keys():
+                suits[card.suit].append(card)
+            else:
+                suits[card.suit] = [card]
+        
+        # Len 1 means only suit; find lowest card
+        if len(suits.keys()) == 1:
+            discard_card = min(self.players[self.current_player].hand, key = lambda x: x.value)
+        
+        # Len 2 means find the odd suit with only one card
+        else:
+            for card_list in suits.values():
+                if len(card_list) == 1:
+                    discard_card = card_list[0]
+        
+        return discard_card
+
+
     def calc_hand_score(self, player_object:Player) -> int:
         # Return if hand is empty
         if len(player_object.hand) == 0:
@@ -503,9 +529,9 @@ class State:
             if self.calc_hand_score(self.players[self.current_player]) == 31:
                 self.blitzed_players.append(self.current_player)
                 
-                # Auto-discard lowest card in hand - looks better than ending with 4 cards in hand 
-                lowest_card = min(self.players[self.current_player].hand, key= lambda x: x.value)
-                self.hand_to_discard(card_to_discard=lowest_card)
+                # Auto-discard lowest card or odd suit out
+                # looks better than ending with 4 cards in hand
+                self.hand_to_discard(card_to_discard=self.find_discard_card())
 
                 # End round after card discarded
                 self.end_round()
@@ -579,6 +605,7 @@ class State:
 
 def unzip_card(card_str: str) -> Card:
     """Decode portable string from client."""
+
     assert len(card_str) == 2, f"Incorrect card data `{card_str}`"
     
     # Convert 10 to T to make all cards 2 chars long
@@ -595,6 +622,7 @@ def unzip_card(card_str: str) -> Card:
 
     # returns 2S, 3C, AH, etc.
     return Card(rank, suit)
+
 
 # Unicode suit reference
 # ♠ \u2660 - black
