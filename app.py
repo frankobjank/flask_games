@@ -479,8 +479,8 @@ def on_join(data):
     # For game room
     # Set up client's username on their end
     # THIS MUST HAPPEN BEFORE <add_players> SO USERNAME IS SET
-    fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"], "username": user.name},
-             to=fl.request.sid)
+    fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"], "username": user.name,
+                                 "game": rooms[data["room"]].game_name}, to=fl.request.sid)
     
     print(f"Users on join: {rooms[data['room']].users} after processing.")
 
@@ -511,6 +511,7 @@ def on_join(data):
 
         # Send updated list of players to others in room
         fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
+                 "game": rooms[data["room"]].game_name,
                  "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
                  room=data["room"], broadcast=True)
     
@@ -522,7 +523,7 @@ def on_join(data):
 
         # Send updated list of players to others in room
         fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-                 "players": list(game.players.keys())},
+                 "game": rooms[data["room"]].game_name, "players": list(game.players.keys())},
                  room=data["room"], broadcast=True)
         
         game_update = game.package_state(user.name)

@@ -1136,8 +1136,11 @@ socket.on('update_gameroom', data => {
 socket.on('update_board', data => {
     // For debug:
     console.log(`Client received 'update_board' event: ${JSON.stringify(data)}.`);
-    
-    updateGame(data);
+
+    if (data.game === 'thirty_one') {
+        // Old updateGameRoom
+        updateThirtyOne(data);
+    }
 });
 
 // Example from socket.io using socket.recovered

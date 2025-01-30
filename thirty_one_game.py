@@ -578,6 +578,7 @@ class State:
         # All data the client needs from server
         return {
             # Generic data
+            "game": "thirty_one",  # specifies game
             "action": "update_board",  # for client to know what type of update this is
             "room": self.room_name,  # name of room
             "mode": self.mode,  # current game mode - might help restrict inputs on client side
@@ -597,9 +598,6 @@ class State:
             "hand": self.players[player_name].zip_hand(),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
-
-            # Removing because it is redundant data that caused issues if not updated correctly
-            # "sid": self.players[player_name].sid,
         }
     
 
