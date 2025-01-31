@@ -90,8 +90,9 @@ class Deck:
 class State:
     def __init__(self, room_name: str) -> None:
         
-        # modes : start, add_players, main_phase, discard 
-            # HANDLE THESE MODES internally instead: end_turn, end_round, end_game
+        # modes : start, add_players, main_phase, discard
+            # end_round - requires user input
+            # end_turn, end_game - do not require user input
 
         # Room
         self.room_name = room_name

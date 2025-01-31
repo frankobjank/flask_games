@@ -18,7 +18,7 @@ function createBoard() {
     // Adds text on hover
     deck.title = 'Draw a card from the deck.'
     deck.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': currentRoom});
+        socket.emit('move', {'action': 'draw', 'room': currentRoom, 'username': username});
     }
     
     // Add deck button to container
@@ -36,7 +36,7 @@ function createBoard() {
     // Adds text on hover
     // discard.title = 'Pick a card up from discard.'
     discard.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': currentRoom});
+        socket.emit('move', {'action': 'pickup', 'room': currentRoom, 'username': username});
     }
     
     // Add discard button to container
@@ -64,7 +64,7 @@ function createMoveButtons() {
     drawButton.innerText = 'Draw';
     
     drawButton.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': currentRoom});
+        socket.emit('move', {'action': 'draw', 'room': currentRoom, 'username': username});
     }
     
     // Add pickup button (from discard) - same as clicking the discard pile
@@ -74,7 +74,7 @@ function createMoveButtons() {
     pickupButton.innerText = 'Pickup';
     
     pickupButton.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': currentRoom});
+        socket.emit('move', {'action': 'pickup', 'room': currentRoom, 'username': username});
     }
     
     // Add knock button
@@ -84,7 +84,7 @@ function createMoveButtons() {
     knockButton.innerText = 'Knock';
     
     knockButton.onclick = () => {
-        socket.emit('move', {'action': 'knock', 'room': currentRoom});
+        socket.emit('move', {'action': 'knock', 'room': currentRoom, 'username': username});
     }
     
     drawPickupKnockContainer.appendChild(drawButton);
@@ -111,7 +111,7 @@ function createMoveButtons() {
     continueButton.style.display = 'none';
 
     continueButton.onclick = () => {
-        socket.emit('move', {'action': 'continue', 'room': currentRoom});
+        socket.emit('move', {'action': 'continue', 'room': currentRoom, 'username': username});
     }
 
     continueButtonContainer.appendChild(continueButton);
@@ -126,7 +126,7 @@ function createMoveButtons() {
     newGameButton.innerText = 'Start New Game';
     
     newGameButton.onclick = () => {
-        socket.emit('move', {'action': 'start', 'room': currentRoom});
+        socket.emit('move', {'action': 'start', 'room': currentRoom, 'username': username});
     }
     
     newGameButtonContainer.appendChild(newGameButton);
@@ -213,7 +213,7 @@ function createHandButton(serverCard) {
 
     // Send server request on click
     cardButton.onclick = () => {
-        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'card': cardButton.id});
+        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardButton.id});
         console.log(`Requesting discard ${cardButton.id}`)
     }
     return cardButton;

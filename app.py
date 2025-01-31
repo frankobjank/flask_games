@@ -12,6 +12,7 @@ import flask_socketio as fio
 # Local Python files
 from helpers import *
 import thirty_one_game
+import cribbage
 
 # link to access app for debug http://127.0.0.1:5000
 
@@ -300,9 +301,11 @@ def on_prejoin(data):
             if not user.connected:
                     
                 response["can_join"] = True
-                response["username"] = user.name    
+                response["username"] = user.name
+                # May be obvious, but calling prejoin does not necessarily mean join will be completed
+                # Therefore must wait to update user sid until join
                 # Update sid in user object - redundant with join - maybe this should happen on join only
-                user.sid = fl.request.sid
+                # user.sid = fl.request.sid
                 break
 
 
@@ -386,6 +389,7 @@ def on_prejoin(data):
 
 @socketio.on("join")
 def on_join(data):
+    print("ON JOIN")
     # Change to unique url room solution?
         # potentially with option of making public and being added to a lobby
     
@@ -434,9 +438,6 @@ def on_join(data):
 
     # Initiate user object for use below
     user = None
-
-    # This loop may be redundant, but not sure user.connected should be set to true during prejoin
-        # 2 loops may be necessary
 
     for room_user in rooms[data["room"]].users:
         # Use session cookie to see if user exists in room already; update sid and connection status
@@ -625,17 +626,20 @@ def on_move(data):
     if data["action"] == "start":
         
         # Reject if invalid number of players
-        if not (2 <= rooms[data["room"]].get_num_connected() <= 7):
+        if not (2 <= rooms[data["room"]].get_num_connected() <= rooms[data["room"]].capacity):
             fio.emit("debug_msg", {"msg": "Invalid number of players."}, to=fl.request.sid)
             print("Invalid number of players.")
             
-            fio.emit("chat_log", {"msg": f"Must have between 2 and 7 people to start game.",
-                     "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())},
-                     to=fl.request.sid)
+            fio.emit("chat_log", {"msg": f"Must have between 2 and {rooms[data['room']].capcity} 
+                                           people to start game.", "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
             return
         
         if not rooms[data["room"]].game:
-            rooms[data["room"]].game = thirty_one_game.State(data["room"])
+            if rooms[data["room"].game_name] == "thirty_one":
+                rooms[data["room"]].game = thirty_one_game.State(data["room"])
+            
+            # elif rooms[data["room"].game_name] == "cribbage":
+                # rooms[data["room"]].game = .State(data["room"])
         
         # Reject if game has already started
         if rooms[data["room"]].game.in_progress:
@@ -667,6 +671,17 @@ def on_move(data):
         if user.connected and user.sid == fl.request.sid:
             player = user
             break
+
+
+    ### Bug ### occurred where player was not found for a game that was in progress. Some leaving and rejoining had occurred, it's possible a sid was lost or connected status was not updated
+    
+    # 2 Ideas: add username to `move` event or make sure `sid` and `connected` are solid and add
+    # something to catch case when player isn't found
+    if not player:
+        print("Rejecting move request: Unable to find user in room")
+        fio.emit("debug_msg", {"msg":f"Server rejected move request; Unable to find user in room"},
+                 to=fl.request.sid)
+        return
 
     # If game has started, check that username is current player
     # Only allow input from all players to click continue during round ending (for 31)
