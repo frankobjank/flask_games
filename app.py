@@ -12,7 +12,7 @@ import flask_socketio as fio
 # Local Python files
 from helpers import *
 import thirty_one_game
-import cribbage
+# import cribbage
 
 # link to access app for debug http://127.0.0.1:5000
 
