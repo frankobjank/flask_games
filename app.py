@@ -630,16 +630,16 @@ def on_move(data):
             fio.emit("debug_msg", {"msg": "Invalid number of players."}, to=fl.request.sid)
             print("Invalid number of players.")
             
-            fio.emit("chat_log", {"msg": f"Must have between 2 and {rooms[data['room']].capcity} 
-                                           people to start game.", "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
+            fio.emit("chat_log", {"msg": f"Must have between 2 and {rooms[data['room']].capcity} people to start game.", 
+                     "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
             return
         
         if not rooms[data["room"]].game:
-            if rooms[data["room"].game_name] == "thirty_one":
+            if rooms[data["room"]].game_name == "thirty_one":
                 rooms[data["room"]].game = thirty_one_game.State(data["room"])
             
-            # elif rooms[data["room"].game_name] == "cribbage":
-                # rooms[data["room"]].game = .State(data["room"])
+            # elif rooms[data["room"]].game_name == "cribbage":
+            #     rooms[data["room"]].game = .State(data["room"])
         
         # Reject if game has already started
         if rooms[data["room"]].game.in_progress:
