@@ -145,6 +145,7 @@ class State:
 
 
     def hand_to_discard(self, card_to_discard: Card) -> None:
+        """Find selected card in hand and move from hand to discard."""
 
         # Find in card in hand by comparing suit and rank
         for card in self.players[self.current_player].hand:
@@ -187,6 +188,8 @@ class State:
 
 
     def calc_hand_score(self, player_object:Player) -> int:
+        """Calculate the highest score of a player's hand."""
+
         # Return if hand is empty
         if len(player_object.hand) == 0:
             print("Cannot calc hand score; Hand empty.")
@@ -224,6 +227,8 @@ class State:
 
 
     def add_player(self, name) -> None:
+        """Initialize a player. Must happen before starting game."""
+
         self.players[name] = Player(name)
 
 
