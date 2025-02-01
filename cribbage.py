@@ -132,10 +132,10 @@ class State:
         return self.shuffled_cards.pop()
 
 
-    def deal(self, player_object: Player) -> None:
+    def deal(self, player_object: Player, num_cards: int) -> None:
         """Deal starting hands."""
 
-        for i in range(self.hand_size):
+        for i in range(num_cards):
             player_object.hand.append(self.draw_card())
         player_object.sort_hand()
 
@@ -185,13 +185,34 @@ class State:
             self.players[player].log.append(msg)
 
 
+    def start_game(self) -> None:
+        
+        # Validations
+        if self.in_progress:
+            print("Cannot start game while a game is in progress.")
+            return
+        
+        # Check number of players
+        if not (self.MIN_PLAYERS <= len(self.players.keys()) <= self.MAX_PLAYERS):
+            print("Need between 2 and 7 players to begin.")
+            return
+        
+        # Reset game vars
+        self.player_order = []
+        self.round_num = 0
+        for p_object in self.players.values():
+            p_object.log = []  # Start log as empty list for each player
+
+        # Set player order - eventually should be random
+        self.player_order = [p_name for p_name in self.players.keys()]
+
+        self.in_progress = True
+        
+        self.new_round()
+
+
     def new_round(self) -> None:
         
-        self.shuffle_deck()
-        for p_object in self.players.values():
-            p_object.hand = []
-            self.deal(p_object)
-
         self.round_num += 1
         self.turn_num = 0
         
@@ -204,30 +225,39 @@ class State:
             self.current_player = self.player_order[first_player_index]
             self.dealer = self.player_order[first_player_index-1]
 
-        # Reset variables for the play
-        for p_object in self.players.values():
+            
+        
+        # Shuffle
+        self.shuffle_deck()
+        
+        # Deal and reset player vars
+        for p_name, p_object in self.players.items():
+            
+            # Empty hand
+            p_object.hand = []
+
+            # Deal
+            # 2P game: each gets 6
+            if len(self.players.keys()) == 2:
+                self.deal(p_object, num_cards=6)
+            
+            # 3P game: dealer gets 6, others get 5
+            else:
+                if p_name == self.dealer:
+                    self.deal(p_object, num_cards=6)
+                else:
+                    self.deal(p_object, num_cards=5)
+
+
+            # Reset variables for the play
             p_object.played_cards = []
             p_object.unplayed_cards = []
-
-        # default to 5 cards per hand; additional card for all except non-dealer players in P3 game
-        if len(self.players.keys()) == 3:
-            self.add_card_to_hand(self.players[self.dealer])
-        else:
-            for p_object in self.players.values():
-                self.add_card_to_hand(p_object)
-
+            
         print(f"--- ROUND {self.round_num} ---\n")
         print("\n--- DEALING ---")
 
-
-    def new_game(self) -> None:
-        self.players = {}
-        self.player_order = []
-        self.start_round()  # Not sure if this will work
-
-    def start_round(self):
-        self.new_round()
         self.start_turn()
+
 
     def end_round(self):
         print(f"\n--- END OF ROUND {self.round_num} ---\n")
@@ -243,22 +273,22 @@ class State:
             self.mode = "end_round"
 
 
-    def print_players(self):
-        print_players = ""
-        for p_name in self.player_order:
-            if p_name == self.current_player:
-                print_players += "*"
-            if p_name == self.dealer:
-                print_players += "D-"
+    def start_turn(self):
+        self.set_mode()
+        self.mode_maintenance()
+        self.current_player = self.get_next_player()
 
-            print_players += f"{p_name}: {self.players[p_name].score}"
+        # KEEP turn_num increment AFTER set_current_player as current player is determined by turn_num
+        self.turn_num += 1
+        
+        self.print_players()
 
-            if p_name in self.go:
-                print_players += " - Go"
-            
-            print_players += "\n"
-        print(f"\n{print_players}")
-        print(f"It is {self.current_player}'s turn.\n")
+
+    def end_turn(self):
+        self.mode = "end_turn"
+        # end round if all players have played show
+        if len(self.has_played_show) == len(self.player_order):
+            self.end_round()
 
 
     def set_mode(self):
@@ -299,6 +329,7 @@ class State:
             if len(self.has_played_show) == 0:
                 self.turn_num = 0
 
+
     def get_next_player(self):
         player_order = self.player_order.copy()
         if self.mode == "play" and len(self.go) > 0:
@@ -318,24 +349,6 @@ class State:
             return self.first_player
         else:
             return player_order[((self.turn_num + ((self.round_num-1) % len(player_order))) % len(player_order))]
-
-
-    def start_turn(self):
-        self.set_mode()
-        self.mode_maintenance()
-        self.current_player = self.get_next_player()
-
-        # KEEP turn_num increment AFTER set_current_player as current player is determined by turn_num
-        self.turn_num += 1
-        
-        self.print_players()
-
-
-    def end_turn(self):
-        self.mode = "end_turn"
-        # end round if all players have played show
-        if len(self.has_played_show) == len(self.player_order):
-            self.end_round()
 
 
     def format_play_msgs(self) -> dict:
@@ -409,7 +422,7 @@ class State:
             
             # check for runs (min 3)
             for i in range(len(play_ranks)-2):
-                if self.is_run(play_ranks[i:]):
+                if is_run(play_ranks[i:]):
                     print(f"You played a run: {sorted(play_ranks[i:])}. You get {len(play_ranks[i:])} points.")
                     self.add_score_log(self.current_player, len(play_ranks[i:]), "a run")
                     break
@@ -434,21 +447,21 @@ class State:
         for i in range(2, len(show_hand)+1):
             for j in combinations(show_hand, i):
                 if sum(card.value for card in j) == 15:
-                    self.sleep_print(f"2 points for a 15: {j}.")
+                    self.print_and_log(f"2 points for a 15: {j}.")
                     # self.add_score_log(self.current_player, 2, "a 15")
                     score += 2
 
         # count pairs
         for cards in combinations(show_hand, 2):
             if cards[0].rank == cards[1].rank:
-                self.sleep_print(f"2 points for a pair: {cards}.")
+                self.print_and_log(f"2 points for a pair: {cards}.")
                 # self.add_score_log(self.current_player, 2, "a pair")
                 score += 2
         
         # jack matching suits with starter
         for card in four_card_hand:
             if card.rank == "J" and card.suit == self.starter.suit:
-                self.sleep_print(f"1 point for his knobs ({card} matches the suit of the starter).")
+                self.print_and_log(f"1 point for his knobs ({card} matches the suit of the starter).")
                 # self.add_score_log(self.current_player, 1, "J suit matching starter")
                 score += 1
         
@@ -456,72 +469,45 @@ class State:
         runs = []
         for i in range(3, len(show_hand)+1):
             for pot_run in combinations(show_hand, i):
-                if self.is_run(card.rank for card in pot_run):
+                if is_run(card.rank for card in pot_run):
                     runs.append(pot_run)
         if len(runs) > 0:
             max_len = max(len(run) for run in runs)
             runs = [run for run in runs if len(run) == max_len]
             for run in runs:
-                self.sleep_print(f"{len(run)} points for a run: {sorted(run, key=lambda x: x.value)}.")
+                self.print_and_log(f"{len(run)} points for a run: {sorted(run, key=lambda x: x.value)}.")
                 # self.add_score_log(self.current_player, len(run), "a run")
                 score += len(run)
 
         # flush
         if len(set(card.suit for card in show_hand)) == 1:
-            self.sleep_print(f"{len(show_hand)} points for a flush.")
+            self.print_and_log(f"{len(show_hand)} points for a flush.")
             # self.add_score_log(self.current_player, len(show_hand), "a flush")
             score += len(show_hand)
         
         if not crib:
             if len(set(card.suit for card in four_card_hand)) == 1:
-                self.sleep_print(f"{len(four_card_hand)} points for a flush.")
+                self.print_and_log(f"{len(four_card_hand)} points for a flush.")
 
-        # if not crib: # redundant if statement
             # report overall show score
-            # self.round_log.append(f"{self.current_player} scored {score}.")
-            self.sleep_print(f"You scored {score}.")
+            self.print_and_log(f"{self.current_player} scored {score}.")
 
         elif crib:
-            self.sleep_print(f"You scored {score} from the crib.")
+            self.print_and_log(f"{self.current_player} scored {score} from the crib.")
             # self.round_log.append(f"{self.current_player} scored {score} from the crib.")
 
         self.add_score_log(self.current_player, score, "the show")
         
         self.has_played_show.add(self.current_player)
 
-
-    def is_run(self, potential_run):
-        indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(card) for card in potential_run])
-        if all(indices[i+1] - indices[i] == 1 for i in range(len(indices)-1)):
-            return True
-        return False
-
-
+    # Convert to front-end code
     def get_user_input(self) -> dict:
         # if self.debug:
             # print(f"MODE={self.mode}")
         user_input = ""
         packet = {}
         if self.mode == "start":
-            accepted_inputs = [str(i) for i in range(2, self.max_players+1)]
-            while True:
-                user_input = input(f"How many players? Enter a number from 2-{self.max_players}.\n")
-                if user_input not in accepted_inputs:
-                    print("Invalid input. Please enter 2 or 3.")
-                else:
-                    break
-
-            packet = self.user_input_to_packet(action="start", msg=user_input)
-        
-        elif self.mode == "add_player":
-            if self.random_names_flag:
-                user_input = self.random_names_list.pop(random.randint(0, len(self.random_names_list)-1))
-            else:
-                while len(user_input) == 0:
-                    user_input = input("Please enter a name:\n")
-                    if len(user_input) > 12:
-                        user_input = user_input[:12]
-            packet = self.user_input_to_packet(action="add_player", msg=user_input)
+            pass
                 
         elif self.mode == "discard":
             accepted_inputs = [str(i+1) for i in range(len(self.players[self.current_player].hand))]
@@ -616,9 +602,13 @@ class State:
         # {"name": "", "action": "", "msg": ""}
         # actions: start, add_player, discard, play, continue, new_game, quit
         assert len(packet) > 0, "empty packet"
+        
         if self.mode == "start":
-            self.custom_add_players(num_players=int(packet["msg"]))
-            self.mode = "add_player"
+            if not self.in_progress:
+                if packet["action"] == "start":
+                    self.start_game()
+                    return "accept"
+
 
         elif self.mode == "add_player" and packet["action"] == "add_player":
             for p_name, p_object in self.players.items():
@@ -631,7 +621,7 @@ class State:
             if all(isinstance(p_name, str) for p_name in self.players.keys()):
                 # set_player_order only needs to happen once per game
                 self.set_player_order()
-                self.start_round()
+                self.new_round()
                 self.mode = "discard"
         
         elif self.mode == "discard" and packet["action"] == "discard":
@@ -663,10 +653,10 @@ class State:
                 self.start_turn()
         elif self.mode == "end_round":
             if packet["action"] == "continue":
-                self.start_round()
+                self.new_round()
         elif self.mode == "end_game":
             if packet["action"] == "new_game":
-                self.new_game_custom()
+                self.start_game()
                 self.mode = "start"
             elif packet["action"] == "quit":
                 raise SystemExit(0)
@@ -677,10 +667,17 @@ class State:
             msgs_per_player = self.format_play_msgs()
             for p, msg in msgs_per_player.items():
                 print(f"{p}: {msg}")
-        else:
-            self.sleep_print(f"Hand: {self.players[self.current_player].hand}")
+        # else:
+        #     self.sleep_print(f"Hand: {self.players[self.current_player].hand}")
 
 
     def add_score_log(self, player: str, points: int, reason: str):
         self.print_and_log(f"{player} scored {points} for {reason}.")
         self.players[player].score += points
+
+
+# Other helper functions
+def is_run(potential_run):
+    indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(card) for card in potential_run])
+
+    return all(indices[i+1] - indices[i] == 1 for i in range(len(indices)-1))

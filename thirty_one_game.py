@@ -90,7 +90,7 @@ class Deck:
 class State:
     def __init__(self, room_name: str) -> None:
         
-        # modes : start, add_players, main_phase, discard
+        # modes : start, main_phase, discard
             # end_round - requires user input
             # end_turn, end_game - do not require user input
 
@@ -480,7 +480,7 @@ class State:
 
 
     def update(self, packet: dict):
-        # actions: start, add_player, draw, pickup, knock, discard, new_game, quit
+        # actions: start, add_player, draw, pickup, knock, discard, quit
         # Assuming packet is coming from current player; validate before this is called
 
         if not self.in_progress:
