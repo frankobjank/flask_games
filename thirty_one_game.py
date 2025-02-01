@@ -420,7 +420,7 @@ class State:
         players_remaining = len(self.player_order) - len(knocked_out)
 
         if players_remaining == 1:
-            self.print_and_log(f"\n{self.player_order[0]} wins!")
+            self.print_and_log(f"\n{players_remaining[0]} wins!")
             self.mode = "end_game"
             self.in_progress = False
             # mode `end_game` gives clients time to view the scores, leave/join rooms
