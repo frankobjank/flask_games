@@ -1,24 +1,12 @@
-from operator import attrgetter
 import random
+
+from cards_shared import *
+from games_shared import *
 
 # TODO - what happens when deck runs out of cards?
 
-# Global constants
-ACE_VALUE = 11
-
-# Ranks and ranks to value
-RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": ACE_VALUE}
-
-# Suits and unicode for suits
-SUITS = ["spade", "heart", "diamond", "club"]
-
-# Uses all `filled in` emojis
-# ♠ "\u2660" - black
-# ♥ "\u2665" - red
-# ♦ "\u2666" - blue
-# ♣ "\u2663" - green
-SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "club": "\u2663"}
+# Set ace value
+RANK_TO_VALUE["A"] = 11
 
 
 class Player:
@@ -33,66 +21,13 @@ class Player:
     def __repr__(self) -> str:
         return f"{Player(self.name)}"
 
-    
-    def sort_hand(self) -> None:
-        """Sort hand in order of suit."""
-
-        self.hand = sorted(sorted(self.hand, key=attrgetter("suit"), reverse=True), key=attrgetter("value"), reverse=True)
-    
-
-    def zip_hand(self) -> list:
-        """Convert hand to portable strings to send to client."""
-        
-        cards = []
-        for c in self.hand:
-            cards.append(c.zip_card())
-        
-        return cards
-    
-
-class Card:
-    def __init__(self, rank: str, suit: str):
-        self.rank = rank
-        self.value = RANK_TO_VALUE[self.rank]
-        self.suit = suit
-        self.suit_display = SUIT_TO_DISPLAY[self.suit]
-    
-    
-    def __repr__(self) -> str:
-        return f"Card({self.rank}, {self.suit})"
-    
-    
-    def __str__(self) -> str:
-        return f"{self.rank}{self.suit_display}"
-    
-
-    def zip_card(self):
-        """Create portable string to send to client."""
-        
-        # Convert 10 to T to make all cards 2 chars long
-        rank = self.rank
-        if rank == "10":
-            rank = "T"
-
-        # returns 2S, 3C, AH, etc.
-        return f"{rank}{self.suit[0].capitalize()}"
-    
-
-class Deck:
-    def __init__(self) -> None:
-        self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
-
-
-    def __repr__(self) -> str:
-        return f"Deck({self.unshuffled_cards})"
-
 
 class State:
     def __init__(self, room_name: str) -> None:
         
         # modes : start, main_phase, discard
             # end_round - requires user input
-            # end_turn, end_game - do not require user input
+            # end_game - do not require user input
 
         # Room
         self.room_name = room_name
@@ -124,26 +59,6 @@ class State:
         self.free_ride_alts = ["getting a free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "having a tummy ache", "having a long day"]
         
 
-    def shuffle_deck(self) -> list:
-        cards_to_add = self.deck.unshuffled_cards.copy()
-
-        while len(cards_to_add) > 0:
-            randindex = random.randint(0, len(cards_to_add)-1)
-            self.shuffled_cards.append(cards_to_add.pop(randindex))
-
-
-    def draw_card(self) -> Card:
-        return self.shuffled_cards.pop()
-
-
-    def deal(self, player_object: Player) -> None:
-        """Deal starting hands."""
-
-        for i in range(self.hand_size):
-            player_object.hand.append(self.draw_card())
-        player_object.sort_hand()
-
-
     def hand_to_discard(self, card_to_discard: Card) -> None:
         """Find selected card in hand and move from hand to discard."""
 
@@ -161,7 +76,7 @@ class State:
         print(f"{self.current_player} discarded: {card_to_discard}")
 
 
-    def find_discard_card(self) -> Card:
+    def find_discard_on_blitz(self) -> Card:
         """Find card to automatically discard on a blitz."""
         
         # Either one card out of suit, or lowest card of a hand that only has one suit
@@ -224,26 +139,13 @@ class State:
         
         # DOUBLE MAX - take max of each combo and then max of that list
         return max(max(combo.values()) for combo in hand_scores)
+        
 
+    # This is currently only called from app.py
+    def add_player(players, name) -> None:
+        """Initializes a player and adds to players dict."""
 
-    def add_player(self, name) -> None:
-        """Initialize a player. Must happen before starting game."""
-
-        self.players[name] = Player(name)
-
-
-    def print_and_log(self, msg, player="all") -> None:
-        print(msg)
-
-        # Send to all clients
-        if player == "all":
-            # Use all players so players receive msg even after knockout
-            for p_object in self.players.values():
-                p_object.log.append(msg)
-
-        # Send to one specific client
-        else:
-            self.players[player].log.append(msg)
+        players[name] = Player(name)
 
 
     def start_game(self) -> None:
@@ -255,7 +157,7 @@ class State:
         
         # Check number of players
         if not (self.MIN_PLAYERS <= len(self.players.keys()) <= self.MAX_PLAYERS):
-            print("Need between 2 and 7 players to begin.")
+            print(f"Need between {self.MIN_PLAYERS} and {self.MAX_PLAYERS} players to begin.")
             return
         
         # Reset game vars
@@ -303,7 +205,7 @@ class State:
         self.print_and_log("\n--- DEALING ---")
         
         # Shuffle cards
-        self.shuffle_deck()
+        self.shuffled_cards = shuffle_deck(self.deck)
         
         # Reset each player's hand and deal new hand
         for p_name, p_object in self.players.items():
@@ -312,7 +214,7 @@ class State:
 
             if p_name in self.player_order:
                 # Deal for players who are still in the game
-                self.deal(p_object)
+                deal(p_object, self.shuffled_cards, num_cards=3)
                 
                 # Check for blitz
                 # It's possible for more than one player to be dealt a blitz; blitzed players must be list
@@ -320,7 +222,7 @@ class State:
                     self.blitzed_players.append(p_name)
 
         # Set a discard card; reset knocked
-        self.discard = [self.draw_card()]
+        self.discard = [draw_card(self.shuffled_cards)]
         self.knocked = ""
 
         # Move on to turn
@@ -425,7 +327,7 @@ class State:
         players_remaining = len(self.player_order) - len(knocked_out)
 
         if players_remaining == 1:
-            self.print_and_log(f"\n{self.player_order[0]} wins!")
+            self.print_and_log(f"\n{players_remaining[0]} wins!")
             self.mode = "end_game"
             self.in_progress = False
             # mode `end_game` gives clients time to view the scores, leave/join rooms
@@ -537,7 +439,7 @@ class State:
                 
                 # Auto-discard lowest card or odd suit out
                 # looks better than ending with 4 cards in hand
-                self.hand_to_discard(card_to_discard=self.find_discard_card())
+                self.hand_to_discard(card_to_discard=self.find_discard_on_blitz())
 
                 # End round after card discarded
                 self.end_round()
@@ -578,7 +480,7 @@ class State:
             lives.append(self.players[p_name].lives)
 
             if self.mode == "end_round" or self.mode == "end_game":
-                final_hands.append(self.players[p_name].zip_hand())
+                final_hands.append(zip_hand(self.players[p_name].hand))
                 final_scores.append(self.calc_hand_score(self.players[p_name]))
 
         # All data the client needs from server
@@ -606,39 +508,3 @@ class State:
             "log": self.players[player_name].log,  # new log msgs - split up for each player
         }
     
-
-def unzip_card(card_str: str) -> Card:
-    """Decode portable string from client."""
-
-    assert len(card_str) == 2, f"Incorrect card data `{card_str}`"
-    
-    # Convert 10 to T to make all cards 2 chars long
-    rank = card_str[0]
-    if rank == "T":
-        rank = "10"
-    
-    suit_letter = card_str[1].lower()
-    suit = ""
-
-    for s in SUITS:
-        if suit_letter in s:
-            suit = s
-
-    # returns 2S, 3C, AH, etc.
-    return Card(rank, suit)
-
-
-# Unicode suit reference
-# ♠ \u2660 - black
-# ♡ \u2661 
-# ♢ \u2662
-# ♣ \u2663 - green
-
-# ♤ \u2664
-# ♥ \u2665 - red
-# ♦ \u2666 - blue
-# ♧ \u2667
-
-# Potentially for back of cards
-# ★ \u2605 - solid star
-# ☆ \u2606 - outlined star

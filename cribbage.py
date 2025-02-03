@@ -1,26 +1,11 @@
-import random
-from operator import attrgetter
-from time import sleep
 from collections import namedtuple
 from itertools import combinations
+import random
 
-# Global constants
-ACE_VALUE = 1
+from cards_shared import *
+from games_shared import *
 
-# Ranks and ranks to value
-RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": ACE_VALUE}
-
-# Suits and unicode for suits
-SUITS = ["spade", "heart", "diamond", "club"]
-
-# Uses all `filled in` emojis
-# ♠ "\u2660" - black
-# ♥ "\u2665" - red
-# ♦ "\u2666" - blue
-# ♣ "\u2663" - green
-SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "club": "\u2663"}
-
+# Custom namedtuple for cribbage
 Play = namedtuple("Play", ["player", "card"])
 
 
@@ -39,36 +24,8 @@ class Player:
         return self.name
 
 
-    def sort_hand(self) -> None:
-        """Sort hand in order of suit."""
-
-        self.hand = sorted(sorted(self.hand, key=attrgetter("suit"), reverse=True), key=attrgetter("value"), reverse=True)
-
-
-class Card:
-    def __init__(self, rank: str, value: int, suit: str, suit_display: str):
-        self.rank = rank
-        self.value = value
-        self.suit = suit
-        self.suit_display = suit_display
-    
-    def __repr__(self) -> str:
-        return f"{self.rank}{self.suit_display}"
-
-
-class Deck:
-    def __init__(self) -> None:
-        self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
-
-
-    def __repr__(self) -> str:
-        return f"Deck({self.unshuffled_cards})"
-
-
 class State:
     def __init__(self, room_name: str) -> None:
-
-        # modes : TBD
 
         # Room
         self.room_name = room_name
@@ -117,74 +74,9 @@ class State:
         self.go = []
         self.go_scored = False
         self.current_plays = []
-        self.print_and_log(f"Round ending, {self.current_player} will start the next round.")
-
-
-    def shuffle_deck(self) -> None:
-        cards_to_add = self.deck.unshuffled_cards.copy()
-
-        while len(cards_to_add) > 0:
-            randindex = random.randint(0, len(cards_to_add)-1)
-            self.shuffled_cards.append(cards_to_add.pop(randindex))
-
-
-    def draw_card(self) -> Card:
-        return self.shuffled_cards.pop()
-
-
-    def deal(self, player_object: Player, num_cards: int) -> None:
-        """Deal starting hands."""
-
-        for i in range(num_cards):
-            player_object.hand.append(self.draw_card())
-        player_object.sort_hand()
-
-
-    # all possible scores:
-    # starter: if Jack, dealer gets 2 points
-
-    # PLAY
-    # 1 point for each card in run
-    # every time a card is played, re-count from the beginning to the end to check for an unbroken run (or dup card)
-        # 3, 5, 6, 7 -> score three for the 5-6-7 run
-        # 3, 5, 6, 7, + 4 -> scores five points, for the 3-4-5-6-7 run
-        # 8, 7, 7, 6 !-> NOT a run
-    # 1 point for card in run
-    # 2 points for pair
-        # 6 for three
-        # 12 for four
-    # 1 point for Go or last card
-    # 2 points for 15
-    # 1 point for 31
-
-    # SHOW
-    # 1 point for each card in run
-    # 4 points for 4 card flush (excluding crib & starter) OR 5 points for 5 card flush
-    # 2 points per 15 (combinations)
-    # 2 points per pair (combinations)
-        # 6 for three (2, 2, 2) - 3 combinations
-        # 12 for four (2, 2, 2, 2, 2, 2) - 6 combinations
-    # 1 point for Jack matching starter
+        print_and_log(f"Round ending, {self.current_player} will start the next round.", self.players)
 
     
-    def add_player(self, name: str) -> None:
-        self.players[name] = Player(name)
-
-
-    def print_and_log(self, msg, player="all") -> None:
-        print(msg)
-
-        # Send to all clients
-        if player == "all":
-            # Use all players so players receive msg even after knockout
-            for p_object in self.players.values():
-                p_object.log.append(msg)
-
-        # Send to one specific client
-        else:
-            self.players[player].log.append(msg)
-
-
     def start_game(self) -> None:
         
         # Validations
@@ -194,7 +86,7 @@ class State:
         
         # Check number of players
         if not (self.MIN_PLAYERS <= len(self.players.keys()) <= self.MAX_PLAYERS):
-            print("Need between 2 and 7 players to begin.")
+            print(f"Need between {self.MIN_PLAYERS} and {self.MAX_PLAYERS} players to begin.")
             return
         
         # Reset game vars
@@ -216,37 +108,35 @@ class State:
         self.round_num += 1
         self.turn_num = 0
         
-        if len(self.player_order) > 0:
+        # Make sure player order has been set
+        assert len(self.player_order) > 0, "Player order must be set before new_round is called."
 
-            # Increment first player and set dealer, current player
-            first_player_index = ((self.round_num)-1) % len(self.player_order)
+        # Increment first player and set dealer, current player
+        first_player_index = ((self.round_num)-1) % len(self.player_order)
 
-            self.first_player = self.player_order[first_player_index]
-            self.current_player = self.player_order[first_player_index]
-            self.dealer = self.player_order[first_player_index-1]
-
-            
+        self.first_player = self.player_order[first_player_index]
+        self.current_player = self.player_order[first_player_index]
+        self.dealer = self.player_order[first_player_index-1]
         
-        # Shuffle
-        self.shuffle_deck()
+        # Shuffle cards
+        self.shuffled_cards = shuffle_deck(self.deck)
         
         # Deal and reset player vars
         for p_name, p_object in self.players.items():
-            
             # Empty hand
             p_object.hand = []
 
             # Deal
             # 2P game: each gets 6
             if len(self.players.keys()) == 2:
-                self.deal(p_object, num_cards=6)
+                deal(p_object, self.shuffled_cards, num_cards=6)
             
             # 3P game: dealer gets 6, others get 5
             else:
                 if p_name == self.dealer:
-                    self.deal(p_object, num_cards=6)
+                    deal(p_object, self.shuffled_cards, num_cards=6)
                 else:
-                    self.deal(p_object, num_cards=5)
+                    deal(p_object, self.shuffled_cards, num_cards=5)
 
 
             # Reset variables for the play
@@ -260,38 +150,50 @@ class State:
 
 
     def end_round(self):
-        print(f"\n--- END OF ROUND {self.round_num} ---\n")
-        hand_scores = "---     SCORES     ---\n\n"
+
+        print_and_log(f"\n--- END OF ROUND {self.round_num} ---\n", self.players)
+
+        # Start string that will capture total hand scores
+        hand_scores = "---     SCORES     ---\n"
+
         for player in self.player_order:
             hand_scores += f"{player}: {self.players[player].score}\n"
         
-        print(hand_scores)
+        print_and_log(hand_scores, self.players)
     
+        # Check if any player has scored enough to win
         if any(p_object.score == 121 for p_object in self.players.values()):
             self.mode = "end_game"
+        
+        # No win, continue game. Wait for user input to continue so players have time to view scores.
         else:
             self.mode = "end_round"
 
 
     def start_turn(self):
+        # Used for all modes: "discard", "play", "show". Set mode handles each case.
         self.set_mode()
+
+        # Set vars and complete actions for certain modes
         self.mode_maintenance()
+
+        # Set current player
         self.current_player = self.get_next_player()
 
         # KEEP turn_num increment AFTER set_current_player as current player is determined by turn_num
         self.turn_num += 1
         
-        self.print_players()
-
 
     def end_turn(self):
-        self.mode = "end_turn"
-        # end round if all players have played show
+
+        # End round if all players have played show
         if len(self.has_played_show) == len(self.player_order):
             self.end_round()
 
 
-    def set_mode(self):
+    def set_mode(self) -> None:
+        """Set mode to depending on game state. Order: Discard, Play, Show."""
+
         if 4 > len(self.crib):
             self.mode = "discard"
         elif len(self.crib) == 4:
@@ -302,15 +204,17 @@ class State:
                 self.mode = "show"
                 
 
-    def mode_maintenance(self):
+    def mode_maintenance(self) -> None:
+        """Trigger actions and variable resets depending on mode."""
+
         if self.mode == "play":
             # set starter (one-time action when play starts)
             if self.starter.value == 0:
-                self.starter = self.draw_card()
-                # print(f"The starter is {self.starter}.\n")
-                self.print_and_log(f"The starter is {self.starter}.")
+                self.starter = draw_card(self.shuffled_cards)
+                print_and_log(f"The starter is {self.starter}.", self.players)
+
                 if self.starter.rank == "J":
-                    self.print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.")
+                    print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.", self.players)
                     self.add_score_log(self.dealer, 2, "his heels (starter is a J)")
 
             # set unplayed_cards
@@ -325,32 +229,43 @@ class State:
             # 3 total players, 1 is out of cards starting the round - they will actually need to say go and be counted in self.go so this will have the same result
 
         elif self.mode == "show":
-            # reset turn_num to 0 at beginning of show 
+            # Reset turn_num to 0 at beginning of show 
             if len(self.has_played_show) == 0:
                 self.turn_num = 0
 
 
-    def get_next_player(self):
+    def get_next_player(self) -> str:
+        """Get the next player."""
+
+        # Make copy of player order since order will be constantly changing during the play.
         player_order = self.player_order.copy()
+        
         if self.mode == "play" and len(self.go) > 0:
             for player in self.go:
                 player_order.remove(player)
         
-        # if len == 0, have modulo by 0 error
+        # Player order must not be empty or there will be modulo by 0 error
         assert len(player_order) > 0, "Player order should be greater than 0, might have to catch end of play sooner."
 
-        # at the end of a round, next player would be first player, but second player is new first player
+        next_player = ""
+
+        # At the end of a round, next player would be first player, but second player is new first player
         if self.mode == "end_round":
             first_player_index = self.player_order.index(self.first_player)
-            return player_order[(first_player_index + 1) % len(player_order)]
+            next_player = player_order[(first_player_index + 1) % len(player_order)]
 
-        # make sure show starts with original first player of round
+        # Beginning of show only - make sure show starts with original first player of round
         elif self.mode == "show" and len(self.has_played_show) == 0:
-            return self.first_player
+            next_player = self.first_player
+        
+        # Otherwise get next player normally using turn number
         else:
-            return player_order[((self.turn_num + ((self.round_num-1) % len(player_order))) % len(player_order))]
+            next_player = player_order[((self.turn_num + ((self.round_num-1) % len(player_order))) % len(player_order))]
+        
+        return next_player
 
 
+    # Will have to recreate this on front-end
     def format_play_msgs(self) -> dict:
         msgs_per_player = {player: "" for player in self.player_order}
         for p_name in self.player_order:
@@ -370,37 +285,47 @@ class State:
         return msgs_per_player
 
 
-    def score_play(self, packet_msg: str) -> None:
-        if packet_msg == "go":
+    def score_play(self, card: Card, go: bool) -> None:
+        
+        # On go
+        if go:
+            assert len(card) == 0, "Card should not be present if go is True."
             self.go.append(self.current_player)
-            self.print_and_log(f"{self.current_player} has said 'Go'.")
+            print_and_log(f"{self.current_player} has said 'Go'.", self.players)
             # score a go
             if len(set(self.player_order) - set(self.go)) == 1:
                 player_left = next(iter(set(self.player_order) - set(self.go)))
                 self.add_score_log(player_left, 1, "a go")
                 self.go_scored = True
-            
+
+        # On playing a card
         else:
+            # Get played card by removing from player's unplayed list; add to played list
             played_card = self.players[self.current_player].unplayed_cards.pop(int(packet_msg)-1)
+            self.players[self.current_player].played_cards.append(played_card)
+            
+            # Create new `Play` object
             play = Play(self.current_player, played_card)
+
+            # Add to lists: all plays, current plays 
             self.all_plays.append(play)
             self.current_plays.append(play)
-            self.print_and_log(f"{play.player} played: {play.card}.")
-            self.players[self.current_player].played_cards.append(played_card)
 
-            # current_count = sum([play.card.value for play in self.current_plays])
+            # Notify users about play
+            self.print_and_log(f"{play.player} played: {play.card}.")
+
+            # Check count for 15, 31
             if sum([play.card.value for play in self.current_plays]) == 15:
-                print("You get 2 points for a 15.")
                 self.add_score_log(self.current_player, 2, "a 15")
+            
             elif sum([play.card.value for play in self.current_plays]) == 31:
                 if self.go_scored:
-                    print("You get 1 point for a 31.")
                     self.add_score_log(self.current_player, 1, "a 31")
+                
                 else:
-                    print("You get 2 points for a 31 and a go.")
                     self.add_score_log(self.current_player, 2, "a 31 and a go")
 
-            # check for runs
+            # Check for pairs
             play_ranks = [play.card.rank for play in self.current_plays]
             
             pairs = [play_ranks[-1]]
@@ -411,22 +336,22 @@ class State:
                     break
 
             if len(pairs) == 2:
-                print("You get 2 points for a pair.")
                 self.add_score_log(self.current_player, 2, "a pair")
+            
             elif len(pairs) == 3:
-                print("You get 6 points for three of a kind.")
                 self.add_score_log(self.current_player, 6, "three of a kind")
+            
             elif len(pairs) == 4:
-                print("You get 12 points for four of a kind.")
                 self.add_score_log(self.current_player, 12, "four of a kind")
             
-            # check for runs (min 3)
+            # Check for runs (min 3)
             for i in range(len(play_ranks)-2):
                 if is_run(play_ranks[i:]):
-                    print(f"You played a run: {sorted(play_ranks[i:])}. You get {len(play_ranks[i:])} points.")
                     self.add_score_log(self.current_player, len(play_ranks[i:]), "a run")
+                    self.print_and_log(f"Run: {sorted(play_ranks[i:])}")
                     break
             
+            # Check for end of round
             if all(len(player.unplayed_cards) == 0 for player in self.players.values()):
                 print("You get one point for playing the last card")
                 self.add_score_log(self.current_player, 1, "playing the last card")
@@ -510,165 +435,125 @@ class State:
             pass
                 
         elif self.mode == "discard":
-            accepted_inputs = [str(i+1) for i in range(len(self.players[self.current_player].hand))]
-            # not in accepted_inputs doesn't work here since user_input is multiple numbers (list/tuple) rather than a single string - can use subset
+            # Accept inputs from ALL players during discard
             # num_to_discard = len(self.players[self.current_player].hand) - 4
-            # can either do while True and subsequent if/else statements or put them in while statement
+            # Check if 
             while len(user_input) == 0 or not set(user_input).issubset(accepted_inputs) or len(user_input) != len(self.players[self.current_player].hand) - 4:
-                print(f"Please pick {len(self.players[self.current_player].hand) - 4} card(s) to add to the crib. The dealer is {self.dealer}.")
-                self.print_state()
-                for i, card in enumerate(self.players[self.current_player].hand):
-                    print(f"[{i+1}]:{card}")
-                user_input = input(f"Enter the indices of the card(s) you want to add to the crib, e.g. 35 or 3 5:\n")
-                if " " in user_input:
-                    user_input = user_input.split()
-                elif len(user_input) == 2:
-                    user_input = [user_input[0], user_input[1]]
-            packet = self.user_input_to_packet(action="discard", msg=user_input)
-
+                self.print_and_log(f"Please pick {len(self.players[self.current_player].hand) - 4} card(s) to add to the crib. The dealer is {self.dealer}.")
+            
         elif self.mode == "play":
             
             current_count = sum([play.card.value for play in self.current_plays])
 
+            # If player cannot play a card without exceeding 31, force them to say go
             if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
-                self.print_state()
-                print("\n")
+
+                # Everyone else has said go; round should end
                 if len(self.player_order) - len(self.go) == 1:
                     go_players = ""
                     for player in self.go:
                         if len(go_players) == 1:
                             go_players += " and "
                         go_players += player
-                    input(f"{go_players} said 'Go'. You cannot play any more cards.\nEnter any key to end the round.")
+                    self.print_and_log(f"{go_players} said 'Go'. You cannot play any more cards.")
+
+                # Say go but proceed as there are still other players to check for go
                 else:
-                    input("You cannot play any more cards.\nEnter any key to say 'Go'.\n")
-                return self.user_input_to_packet(action="play", msg="go")
+                    self.print_and_log("You cannot play any more cards and must say 'Go'.")
 
-            accepted_inputs = [str(i+1) for i in range(len(self.players[self.current_player].unplayed_cards))]
 
-            while True:                
-                self.print_state()
-                
-                print(f"\nCurrent count: {current_count}")
+            print(f"Current count: {current_count}")
 
-                for i, card in enumerate(self.players[self.current_player].unplayed_cards):
-                    print(f"[{i+1}]:{card}")
-                    
-                user_input = input("Enter the index of the card you want to play.\n")
-
-                if user_input not in accepted_inputs:
-                    print("Invalid input, please pick another one.")
-                else:
-                    if len(user_input) > 0 and current_count + self.players[self.current_player].unplayed_cards[int(user_input)-1].value > 31:
-                        print("You cannot exceed 31. Please choose another card")
-                    else:
-                        # valid input, break
-                        break
-                    
+            # User input should be a card
             packet = self.user_input_to_packet(action="play", msg=user_input)
 
-        elif self.mode == "show":
-            while len(user_input) == 0:
-                input("Enter any key to score the show.\n")
-                user_input = "continue"
-            packet = self.user_input_to_packet(action=user_input, msg="")
+            # Check if chosen card will put count over 31
+            if len(user_input) > 0 and current_count + self.players[self.current_player].unplayed_cards[int(user_input)-1].value > 31:
+                print("You cannot exceed 31. Please choose another card")
 
-        elif self.mode == "end_turn" or self.mode == "end_round":
-            if self.mode == "end_turn" and not self.debug and len(self.has_played_show) == 0:
-                for i in range(14):
-                    print("\n")
-            while len(user_input) == 0:
-                input(f"Please pass the computer to {self.get_next_player()}. Enter any key to continue.\n")
-                user_input = "continue"
-            packet = self.user_input_to_packet(action=user_input, msg="")
+        elif self.mode == "show":
+            # Had action as continue, but I think it could automatically proceed at the end of the play
+            packet = self.user_input_to_packet(action="continue", msg="")
+
+        elif self.mode == "end_round":
+            # Can automate end turns and end rounds
+            pass
 
         elif self.mode == "end_game":
-            abbr_to_word = {"n": "new_game", "q": "quit"}
-            while user_input not in abbr_to_word.values():
-                user_input = input("\nChoose one: [n]ew game or [q]uit\n")
-                if user_input in abbr_to_word.keys():
-                    user_input = abbr_to_word[user_input]
-            packet = self.user_input_to_packet(action=user_input, msg="")
-
-        return packet
+            pass
+            # Allow user to start new game
 
 
     def user_input_to_packet(self, action, msg) -> dict:
-        # actions: start, add_player, discard, play, continue, new_game, quit
+        # actions: start, discard, play, continue, new_game, quit
         return {"action": action, "msg": msg}
 
 
     def update(self, packet: dict):
-        # {"name": "", "action": "", "msg": ""}
-        # actions: start, add_player, discard, play, continue, new_game, quit
+        # {"name": "", "action": "", "card": "", "cards": ["", ""], "go": bool}
+        # actions: start, discard, play, continue, new_game
+        
         assert len(packet) > 0, "empty packet"
         
-        if self.mode == "start":
-            if not self.in_progress:
-                if packet["action"] == "start":
-                    self.start_game()
-                    return "accept"
-
-
-        elif self.mode == "add_player" and packet["action"] == "add_player":
-            for p_name, p_object in self.players.items():
-                # player name starts as order: int. continue through str player names
-                if isinstance(p_name, str):
-                    continue
-                self.set_player_name(p_name, p_object, name_input=packet["msg"])
-                break
-
-            if all(isinstance(p_name, str) for p_name in self.players.keys()):
-                # set_player_order only needs to happen once per game
-                self.set_player_order()
+        if not self.in_progress:
+            if packet["action"] == "start":
+                self.start_game()
+                return "accept"
+            
+        # Pause game before next round starts
+        if self.mode == "end_round":
+            if packet["action"] == "continue":
+                # Start a new round
                 self.new_round()
-                self.mode = "discard"
+            else:
+                return "reject"
         
+        ### Turn modes: "discard", "play", "show"
+
         elif self.mode == "discard" and packet["action"] == "discard":
-            # discarded_card = self.players[self.current_player].hand.pop(int(packet["msg"])-1)
-            cards_to_remove = []
-            for i in packet["msg"]:
-                cards_to_remove.append(self.players[self.current_player].hand[int(i)-1])
-            for card in cards_to_remove:
-                self.crib.append(card)
-                self.players[self.current_player].hand.remove(card)
+            # Cards to discard can be sent as packet["cards"]
+            
+            # Iterate through cards to discard
+            for discard_card in packet["cards"]:
+                unzipped_card = unzip_card(discard_card)
+                
+                # Iterate through cards in hand
+                for card in self.players[packet["name"]].hand:
+                    
+                    # Check for match in hand
+                    if card.suit == unzipped_card.suit and card.rank == unzipped_card.rank:
+                        
+                        # Remove from hand and add to crib on match
+                        self.crib.append(card)
+                        self.players[self.current_player].hand.remove(card)
+                        break
+            
             self.end_turn()
         
         elif self.mode == "play" and packet["action"] == "play":
-            self.score_play(packet["msg"])
+            self.score_play(packet["card"], packet["go"])
 
             self.end_turn()
         
         elif self.mode == "show":
+            # Reveal can be timed and animated on client-side - server can send at once
             self.score_show(four_card_hand=self.players[self.current_player].hand, crib=False)
             
             if self.current_player == self.dealer:
-                input("\nEnter any key to score the crib.\n")
                 self.score_show(four_card_hand=self.crib, crib=True)
 
             self.end_turn()
         
-        elif self.mode == "end_turn":
-            if packet["action"] == "continue":
-                self.start_turn()
-        elif self.mode == "end_round":
-            if packet["action"] == "continue":
-                self.new_round()
-        elif self.mode == "end_game":
-            if packet["action"] == "new_game":
-                self.start_game()
-                self.mode = "start"
-            elif packet["action"] == "quit":
-                raise SystemExit(0)
+        # If not returned early, move was accepted
+        return "accept"
 
-
-    def print_state(self):
-        if self.mode == "play":
-            msgs_per_player = self.format_play_msgs()
-            for p, msg in msgs_per_player.items():
-                print(f"{p}: {msg}")
-        # else:
-        #     self.sleep_print(f"Hand: {self.players[self.current_player].hand}")
+    # def print_state(self):
+    #     if self.mode == "play":
+    #         msgs_per_player = self.format_play_msgs()
+    #         for p, msg in msgs_per_player.items():
+    #             print(f"{p}: {msg}")
+    #     # else:
+    #     #     self.sleep_print(f"Hand: {self.players[self.current_player].hand}")
 
 
     def add_score_log(self, player: str, points: int, reason: str):
@@ -681,3 +566,32 @@ def is_run(potential_run):
     indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(card) for card in potential_run])
 
     return all(indices[i+1] - indices[i] == 1 for i in range(len(indices)-1))
+
+
+### Notes
+
+# Scoring
+# starter: if Jack, dealer gets 2 points
+
+# PLAY
+# 1 point for each card in run
+# every time a card is played, re-count from the beginning to the end to check for an unbroken run (or dup card)
+    # 3, 5, 6, 7 -> score three for the 5-6-7 run
+    # 3, 5, 6, 7, + 4 -> scores five points, for the 3-4-5-6-7 run
+    # 8, 7, 7, 6 !-> NOT a run
+# 1 point for card in run
+# 2 points for pair
+    # 6 for three
+    # 12 for four
+# 1 point for Go or last card
+# 2 points for 15
+# 1 point for 31
+
+# SHOW
+# 1 point for each card in run
+# 4 points for 4 card flush (excluding crib & starter) OR 5 points for 5 card flush
+# 2 points per 15 (combinations)
+# 2 points per pair (combinations)
+    # 6 for three (2, 2, 2) - 3 combinations
+    # 12 for four (2, 2, 2, 2, 2, 2) - 6 combinations
+# 1 point for Jack matching starter
