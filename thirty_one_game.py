@@ -142,10 +142,10 @@ class State:
         
 
     # This is currently only called from app.py
-    def add_player(players, name) -> None:
+    def add_player(self, name) -> None:
         """Initializes a player and adds to players dict."""
 
-        players[name] = Player(name)
+        self.players[name] = Player(name)
 
 
     def start_game(self) -> None:
@@ -201,8 +201,8 @@ class State:
         self.dealer = self.player_order[first_player_index-1]
         self.blitzed_players = []
         
-        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
-        self.print_and_log("\n--- DEALING ---")
+        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
+        print_and_log("\n--- DEALING ---", self.players)
         
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
@@ -244,10 +244,10 @@ class State:
 
         if len(self.blitzed_players) > 0:
             for p_name in self.blitzed_players:
-                self.print_and_log(f"{p_name} BLITZED!!!")
+                print_and_log(f"{p_name} BLITZED!!!", self.players)
 
-        self.print_and_log(f"--- END OF ROUND {self.round_num} ---\n")
-        self.print_and_log("---     SCORES     ---\n")
+        print_and_log(f"--- END OF ROUND {self.round_num} ---\n", self.players)
+        print_and_log("---     SCORES     ---\n", self.players)
         
         # Calc all hand scores for display and round end calculations
         hand_scores = {}  # {score: player name}
@@ -270,14 +270,14 @@ class State:
         for ordered_score in scores_ordered:
             # Multiple players can have same score - need to use 2nd loop below
             for p_name in hand_scores[ordered_score]:
-                self.print_and_log(f"{p_name}'s hand was worth {ordered_score}.")
+                print_and_log(f"{p_name}'s hand was worth {ordered_score}.", self.players)
 
         # List contains all names of players who blitzed
         if len(self.blitzed_players) > 0:
             for p_name in self.player_order:
                 # If multiple blitzed players, everyone except blitzed players lose a life
                 if p_name not in self.blitzed_players:
-                    self.print_and_log(f"{p_name} loses 1 life.")
+                    print_and_log(f"{p_name} loses 1 life.", self.players)
                     self.players[p_name].lives -= 1
         
         # Else, no blitz. Find lowest scorer and subtract lives, or handle tie scenario
@@ -286,14 +286,14 @@ class State:
             
             # All players tied when hand scores length = 1
             if len(hand_scores) == 1:
-                self.print_and_log("Tie for last place, no change in score.")
+                print_and_log("Tie for last place, no change in score.", self.players)
 
             # Players tied for last but some scored higher; All tying for last lose one life
             elif len(hand_scores[scores_ordered[-1]]) > 1:
         
                 # Lowest hand = hand_scores[scores_ordered[-1]]
                 for p_name in hand_scores[scores_ordered[-1]]:
-                    self.print_and_log(f"{p_name} loses 1 life.")
+                    print_and_log(f"{p_name} loses 1 life.", self.players)
                     self.players[p_name].lives -= 1
 
             # Only one player scored the lowest; Subtract one life, or 2 lives if they knocked
@@ -304,13 +304,13 @@ class State:
                 
                 # If didn't knock, lose 1 life
                 if lowest_player != self.knocked:
-                    self.print_and_log(f"{lowest_player} loses 1 life.")
+                    print_and_log(f"{lowest_player} loses 1 life.", self.players)
                     self.players[lowest_player].lives -= 1
 
                 # If knocked, lose 2 lives
                 else:
-                    self.print_and_log(f"{lowest_player} knocked but had the lowest score.")
-                    self.print_and_log(f"{lowest_player} loses 2 lives.")
+                    print_and_log(f"{lowest_player} knocked but had the lowest score.", self.players)
+                    print_and_log(f"{lowest_player} loses 2 lives.", self.players)
                     self.players[lowest_player].lives -= 2
         
         # List of any players that were brought down to negative lives
@@ -319,7 +319,7 @@ class State:
         # Announce knock outs here; wait until start of next round to remove player for
         # game real-ness; i.e. so players can view their hand and hand score at end of round
         for p_name in knocked_out:
-            self.print_and_log(f"{p_name} has been knocked out.")
+            print_and_log(f"{p_name} has been knocked out.", self.players)
             
             # `-1` can represent a knockout to client
             self.players[p_name].lives = -1
@@ -327,14 +327,14 @@ class State:
         players_remaining = len(self.player_order) - len(knocked_out)
 
         if players_remaining == 1:
-            self.print_and_log(f"\n{players_remaining[0]} wins!")
+            print_and_log(f"\n{players_remaining[0]} wins!", self.players)
             self.mode = "end_game"
             self.in_progress = False
             # mode `end_game` gives clients time to view the scores, leave/join rooms
 
         else:
             # More than 1 player remaining; continuing game
-            self.print_and_log("\nRemaining Players' Extra Lives:")
+            print_and_log("\nRemaining Players' Extra Lives:", self.players)
             for p_name in self.player_order:
                 
                 # Skip knocked out player
@@ -353,7 +353,7 @@ class State:
                 else:
                     msg = f"{p_name} - {self.players[p_name].lives} lives"
                 
-                self.print_and_log(msg)
+                print_and_log(msg, self.players)
 
 
     def start_turn(self):
@@ -402,10 +402,10 @@ class State:
             taken_card = None
             if packet["action"] == "knock":
                 if len(self.knocked) > 0:
-                    self.print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", player=self.current_player)
+                    print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", self.players, player=self.current_player)
                     return "accept"
                 self.knocked = self.current_player
-                self.print_and_log(f"{self.current_player} knocked.")
+                print_and_log(f"{self.current_player} knocked.", self.players)
                 self.end_turn()
                 return "accept"
 
@@ -414,15 +414,15 @@ class State:
                 taken_card = self.discard.pop()
 
             elif packet["action"] == "draw":
-                taken_card = self.draw_card()
+                taken_card = draw_card(self.shuffled_cards)
             
             elif packet["action"] == "discard":
-                self.print_and_log("Must have 4 cards to discard.", player=self.current_player)
+                print_and_log("Must have 4 cards to discard.", self.players, player=self.current_player)
                 return "reject"
             
             # Catch all other moves with `else`; Hitting continue on main phase was breaking game
             else:
-                self.print_and_log(f"Move {packet['action']} is not allowed during the main phase.", player=self.current_player)
+                print_and_log(f"Move {packet['action']} is not allowed during the main phase.", self.players, player=self.current_player)
                 return "reject"
             
             # If taken card has not been set at this point, will raise exception
@@ -503,7 +503,7 @@ class State:
 
             # Specific to player
             "recipient": player_name,
-            "hand": self.players[player_name].zip_hand(),  # hand for self only
+            "hand": zip_hand(self.players[player_name].hand),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
         }
