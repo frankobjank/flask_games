@@ -223,6 +223,8 @@ function createHandButton(cardStr) {
 
     // Send server request on click
     cardButton.onclick = () => {
+        // Maybe use emitWithAck to run animation on successful discard
+            // This will only apply to self discard
         socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardStr});
         console.log(`Requesting discard ${cardStr}`)
     }

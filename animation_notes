@@ -1,0 +1,29 @@
+Animation Scenarios
+On draw (and deal): Deck -> Hand
+    Self: back -> front
+    Others: back -> back
+On discard: Hand -> Discard
+    Self: front -> front
+    Others: back -> front
+On pickup from discard: Discard -> Hand
+    Self: front -> front
+    Others: front -> back
+
+Client-side
+The client has different methods for creating all the different cards involved (self hand, others hands, deck, discard)
+Each animation will work differently depending on whether it's for the self player or not
+    If self player: card must be revealed if not already
+    If other player: the cards must not be revealed or hidden if they were already revealed
+Looks like 2 animations will be needed for each scenario
+
+Server-side
+How will client know when to run an animation? It will always occur after an action is accepted publicly by the server.
+    Should flag be placed in packet from server that animation is needed?
+    Should client look out for certain actions and trigger animation on those actions?
+    Currently `action` key in `package_state` packet after a move is made is `update_board`. A variable like `last_move` or something can notify client explicitly what move has been made. Client can then interpret which animation may be needed.
+
+Additional animation ideas:
+On hover: card scale increases slightly if interactable
+Player life counter (star) "pops" when life is lost
+Show card 'flip' in 3d space when going from back to front or front to back
+    Would be especially nice to see at the end when all players reveal their hands
