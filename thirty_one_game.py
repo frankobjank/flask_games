@@ -1,24 +1,12 @@
-from operator import attrgetter
 import random
+
+from cards_shared import *
+from games_shared import *
 
 # TODO - what happens when deck runs out of cards?
 
-# Global constants
-ACE_VALUE = 11
-
-# Ranks and ranks to value
-RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": ACE_VALUE}
-
-# Suits and unicode for suits
-SUITS = ["spade", "heart", "diamond", "club"]
-
-# Uses all `filled in` emojis
-# ♠ "\u2660" - black
-# ♥ "\u2665" - red
-# ♦ "\u2666" - blue
-# ♣ "\u2663" - green
-SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "club": "\u2663"}
+# Set ace value
+RANK_TO_VALUE["A"] = 11
 
 
 class Player:
@@ -33,66 +21,13 @@ class Player:
     def __repr__(self) -> str:
         return f"{Player(self.name)}"
 
-    
-    def sort_hand(self) -> None:
-        """Sort hand in order of suit."""
-
-        self.hand = sorted(sorted(self.hand, key=attrgetter("suit"), reverse=True), key=attrgetter("value"), reverse=True)
-    
-
-    def zip_hand(self) -> list:
-        """Convert hand to portable strings to send to client."""
-        
-        cards = []
-        for c in self.hand:
-            cards.append(c.zip_card())
-        
-        return cards
-    
-
-class Card:
-    def __init__(self, rank: str, suit: str):
-        self.rank = rank
-        self.value = RANK_TO_VALUE[self.rank]
-        self.suit = suit
-        self.suit_display = SUIT_TO_DISPLAY[self.suit]
-    
-    
-    def __repr__(self) -> str:
-        return f"Card({self.rank}, {self.suit})"
-    
-    
-    def __str__(self) -> str:
-        return f"{self.rank}{self.suit_display}"
-    
-
-    def zip_card(self):
-        """Create portable string to send to client."""
-        
-        # Convert 10 to T to make all cards 2 chars long
-        rank = self.rank
-        if rank == "10":
-            rank = "T"
-
-        # returns 2S, 3C, AH, etc.
-        return f"{rank}{self.suit[0].capitalize()}"
-    
-
-class Deck:
-    def __init__(self) -> None:
-        self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
-
-
-    def __repr__(self) -> str:
-        return f"Deck({self.unshuffled_cards})"
-
 
 class State:
     def __init__(self, room_name: str) -> None:
         
-        # modes : start, add_players, main_phase, discard
+        # modes : start, main_phase, discard
             # end_round - requires user input
-            # end_turn, end_game - do not require user input
+            # end_game - do not require user input
 
         # Room
         self.room_name = room_name
@@ -124,27 +59,8 @@ class State:
         self.free_ride_alts = ["getting a free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "having a tummy ache", "having a long day"]
         
 
-    def shuffle_deck(self) -> list:
-        cards_to_add = self.deck.unshuffled_cards.copy()
-
-        while len(cards_to_add) > 0:
-            randindex = random.randint(0, len(cards_to_add)-1)
-            self.shuffled_cards.append(cards_to_add.pop(randindex))
-
-
-    def draw_card(self) -> Card:
-        return self.shuffled_cards.pop()
-
-
-    def deal(self, player_object: Player) -> None:
-        """Deal starting hands."""
-
-        for i in range(self.hand_size):
-            player_object.hand.append(self.draw_card())
-        player_object.sort_hand()
-
-
     def hand_to_discard(self, card_to_discard: Card) -> None:
+        """Find selected card in hand and move from hand to discard."""
 
         # Find in card in hand by comparing suit and rank
         for card in self.players[self.current_player].hand:
@@ -160,7 +76,7 @@ class State:
         print(f"{self.current_player} discarded: {card_to_discard}")
 
 
-    def find_discard_card(self) -> Card:
+    def find_discard_on_blitz(self) -> Card:
         """Find card to automatically discard on a blitz."""
         
         # Either one card out of suit, or lowest card of a hand that only has one suit
@@ -187,6 +103,8 @@ class State:
 
 
     def calc_hand_score(self, player_object:Player) -> int:
+        """Calculate the highest score of a player's hand."""
+
         # Return if hand is empty
         if len(player_object.hand) == 0:
             print("Cannot calc hand score; Hand empty.")
@@ -221,24 +139,13 @@ class State:
         
         # DOUBLE MAX - take max of each combo and then max of that list
         return max(max(combo.values()) for combo in hand_scores)
+        
 
-
+    # This is currently only called from app.py
     def add_player(self, name) -> None:
+        """Initializes a player and adds to players dict."""
+
         self.players[name] = Player(name)
-
-
-    def print_and_log(self, msg, player="all") -> None:
-        print(msg)
-
-        # Send to all clients
-        if player == "all":
-            # Use all players so players receive msg even after knockout
-            for p_object in self.players.values():
-                p_object.log.append(msg)
-
-        # Send to one specific client
-        else:
-            self.players[player].log.append(msg)
 
 
     def start_game(self) -> None:
@@ -250,7 +157,7 @@ class State:
         
         # Check number of players
         if not (self.MIN_PLAYERS <= len(self.players.keys()) <= self.MAX_PLAYERS):
-            print("Need between 2 and 7 players to begin.")
+            print(f"Need between {self.MIN_PLAYERS} and {self.MAX_PLAYERS} players to begin.")
             return
         
         # Reset game vars
@@ -294,11 +201,11 @@ class State:
         self.dealer = self.player_order[first_player_index-1]
         self.blitzed_players = []
         
-        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
-        self.print_and_log("\n--- DEALING ---")
+        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
+        print_and_log("\n--- DEALING ---", self.players)
         
         # Shuffle cards
-        self.shuffle_deck()
+        self.shuffled_cards = shuffle_deck(self.deck)
         
         # Reset each player's hand and deal new hand
         for p_name, p_object in self.players.items():
@@ -307,7 +214,7 @@ class State:
 
             if p_name in self.player_order:
                 # Deal for players who are still in the game
-                self.deal(p_object)
+                deal(p_object, self.shuffled_cards, num_cards=3)
                 
                 # Check for blitz
                 # It's possible for more than one player to be dealt a blitz; blitzed players must be list
@@ -315,7 +222,7 @@ class State:
                     self.blitzed_players.append(p_name)
 
         # Set a discard card; reset knocked
-        self.discard = [self.draw_card()]
+        self.discard = [draw_card(self.shuffled_cards)]
         self.knocked = ""
 
         # Move on to turn
@@ -337,10 +244,10 @@ class State:
 
         if len(self.blitzed_players) > 0:
             for p_name in self.blitzed_players:
-                self.print_and_log(f"{p_name} BLITZED!!!")
+                print_and_log(f"{p_name} BLITZED!!!", self.players)
 
-        self.print_and_log(f"--- END OF ROUND {self.round_num} ---\n")
-        self.print_and_log("---     SCORES     ---\n")
+        print_and_log(f"--- END OF ROUND {self.round_num} ---\n", self.players)
+        print_and_log("---     SCORES     ---\n", self.players)
         
         # Calc all hand scores for display and round end calculations
         hand_scores = {}  # {score: player name}
@@ -363,14 +270,14 @@ class State:
         for ordered_score in scores_ordered:
             # Multiple players can have same score - need to use 2nd loop below
             for p_name in hand_scores[ordered_score]:
-                self.print_and_log(f"{p_name}'s hand was worth {ordered_score}.")
+                print_and_log(f"{p_name}'s hand was worth {ordered_score}.", self.players)
 
         # List contains all names of players who blitzed
         if len(self.blitzed_players) > 0:
             for p_name in self.player_order:
                 # If multiple blitzed players, everyone except blitzed players lose a life
                 if p_name not in self.blitzed_players:
-                    self.print_and_log(f"{p_name} loses 1 life.")
+                    print_and_log(f"{p_name} loses 1 life.", self.players)
                     self.players[p_name].lives -= 1
         
         # Else, no blitz. Find lowest scorer and subtract lives, or handle tie scenario
@@ -379,14 +286,14 @@ class State:
             
             # All players tied when hand scores length = 1
             if len(hand_scores) == 1:
-                self.print_and_log("Tie for last place, no change in score.")
+                print_and_log("Tie for last place, no change in score.", self.players)
 
             # Players tied for last but some scored higher; All tying for last lose one life
             elif len(hand_scores[scores_ordered[-1]]) > 1:
         
                 # Lowest hand = hand_scores[scores_ordered[-1]]
                 for p_name in hand_scores[scores_ordered[-1]]:
-                    self.print_and_log(f"{p_name} loses 1 life.")
+                    print_and_log(f"{p_name} loses 1 life.", self.players)
                     self.players[p_name].lives -= 1
 
             # Only one player scored the lowest; Subtract one life, or 2 lives if they knocked
@@ -397,13 +304,13 @@ class State:
                 
                 # If didn't knock, lose 1 life
                 if lowest_player != self.knocked:
-                    self.print_and_log(f"{lowest_player} loses 1 life.")
+                    print_and_log(f"{lowest_player} loses 1 life.", self.players)
                     self.players[lowest_player].lives -= 1
 
                 # If knocked, lose 2 lives
                 else:
-                    self.print_and_log(f"{lowest_player} knocked but had the lowest score.")
-                    self.print_and_log(f"{lowest_player} loses 2 lives.")
+                    print_and_log(f"{lowest_player} knocked but had the lowest score.", self.players)
+                    print_and_log(f"{lowest_player} loses 2 lives.", self.players)
                     self.players[lowest_player].lives -= 2
         
         # List of any players that were brought down to negative lives
@@ -412,7 +319,7 @@ class State:
         # Announce knock outs here; wait until start of next round to remove player for
         # game real-ness; i.e. so players can view their hand and hand score at end of round
         for p_name in knocked_out:
-            self.print_and_log(f"{p_name} has been knocked out.")
+            print_and_log(f"{p_name} has been knocked out.", self.players)
             
             # `-1` can represent a knockout to client
             self.players[p_name].lives = -1
@@ -420,14 +327,14 @@ class State:
         players_remaining = len(self.player_order) - len(knocked_out)
 
         if players_remaining == 1:
-            self.print_and_log(f"\n{players_remaining[0]} wins!")
+            print_and_log(f"\n{players_remaining[0]} wins!", self.players)
             self.mode = "end_game"
             self.in_progress = False
             # mode `end_game` gives clients time to view the scores, leave/join rooms
 
         else:
             # More than 1 player remaining; continuing game
-            self.print_and_log("\nRemaining Players' Extra Lives:")
+            print_and_log("\nRemaining Players' Extra Lives:", self.players)
             for p_name in self.player_order:
                 
                 # Skip knocked out player
@@ -446,7 +353,7 @@ class State:
                 else:
                     msg = f"{p_name} - {self.players[p_name].lives} lives"
                 
-                self.print_and_log(msg)
+                print_and_log(msg, self.players)
 
 
     def start_turn(self):
@@ -475,7 +382,7 @@ class State:
 
 
     def update(self, packet: dict):
-        # actions: start, add_player, draw, pickup, knock, discard, new_game, quit
+        # actions: start, add_player, draw, pickup, knock, discard, quit
         # Assuming packet is coming from current player; validate before this is called
 
         if not self.in_progress:
@@ -495,10 +402,10 @@ class State:
             taken_card = None
             if packet["action"] == "knock":
                 if len(self.knocked) > 0:
-                    self.print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", player=self.current_player)
+                    print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", self.players, player=self.current_player)
                     return "accept"
                 self.knocked = self.current_player
-                self.print_and_log(f"{self.current_player} knocked.")
+                print_and_log(f"{self.current_player} knocked.", self.players)
                 self.end_turn()
                 return "accept"
 
@@ -507,15 +414,15 @@ class State:
                 taken_card = self.discard.pop()
 
             elif packet["action"] == "draw":
-                taken_card = self.draw_card()
+                taken_card = draw_card(self.shuffled_cards)
             
             elif packet["action"] == "discard":
-                self.print_and_log("Must have 4 cards to discard.", player=self.current_player)
+                print_and_log("Must have 4 cards to discard.", self.players, player=self.current_player)
                 return "reject"
             
             # Catch all other moves with `else`; Hitting continue on main phase was breaking game
             else:
-                self.print_and_log(f"Move {packet['action']} is not allowed during the main phase.", player=self.current_player)
+                print_and_log(f"Move {packet['action']} is not allowed during the main phase.", self.players, player=self.current_player)
                 return "reject"
             
             # If taken card has not been set at this point, will raise exception
@@ -532,7 +439,7 @@ class State:
                 
                 # Auto-discard lowest card or odd suit out
                 # looks better than ending with 4 cards in hand
-                self.hand_to_discard(card_to_discard=self.find_discard_card())
+                self.hand_to_discard(card_to_discard=self.find_discard_on_blitz())
 
                 # End round after card discarded
                 self.end_round()
@@ -573,7 +480,7 @@ class State:
             lives.append(self.players[p_name].lives)
 
             if self.mode == "end_round" or self.mode == "end_game":
-                final_hands.append(self.players[p_name].zip_hand())
+                final_hands.append(zip_hand(self.players[p_name].hand))
                 final_scores.append(self.calc_hand_score(self.players[p_name]))
 
         # All data the client needs from server
@@ -596,44 +503,8 @@ class State:
 
             # Specific to player
             "recipient": player_name,
-            "hand": self.players[player_name].zip_hand(),  # hand for self only
+            "hand": zip_hand(self.players[player_name].hand),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
         }
     
-
-def unzip_card(card_str: str) -> Card:
-    """Decode portable string from client."""
-
-    assert len(card_str) == 2, f"Incorrect card data `{card_str}`"
-    
-    # Convert 10 to T to make all cards 2 chars long
-    rank = card_str[0]
-    if rank == "T":
-        rank = "10"
-    
-    suit_letter = card_str[1].lower()
-    suit = ""
-
-    for s in SUITS:
-        if suit_letter in s:
-            suit = s
-
-    # returns 2S, 3C, AH, etc.
-    return Card(rank, suit)
-
-
-# Unicode suit reference
-# ♠ \u2660 - black
-# ♡ \u2661 
-# ♢ \u2662
-# ♣ \u2663 - green
-
-# ♤ \u2664
-# ♥ \u2665 - red
-# ♦ \u2666 - blue
-# ♧ \u2667
-
-# Potentially for back of cards
-# ★ \u2605 - solid star
-# ☆ \u2606 - outlined star

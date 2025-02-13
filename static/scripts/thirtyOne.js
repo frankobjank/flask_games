@@ -206,7 +206,8 @@ function createHandButton(serverCard) {
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
     const cardButton = document.createElement('button');
     cardButton.className = 'playing-card card-front hand-button';
-    cardButton.id = serverCard;
+    cardButton.id = 'card' + serverCard;
+    console.log('query selector with card id' + document.querySelector('#' + cardButton.id));
     // Adds text on hover
     // cardButton.title = 'Discard';
     setCardDisplay(serverCard, cardButton);

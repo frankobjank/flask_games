@@ -14,3 +14,4 @@ flask_games.code-workspace
 flask_session/
 *.log
 logs/
+test.py
