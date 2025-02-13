@@ -10,7 +10,6 @@ function createBoard() {
     deckContainer.className = 'card-container';
     deckContainer.id = 'deck-container';
     
-    
     // Create deck button
     const deck = document.createElement('button');
     deck.className = 'playing-card card-back';
@@ -202,21 +201,33 @@ function createPlayerContainer(name) {
     return playerContainer;
 }
 
-function createHandButton(serverCard) {
+function createCardContainer(cardStr) {
+    // Create a card container - div that encloses a playing card
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'card-container';
+    cardContainer.id = 'card-container' + cardStr;
+
+    return cardContainer;
+}
+
+function createHandButton(cardStr) {
+
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
     const cardButton = document.createElement('button');
     cardButton.className = 'playing-card card-front hand-button';
-    cardButton.id = 'card' + serverCard;
-    console.log('query selector with card id' + document.querySelector('#' + cardButton.id));
+    cardButton.id = 'card-' + cardStr;
+    
     // Adds text on hover
     // cardButton.title = 'Discard';
-    setCardDisplay(serverCard, cardButton);
+    setCardDisplay(cardStr, cardButton);
 
     // Send server request on click
     cardButton.onclick = () => {
-        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardButton.id});
-        console.log(`Requesting discard ${cardButton.id}`)
+        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardStr});
+        console.log(`Requesting discard ${cardStr}`)
     }
+
+    // Return container to be added to hand
     return cardButton;
 }
 
@@ -231,8 +242,8 @@ function populateHand(playerName, hand, hand_score, mode) {
 
     // Create buttons for hand with array from server
     for (const card of hand) {
-        const cardButton = createHandButton(card)
-        
+        const cardButton = createHandButton(card);
+
         // Disable card button for all if end of round or non-self player
         if (mode === 'end_round' || mode === 'end_game' || username !== playerName) {
             cardButton.disabled = true;
@@ -241,8 +252,13 @@ function populateHand(playerName, hand, hand_score, mode) {
         // else if (username !== playerName) {
         //     cardButton.disabled = true;
         // }
+        
+        // Add card button to card container
+        const cardContainer = createCardContainer(card)
+        cardContainer.appendChild(cardButton);
 
-        playerHandContainer.appendChild(cardButton);
+        // Add card container to hand container
+        playerHandContainer.appendChild(cardContainer);
     }
     
     // Update hand score
@@ -432,12 +448,19 @@ function updateThirtyOne(response) {
                 // Loop hand size to add divs that display backs of cards
                 for (let j = 0; j < response.hand_sizes[i]; j++) {
                     // Not sure if these should be buttons or divs:
-                        // buttons make consitent styling
-                        // div helps diffentiate them from the actual card buttons
+                        // buttons make consistent styling
+                        // div helps differentiate them from the actual card buttons
                     const dummyCard = document.createElement('div');
                     dummyCard.className = 'playing-card card-back';
+                    
+                    // Add dummy card to container - do dummies need ids for animation purposes?
+                        // I think no but might change later
+                    const dummyContainer = document.createElement('div');
+                    dummyContainer.className = 'card-container dummy-container';
 
-                    document.querySelector('#' + playerOrder[i] + '-hand-container').appendChild(dummyCard);
+                    dummyContainer.appendChild(dummyCard);
+
+                    document.querySelector('#' + playerOrder[i] + '-hand-container').appendChild(dummyContainer);
                 }
                 // Remove hand score
                 document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';

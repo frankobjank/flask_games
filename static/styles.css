@@ -315,13 +315,17 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     display: inline-flex;
 }
 
+/* Put margin into card container rather than card itself */
+.card-container {
+    margin: 0.25rem;
+}
+
 /* Playing card (as opposed to Bootstrap card) */
 .playing-card {
     /* Standard playing cards are 2.5" x 3.5" */
     width: 2.5rem;
     height: 3.5rem;
     background-color: white;
-    margin: 0.25rem;
     outline-color: #000;
     /* Shadow around cards */
     box-shadow: -1px -1px 2px 0px #10101075;
