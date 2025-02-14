@@ -15,7 +15,8 @@ function createBoard() {
     deck.className = 'playing-card card-back';
     deck.id = 'deck-button';
     // Adds text on hover
-    deck.title = 'Draw a card from the deck.'
+    // deck.title = 'Draw a card from the deck.';
+
     deck.onclick = () => {
         socket.emit('move', {'action': 'draw', 'room': currentRoom, 'username': username});
     }
@@ -33,7 +34,8 @@ function createBoard() {
     discard.className = 'playing-card card-front';
     discard.id = 'discard-button';
     // Adds text on hover
-    // discard.title = 'Pick a card up from discard.'
+    // discard.title = 'Pick a card up from discard.';
+    
     discard.onclick = () => {
         socket.emit('move', {'action': 'pickup', 'room': currentRoom, 'username': username});
     }
@@ -53,8 +55,8 @@ function createMoveButtons() {
     moveButtonsContainer.id = 'move-button-container';
 
     const drawPickupKnockContainer = document.createElement('div');
-    drawPickupKnockContainer.className = 'button-container'
-    drawPickupKnockContainer.id = 'draw-pickup-knock-container'
+    drawPickupKnockContainer.className = 'button-container';
+    drawPickupKnockContainer.id = 'draw-pickup-knock-container';
 
     // Add draw button - same as clicking the deck
     const drawButton = document.createElement('button');
@@ -67,7 +69,7 @@ function createMoveButtons() {
         // The deck button MUST EXIST at this point
         const deckButton = document.querySelector('#deck-button');
         if (deckButton !== null) {
-            deckButton.click()
+            deckButton.click();
         }
         else {
             console.log('Missing deck button');
@@ -239,10 +241,8 @@ function createHandButton(cardStr) {
 
     // Send server request on click
     cardButton.onclick = () => {
-        // Maybe use emitWithAck to run animation on successful discard
-            // This will only apply to self discard
         socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardStr});
-        console.log(`Requesting discard ${cardStr}`)
+        console.log(`Requesting discard ${cardStr}`);
     }
 
     // Return container to be added to hand
@@ -283,7 +283,6 @@ function populateHand(playerName, hand, hand_score, mode) {
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
-// Old updateGameRoom
 function updateThirtyOne(response) {
     if (response === undefined) {
         console.log('response = undefined');
@@ -293,7 +292,6 @@ function updateThirtyOne(response) {
     // Update board based on server response:
 
     // # Generic data
-    // "action": "update_board",  # for client to know what type of update this is
     // "room": self.room_name,  # name of room
     // "mode": self.mode,  # current game mode - might help restrict inputs on client side
     // "in_progress": self.in_progress,  # whether game is in progress
@@ -306,11 +304,13 @@ function updateThirtyOne(response) {
     // "knocked": self.knocked,  # player who knocked (empty string until a knock)
     // "final_hands": final_hands,  # list of everyone's hands to reveal on round end
     // "final_scores": final_scores,  # list of everyone's hand scores to reveal on round end
-
+    
     // # Specific to player
     // "recipient": player_name,
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
+    
+    // "action": action  # For animation - lets client know the move made (discard, draw, etc.)
 
     // Add markers for dealer and knocked
     
@@ -376,18 +376,22 @@ function updateThirtyOne(response) {
         document.querySelector('#continue-button').style.display = 'none';
     }
 
+    // Insert discard animation here.
+        // Determine if player is current player or not
+        // Current player - find discard card in 
+
     // Add discard card to display on discard button
     setCardDisplay(discardCard, document.querySelector('#discard-button'));
     
     // Check for knocked out players
-    // Display should only be reset when next round round starts. Server can wait to kick them out
+    // Display should only be reset when next round round starts. Server can wait to knock them out
     // Until beginning of next round
     for (const player of playersConnected) {
         if (!response.player_order.includes(player)) {
             // Replace lives with 'knocked out'
-            document.querySelector('#' + player + '-lives').innerText = 'Knocked out'
+            document.querySelector('#' + player + '-lives').innerText = 'Knocked out';
             // Remove all cards
-            document.querySelector('#' + player + '-hand-container').replaceChildren()
+            document.querySelector('#' + player + '-hand-container').replaceChildren();
             // Remove hand score
             document.querySelector('#' + player + '-hand-score').innerText = '';
             

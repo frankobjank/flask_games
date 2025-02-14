@@ -621,7 +621,7 @@ def on_move(data):
 
     # For debug:
     print(f"Received move event `{data['action']}` from sid `{fl.request.sid}`.")
-    
+
     # If client requests start, check number of players in room
     if data["action"] == "start":
         
@@ -630,7 +630,7 @@ def on_move(data):
             fio.emit("debug_msg", {"msg": "Invalid number of players."}, to=fl.request.sid)
             print("Invalid number of players.")
             
-            fio.emit("chat_log", {"msg": f"Must have between 2 and {rooms[data['room']].capcity} people to start game.", 
+            fio.emit("chat_log", {"msg": f"Must have between 2 and {rooms[data['room']].capacity} people to start game.", 
                      "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
             return
         
@@ -697,43 +697,47 @@ def on_move(data):
     if game.update(data) == "reject":
         
         # Send on server reject
-        print(f"Rejecting `{data['action']}` from `{player.name}`")
-        fio.emit("debug_msg", {"msg": f"Server rejected move event `{data['action']}`"}, 
-                to=fl.request.sid)
+        msg = f"Server rejected move event `{data['action']}`"
+        print(msg)
+        fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+        return
 
     # Send on server accept; Tailored response to each player
-    else:
         
-        # Save in_progress var before game update
-        in_progress_before_update = game.in_progress
-        
-        for username in game.players.keys():
-            
-            response = game.package_state(username)
-            
-            # have to specify the 'to' parameter of 'emit' to send to specific player
-            print(f"Sending response: \n{response} \non {data['action']}")
-            
-            recipient_sid = ""
-            # Lookup sid for user in room.users - this can be optimized with a dict
-            for user in rooms[data["room"]].users:
-                if user.connected and user.name == response["recipient"]:
-                    recipient_sid = user.sid
-                    break
-
-            fio.emit("update_board", response, to=recipient_sid, room=data["room"])
-            
-            fio.emit("debug_msg", {"msg": 
-                    f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
-                    to=recipient_sid)
+    # Save in_progress var before game update
+    in_progress_before_update = game.in_progress
     
-            # Empty log for player after update is sent
-            game.players[username].log = []
+    for username in game.players.keys():
+        
+        # Lookup sid for user in room.users - this can be optimized with a dict
+        recipient_sid = ""
+        for user in rooms[data["room"]].users:
+            if user.connected and user.name == response["recipient"]:
+                recipient_sid = user.sid
+                break
+        
+        # All game data packaged into a dict for specific user
+        response = game.package_state(username)
+        
+        print(f"Sending response: \n{response} \non {data['action']}")
+        
+        # Add action to response for client animation
+        response["action"] = data["action"]
 
-        # If in_progress var has changed, send update to lobby. 
-        if in_progress_before_update != game.in_progress:
-            fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], 
-                     "col": "in_progress", "new_value": game.in_progress}, to="lobby")
+        # Return response using update_board event
+        fio.emit("update_board", response, to=recipient_sid, room=data["room"])
+        
+        fio.emit("debug_msg", {"msg": 
+                f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
+                to=recipient_sid)
+
+        # Empty log for player after update is sent
+        game.players[username].log = []
+
+    # If in_progress var has changed (game starts or ends), send update to lobby. 
+    if in_progress_before_update != game.in_progress:
+        fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], 
+                    "col": "in_progress", "new_value": game.in_progress}, to="lobby")
     
 
 @socketio.on("message")

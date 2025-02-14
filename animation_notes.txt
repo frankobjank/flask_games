@@ -31,3 +31,5 @@ Show card 'flip' in 3d space when going from back to front or front to back
     Would be especially nice to see at the end when all players reveal their hands
 
 Instead of putting animation notifications in Python game file, use app.py where the sockets are handled. All responses can be callbacks to emitWithAcks from the client
+
+    Problem is callback will only apply to client making the request. Can create custom event instead
