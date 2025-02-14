@@ -16,6 +16,8 @@ Each animation will work differently depending on whether it's for the self play
     If other player: the cards must not be revealed or hidden if they were already revealed
 Looks like 2 animations will be needed for each scenario
 
+In all cases, original card will disappear
+
 Server-side
 How will client know when to run an animation? It will always occur after an action is accepted publicly by the server.
     Should flag be placed in packet from server that animation is needed?
@@ -27,3 +29,5 @@ On hover: card scale increases slightly if interactable
 Player life counter (star) "pops" when life is lost
 Show card 'flip' in 3d space when going from back to front or front to back
     Would be especially nice to see at the end when all players reveal their hands
+
+Instead of putting animation notifications in Python game file, use app.py where the sockets are handled. All responses can be callbacks to emitWithAcks from the client

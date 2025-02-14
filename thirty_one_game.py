@@ -393,7 +393,7 @@ class State:
         # Pause game before next round starts
         if self.mode == "end_round":
             if packet["action"] == "continue":
-                # Start a new round
+                # Start a new round after confirmation to continue
                 self.new_round()
             else:
                 return "reject"
@@ -410,7 +410,7 @@ class State:
                 return "accept"
 
             elif packet["action"] == "pickup":
-                # convert to str here for type consistency
+                # Convert to str here for type consistency
                 taken_card = self.discard.pop()
 
             elif packet["action"] == "draw":
@@ -487,7 +487,6 @@ class State:
         return {
             # Generic data
             "game": "thirty_one",  # specifies game
-            "action": "update_board",  # for client to know what type of update this is
             "room": self.room_name,  # name of room
             "mode": self.mode,  # current game mode - might help restrict inputs on client side
             "in_progress": self.in_progress,  # whether game is in progress

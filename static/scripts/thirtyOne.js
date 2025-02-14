@@ -13,7 +13,7 @@ function createBoard() {
     // Create deck button
     const deck = document.createElement('button');
     deck.className = 'playing-card card-back';
-    deck.id = 'deck';
+    deck.id = 'deck-button';
     // Adds text on hover
     deck.title = 'Draw a card from the deck.'
     deck.onclick = () => {
@@ -62,8 +62,16 @@ function createMoveButtons() {
     drawButton.id = 'draw-button';
     drawButton.innerText = 'Draw';
     
+    // Set onclick to same as clicking deck button
     drawButton.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': currentRoom, 'username': username});
+        // The deck button MUST EXIST at this point
+        const deckButton = document.querySelector('#deck-button');
+        if (deckButton !== null) {
+            deckButton.click()
+        }
+        else {
+            console.log('Missing deck button');
+        }
     }
     
     // Add pickup button (from discard) - same as clicking the discard pile
@@ -72,8 +80,16 @@ function createMoveButtons() {
     pickupButton.id = 'pickup-button';
     pickupButton.innerText = 'Pickup';
     
+    // Set onclick to the same as clicking discard button
     pickupButton.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': currentRoom, 'username': username});
+        // The discard button MUST EXIST at this point
+        const discardButton = document.querySelector('#discard-button');
+        if (discardButton !== null) {
+            discardButton.click();
+        }
+        else {
+            console.log('Missing discard button');
+        }
     }
     
     // Add knock button
@@ -298,199 +314,200 @@ function updateThirtyOne(response) {
 
     // Add markers for dealer and knocked
     
-    if (response.action === 'update_board') {
+    // REMOVING THIS CHECK SO I CAN RE-PURPOSE THE ACTION KEYWORD IN UPDATE PACKET
+        // This function is only used for board update so can remove this if statement
+    // if (response.action === 'update_board') 
 
-        // Unpack general state
-        inProgress = response.in_progress;
-        currentPlayer = response.current_player;
-        discardCard = response.discard;
+    // Unpack general state
+    inProgress = response.in_progress;
+    currentPlayer = response.current_player;
+    discardCard = response.discard;
 
-        // Fill log
-        for (const msg of response.log) {
-            addToLog(msg, "system");
-        }
-        
-        // Removing this from blocking updates since game needs to update to end state on game end
-        if (!inProgress) {
-            console.log('Received update response but game is not in progress.');
-        }
-        
-        if (response.player_order === undefined) {
-            console.log('Player order missing from response.');
-            return;
-        }
+    // Fill log
+    for (const msg of response.log) {
+        addToLog(msg, "system");
+    }
+    
+    // Removing this from blocking updates since game needs to update to end state on game end
+    if (!inProgress) {
+        console.log('Received update response but game is not in progress.');
+    }
+    
+    if (response.player_order === undefined) {
+        console.log('Player order missing from response.');
+        return;
+    }
 
-        // Disable knock button (for all) if there has been a knock
-        if (response.knocked) {
-            document.querySelector('#knock-button').disabled = true;
-        }
-        // Enable knock button if no one has knocked
-        else {
-            document.querySelector('#knock-button').disabled = false;
-        }
+    // Disable knock button (for all) if there has been a knock
+    if (response.knocked) {
+        document.querySelector('#knock-button').disabled = true;
+    }
+    // Enable knock button if no one has knocked
+    else {
+        document.querySelector('#knock-button').disabled = false;
+    }
+    
+    // Disable start button when game in progress; Enable when not in progress
+    document.querySelector('#start-button').disabled = inProgress;
+    if (inProgress) {
+        // Hide start button when game in progress
+        document.querySelector('#start-button').style.display = 'none';
+    }
+    else {
+        // Unhide start button when game not in progress
+        document.querySelector('#start-button').style.display = '';
+    }
+    
+    // Enable continue button on round end (and NOT on game end)
+    if (response.mode === 'end_round') {
+        document.querySelector('#continue-button').disabled = false;
+        // Unhide button when active
+        document.querySelector('#continue-button').style.display = '';
         
-        // Disable start button when game in progress; Enable when not in progress
-        document.querySelector('#start-button').disabled = inProgress;
-        if (inProgress) {
-            // Hide start button when game in progress
-            document.querySelector('#start-button').style.display = 'none';
-        }
-        else {
-            // Unhide start button when game not in progress
-            document.querySelector('#start-button').style.display = '';
-        }
-        
-        // Enable continue button on round end (and NOT on game end)
-        if (response.mode === 'end_round') {
-            document.querySelector('#continue-button').disabled = false;
-            // Unhide button when active
-            document.querySelector('#continue-button').style.display = '';
+        // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
+        // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
+        // Or can go by specific log messages but that seems more fragile
+    }
+    
+    // Disable continue button on every other mode
+    else {
+        document.querySelector('#continue-button').disabled = true;
+        // HIDE button when not active
+        document.querySelector('#continue-button').style.display = 'none';
+    }
+
+    // Add discard card to display on discard button
+    setCardDisplay(discardCard, document.querySelector('#discard-button'));
+    
+    // Check for knocked out players
+    // Display should only be reset when next round round starts. Server can wait to kick them out
+    // Until beginning of next round
+    for (const player of playersConnected) {
+        if (!response.player_order.includes(player)) {
+            // Replace lives with 'knocked out'
+            document.querySelector('#' + player + '-lives').innerText = 'Knocked out'
+            // Remove all cards
+            document.querySelector('#' + player + '-hand-container').replaceChildren()
+            // Remove hand score
+            document.querySelector('#' + player + '-hand-score').innerText = '';
             
-            // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
-            // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
-            // Or can go by specific log messages but that seems more fragile
+            // Reset `current` status
+            document.querySelector('#' + player + '-current-strong').innerText = '';
+            document.querySelector('#' + player + '-container').dataset.current = '0';
+            // Reset `knocked`
+            document.querySelector('#' + player + '-knocked-strong').innerText = '';
+            document.querySelector('#' + player + '-container').dataset.knocked = '0';
         }
+    }
+
+    // Unpack for players still in the game 
+    // Eventually want to rearrange players to be correct player order
+    playerOrder = response.player_order;
+    
+    // Loop player order to fill containers
+    for (let i = 0; i < playerOrder.length; i++) {
         
-        // Disable continue button on every other mode
-        else {
-            document.querySelector('#continue-button').disabled = true;
-            // HIDE button when not active
-            document.querySelector('#continue-button').style.display = 'none';
+        // playerOrder[i] is the player name
+
+        // Once player array is populated, add to player panel display or dataset
+        const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
+
+        // Update order
+        playerContainer.dataset.order = i;
+        
+        // Update lives
+    
+        // If not knocked out, set number of extra lives
+        document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
+        playerContainer.dataset.lives = response.lives[i];
+        
+        // Use NUMBERS for comparisons, not strings!
+        // Add stars according to number of lives left
+        if (response.lives[i] > 0) {
+            const lifeStarsContainer = document.createElement('span');
+            lifeStarsContainer.className = 'life-stars-container';
+
+            for (let life = 0; life < response.lives[i]; life++) {
+                lifeStarsContainer.innerText += '\u2605 ';
+            } 
+            document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
         }
 
-        // Add discard card to display on discard button
-        setCardDisplay(discardCard, document.querySelector('#discard-button'));
-        
-        // Check for knocked out players
-        // Display should only be reset when next round round starts. Server can wait to kick them out
-        // Until beginning of next round
-        for (const player of playersConnected) {
-            if (!response.player_order.includes(player)) {
-                // Replace lives with 'knocked out'
-                document.querySelector('#' + player + '-lives').innerText = 'Knocked out'
-                // Remove all cards
-                document.querySelector('#' + player + '-hand-container').replaceChildren()
-                // Remove hand score
-                document.querySelector('#' + player + '-hand-score').innerText = '';
-                
-                // Reset `current` status
-                document.querySelector('#' + player + '-current-strong').innerText = '';
-                document.querySelector('#' + player + '-container').dataset.current = '0';
-                // Reset `knocked`
-                document.querySelector('#' + player + '-knocked-strong').innerText = '';
-                document.querySelector('#' + player + '-container').dataset.knocked = '0';
-            }
+        // If 0 lives, add 'on the bike'
+        else if (response.lives[i] === 0) {
+            
+            // Remove any stars remaining
+            document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
+            
+            // Add text
+            document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
         }
-
-        // Unpack for players still in the game 
-        // Eventually want to rearrange players to be correct player order
-        playerOrder = response.player_order;
-        
-        // Loop player order to fill containers
-        for (let i = 0; i < playerOrder.length; i++) {
-            
-            // playerOrder[i] is the player name
-
-            // Once player array is populated, add to player panel display or dataset
-            const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
-
-            // Update order
-            playerContainer.dataset.order = i;
-            
-            // Update lives
-        
-            // If not knocked out, set number of extra lives
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
-            playerContainer.dataset.lives = response.lives[i];
-            
-            // Use NUMBERS for comparisons, not strings!
-            // Add stars according to number of lives left
-            if (response.lives[i] > 0) {
-                const lifeStarsContainer = document.createElement('span');
-                lifeStarsContainer.className = 'life-stars-container';
-
-                for (let life = 0; life < response.lives[i]; life++) {
-                    lifeStarsContainer.innerText += '\u2605 ';
-                } 
-                document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
-            }
-
-            // If 0 lives, add 'on the bike'
-            else if (response.lives[i] === 0) {
-                
-                // Remove any stars remaining
-                document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
-                
-                // Add text
-                document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
-            }
-                        
-            // Server will set lives to -1 if knocked out
-            else if (response.lives[i] === -1) {
-                document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
-            }
-            
-            
-            // Create front-facing hand for self, clickable
-            if (username === playerOrder[i]) {
-                populateHand(playerOrder[i], response.hand, response.hand_score, response.mode)  
-            }
-
-            // Create front-facing hand for others on game end, not clickable
-            // Using `else if` here implies playerOrder[i] is not the self player
-            else if (response.mode === 'end_round' || response.mode === 'end_game') {
-                populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
-            }
-
-            // Create back-facing hand for others if not end of round / game
-            else {
-                // Remove all cards if there were any
-                document.querySelector('#' + playerOrder[i] + '-hand-container').replaceChildren()
-
-                // Loop hand size to add divs that display backs of cards
-                for (let j = 0; j < response.hand_sizes[i]; j++) {
-                    // Not sure if these should be buttons or divs:
-                        // buttons make consistent styling
-                        // div helps differentiate them from the actual card buttons
-                    const dummyCard = document.createElement('div');
-                    dummyCard.className = 'playing-card card-back';
                     
-                    // Add dummy card to container - do dummies need ids for animation purposes?
-                        // I think no but might change later
-                    const dummyContainer = document.createElement('div');
-                    dummyContainer.className = 'card-container dummy-container';
+        // Server will set lives to -1 if knocked out
+        else if (response.lives[i] === -1) {
+            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
+        }
+        
+        
+        // Create front-facing hand for self, clickable
+        if (username === playerOrder[i]) {
+            populateHand(playerOrder[i], response.hand, response.hand_score, response.mode)  
+        }
 
-                    dummyContainer.appendChild(dummyCard);
+        // Create front-facing hand for others on game end, not clickable
+        // Using `else if` here implies playerOrder[i] is not the self player
+        else if (response.mode === 'end_round' || response.mode === 'end_game') {
+            populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
+        }
 
-                    document.querySelector('#' + playerOrder[i] + '-hand-container').appendChild(dummyContainer);
-                }
-                // Remove hand score
-                document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';
+        // Create back-facing hand for others if not end of round / game
+        else {
+            // Remove all cards if there were any
+            document.querySelector('#' + playerOrder[i] + '-hand-container').replaceChildren()
+
+            // Loop hand size to add divs that display backs of cards
+            for (let j = 0; j < response.hand_sizes[i]; j++) {
+                // Not sure if these should be buttons or divs:
+                    // buttons make consistent styling
+                    // div helps differentiate them from the actual card buttons
+                const dummyCard = document.createElement('div');
+                dummyCard.className = 'playing-card card-back';
+                
+                // Add dummy card to container - do dummies need ids for animation purposes?
+                    // I think no but might change later
+                const dummyContainer = document.createElement('div');
+                dummyContainer.className = 'card-container dummy-container';
+
+                dummyContainer.appendChild(dummyCard);
+
+                document.querySelector('#' + playerOrder[i] + '-hand-container').appendChild(dummyContainer);
             }
-            
-            // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
-            if (currentPlayer === playerOrder[i]) {
-                playerContainer.dataset.current = '1';
-                // Add marker to current player - '\u2192' is right pointing arrow →
-                document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '\u2192';
-            }
-            else {
-                playerContainer.dataset.current = '0';
-                document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '';
-            }
-            
-            // Set connected status to True when creating player
-            playerContainer.dataset.connected = '1';
-            
-            // Set knocked status - add text to name container
-            if (response.knocked === playerOrder[i]) {
-                playerContainer.dataset.knocked = '1';
-                document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = ' - knocked';
-            }
-            else {
-                playerContainer.dataset.knocked = '0';
-                document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = '';
-            }
+            // Remove hand score
+            document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';
+        }
+        
+        // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
+        if (currentPlayer === playerOrder[i]) {
+            playerContainer.dataset.current = '1';
+            // Add marker to current player - '\u2192' is right pointing arrow →
+            document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '\u2192';
+        }
+        else {
+            playerContainer.dataset.current = '0';
+            document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '';
+        }
+        
+        // Set connected status to True when creating player
+        playerContainer.dataset.connected = '1';
+        
+        // Set knocked status - add text to name container
+        if (response.knocked === playerOrder[i]) {
+            playerContainer.dataset.knocked = '1';
+            document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = ' - knocked';
+        }
+        else {
+            playerContainer.dataset.knocked = '0';
+            document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = '';
         }
     }
 }
