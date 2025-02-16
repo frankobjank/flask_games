@@ -33,3 +33,14 @@ Show card 'flip' in 3d space when going from back to front or front to back
 Instead of putting animation notifications in Python game file, use app.py where the sockets are handled. All responses can be callbacks to emitWithAcks from the client
 
     Problem is callback will only apply to client making the request. Can create custom event instead
+
+
+Currently all cards in hand are recreated on every update board event. This can be changed to only populate hand on deal
+However, if player rejoins in middle of game they need to recreate the hand without a deal event. Could make a special rejoin event that populates the board with no animation
+
+Discard animation
+cards in hand: 4 -> 3
+old discard value -> new discard value
+
+Animation must happen FIRST and then the actual values can be updated after animation
+Put animation / action check before other updates

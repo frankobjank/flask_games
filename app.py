@@ -115,6 +115,10 @@ def index():
 def game():
     fl.session["last_page"] = fl.url_for("game")
     
+    # Sometimes chosen game will be lost on refresh, in these cases send user to index.
+    if not fl.request.args.get("game"):
+        return fl.redirect("/")
+
     # Load lobby on GET
 
     # Set game that user chooses
@@ -709,15 +713,15 @@ def on_move(data):
     
     for username in game.players.keys():
         
+        # All game data packaged into a dict for specific user
+        response = game.package_state(username)
+
         # Lookup sid for user in room.users - this can be optimized with a dict
         recipient_sid = ""
         for user in rooms[data["room"]].users:
             if user.connected and user.name == response["recipient"]:
                 recipient_sid = user.sid
                 break
-        
-        # All game data packaged into a dict for specific user
-        response = game.package_state(username)
         
         print(f"Sending response: \n{response} \non {data['action']}")
         

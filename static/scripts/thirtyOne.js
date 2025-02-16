@@ -220,10 +220,7 @@ function createPlayerContainer(name) {
 }
 
 function createCardContainer(cardStr) {
-    // Create a card container - div that encloses a playing card
-    const cardContainer = document.createElement('div');
-    cardContainer.className = 'card-container';
-    cardContainer.id = 'card-container' + cardStr;
+
 
     return cardContainer;
 }
@@ -233,6 +230,7 @@ function createHandButton(cardStr) {
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
     const cardButton = document.createElement('button');
     cardButton.className = 'playing-card card-front hand-button';
+    // Preface cardstr with `card-` to prevent id starting with a number
     cardButton.id = 'card-' + cardStr;
     
     // Adds text on hover
@@ -271,8 +269,13 @@ function populateHand(playerName, hand, hand_score, mode) {
         //     cardButton.disabled = true;
         // }
         
+        // Create a card container - div that encloses a playing card
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container';
+        // Configure id this way so container can be selected with the card id
+        cardContainer.id = 'card-' + card + '-container';
+        
         // Add card button to card container
-        const cardContainer = createCardContainer(card)
         cardContainer.appendChild(cardButton);
 
         // Add card container to hand container
@@ -281,6 +284,77 @@ function populateHand(playerName, hand, hand_score, mode) {
     
     // Update hand score
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
+}
+
+function animateDiscard(cardStr) {
+    const discard = document.querySelector('#discard-button');
+    const card = document.querySelector(`#card-${cardStr}`);
+
+    // Get starting position of card
+    const cardRect = card.getBoundingClientRect();
+
+    // Get discard position
+    const discardRect = discard.getBoundingClientRect();
+
+    // Calc movement distances - compare left and top
+    const deltaX = discardRect.left - cardRect.left
+    const deltaY = discardRect.top - cardRect.top
+
+    // Create a clone to animate 
+    // this prevents having to actually move the original card
+    // function `cloneNode()` creates a copy of an object.
+    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
+    const clone = card.cloneNode(true);
+    clone.className = 'card-clone';
+    // change id of clone so no duplicate ids
+    clone.id = 'clone-' + clone.id;
+    document.body.appendChild(clone);
+    
+    clone.style.position = 'fixed';
+    // Start clone at card's dimensions - not sure why this is needed if cloneNode is used, maybe style isn't copied?
+    clone.style.left = `${cardRect.left}px`;
+    clone.style.top = `${cardRect.top}px`;
+    clone.style.width = `${cardRect.width}px`;
+    clone.style.height = `${cardRect.height}px`;
+
+    // Set transition styling
+        // Because this is universal, it could be added to the css file?
+        // But only if there is css selector for the clone like classList.append('card-clone')
+    
+    animationDuration = 0.8;
+    clone.style.transition = `transform ${animationDuration}s ease-out`;
+
+    // Hide original card
+    card.style.visibility = 'hidden';
+
+    // Built-in function
+    requestAnimationFrame(() => {
+        clone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    })
+
+    setTimeout(() => {
+        // Remove clone card
+        clone.remove();
+
+        // // Remove any existing cards
+        // document.querySelector('#discard-container').replaceChildren();
+
+        // // Pop card from container in hand
+        // const cardRemoved = document.querySelector('#' + card.id + '-container').removeChild(card);
+        
+        // // Remove old card container from DOM
+        // document.querySelector('#' + cardRemoved.id + '-container').remove();
+        
+        // // // Add card to discard container
+        // // document.querySelector('#discard-container').appendChild(cardRemoved);
+        // // cardRemoved.style.visibility = 'visible';
+        
+        // // // Change id to discard button
+        // // cardRemoved.id = 'discard-button';
+
+    // Multiply duration by 1000 for s -> ms conversion
+    }, animationDuration*1000);
+
 }
 
 function updateThirtyOne(response) {
@@ -312,16 +386,20 @@ function updateThirtyOne(response) {
     
     // "action": action  # For animation - lets client know the move made (discard, draw, etc.)
 
-    // Add markers for dealer and knocked
-    
-    // REMOVING THIS CHECK SO I CAN RE-PURPOSE THE ACTION KEYWORD IN UPDATE PACKET
-        // This function is only used for board update so can remove this if statement
-    // if (response.action === 'update_board') 
+    // Run animation depending on response.action
+    // The rest of the update will not wait until end of animation - must include all updates to cards 
+    discardCard = response.discard;
 
+    if (response.action === 'discard') {
+        if (currentPlayer === username) {
+            animateDiscard(discardCard);
+        }
+    }
+    
     // Unpack general state
     inProgress = response.in_progress;
+    // Must put current player update here since turn may increment on server side
     currentPlayer = response.current_player;
-    discardCard = response.discard;
 
     // Fill log
     for (const msg of response.log) {
