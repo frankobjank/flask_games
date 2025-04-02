@@ -1,3 +1,6 @@
+// Global vars
+var animationDuration = 0.8;
+
 function createBoard() {
 
     // Create div for board
@@ -286,6 +289,10 @@ function populateHand(playerName, hand, hand_score, mode) {
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
+function animateDeal() {
+
+}
+
 function animateDiscard(cardStr) {
     const discard = document.querySelector('#discard-button');
     const card = document.querySelector(`#card-${cardStr}`);
@@ -317,11 +324,6 @@ function animateDiscard(cardStr) {
     clone.style.width = `${cardRect.width}px`;
     clone.style.height = `${cardRect.height}px`;
 
-    // Set transition styling
-        // Because this is universal, it could be added to the css file?
-        // But only if there is css selector for the clone like classList.append('card-clone')
-    
-    animationDuration = 0.8;
     clone.style.transition = `transform ${animationDuration}s ease-out`;
 
     // Hide original card
@@ -357,6 +359,45 @@ function animateDiscard(cardStr) {
 
 }
 
+function updateCardsNoAnimation(playerName, response) {
+    // Create front-facing hand for self, clickable
+    if (username === playerName) {
+        populateHand(playerName, response.hand, response.hand_score, response.mode);
+    }
+
+    // Create front-facing hand for others on game end, not clickable
+    // Using `else if` here implies playerName is not the self player
+    else if (response.mode === 'end_round' || response.mode === 'end_game') {
+        populateHand(playerName, response.final_hands[i], response.final_scores[i], response.mode);
+    }
+
+    // Create back-facing hand for others if not end of round / game
+    else {
+        // Remove all cards if there were any
+        document.querySelector('#' + playerName + '-hand-container').replaceChildren()
+
+        // Loop hand size to add divs that display backs of cards
+        for (let j = 0; j < response.hand_sizes[i]; j++) {
+            // Not sure if these should be buttons or divs:
+                // buttons make consistent styling
+                // div helps differentiate them from the actual card buttons
+            const dummyCard = document.createElement('div');
+            dummyCard.className = 'playing-card card-back';
+            
+            // Add dummy card to container - do dummies need ids for animation purposes?
+                // I think no but might change later
+            const dummyContainer = document.createElement('div');
+            dummyContainer.className = 'card-container dummy-container';
+
+            dummyContainer.appendChild(dummyCard);
+
+            document.querySelector('#' + playerName + '-hand-container').appendChild(dummyContainer);
+        }
+        // Remove hand score
+        document.querySelector('#' + playerName + '-hand-score').innerText = '';
+    }    
+}
+
 function updateThirtyOne(response) {
     if (response === undefined) {
         console.log('response = undefined');
@@ -385,16 +426,57 @@ function updateThirtyOne(response) {
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
     // "action": action  # For animation - lets client know the move made (discard, draw, etc.)
-
+    
+    // Removing this from blocking updates since game needs to update to end state on game end
+    if (!inProgress) {
+        console.log('Received update response but game is not in progress.');
+    }
+    
+    if (response.player_order === undefined) {
+        console.log('Player order missing from response.');
+        return;
+    }
+    
+    // UPDATE CARDS FIRST so animation will be completed before rest of update
     // Run animation depending on response.action
     // The rest of the update will not wait until end of animation - must include all updates to cards 
     discardCard = response.discard;
 
-    if (response.action === 'discard') {
-        if (currentPlayer === username) {
-            animateDiscard(discardCard);
+    // Unpack for players still in the game 
+    playerOrder = response.player_order;
+
+    // Iterate through player order to update all players' hands
+    for (let i = 0; i < playerOrder; i++) {
+        // Start - empty client hand, deal the required cards
+        // No action
+        // client hand has cards from previous round,
+        // Animate deal if action === 'start' (combination of `draw` animations)
+        switch (response.action) {
+            case 'start':
+                animateDeal(playerOrder[i]);
+                break;
+
+            case 'draw':
+                break;
+
+            case 'discard':
+                // Old current player - because discard is last move before turn end
+                if (currentPlayer === username) {
+                    animateDiscard(discardCard);
+                }
+                break;
+
+            // No action; no animation will happen. Hands can be populated normally.
+            default:
+                // Add cards to hands
+                updateCardsNoAnimation(playerOrder[i], response);
+
+                // Add discard card to display on discard button
+                setCardDisplay(discardCard, document.querySelector('#discard-button'));
         }
     }
+        
+    
     
     // Unpack general state
     inProgress = response.in_progress;
@@ -406,16 +488,6 @@ function updateThirtyOne(response) {
         addToLog(msg, "system");
     }
     
-    // Removing this from blocking updates since game needs to update to end state on game end
-    if (!inProgress) {
-        console.log('Received update response but game is not in progress.');
-    }
-    
-    if (response.player_order === undefined) {
-        console.log('Player order missing from response.');
-        return;
-    }
-
     // Disable knock button (for all) if there has been a knock
     if (response.knocked) {
         document.querySelector('#knock-button').disabled = true;
@@ -454,12 +526,6 @@ function updateThirtyOne(response) {
         document.querySelector('#continue-button').style.display = 'none';
     }
 
-    // Insert discard animation here.
-        // Determine if player is current player or not
-        // Current player - find discard card in 
-
-    // Add discard card to display on discard button
-    setCardDisplay(discardCard, document.querySelector('#discard-button'));
     
     // Check for knocked out players
     // Display should only be reset when next round round starts. Server can wait to knock them out
@@ -482,11 +548,7 @@ function updateThirtyOne(response) {
         }
     }
 
-    // Unpack for players still in the game 
-    // Eventually want to rearrange players to be correct player order
-    playerOrder = response.player_order;
-    
-    // Loop player order to fill containers
+    // Loop player order to fill containers apart from cards
     for (let i = 0; i < playerOrder.length; i++) {
         
         // playerOrder[i] is the player name
@@ -529,46 +591,19 @@ function updateThirtyOne(response) {
         else if (response.lives[i] === -1) {
             document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
         }
-        
-        
-        // Create front-facing hand for self, clickable
-        if (username === playerOrder[i]) {
-            populateHand(playerOrder[i], response.hand, response.hand_score, response.mode)  
-        }
 
         // Create front-facing hand for others on game end, not clickable
-        // Using `else if` here implies playerOrder[i] is not the self player
-        else if (response.mode === 'end_round' || response.mode === 'end_game') {
+        // Animation idea: reveal of cards (first card flips, second card, third card)
+        if ((username !== playerOrder[i]) && (response.mode === 'end_round' || response.mode === 'end_game')) {
             populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
         }
 
-        // Create back-facing hand for others if not end of round / game
-        else {
-            // Remove all cards if there were any
-            document.querySelector('#' + playerOrder[i] + '-hand-container').replaceChildren()
-
-            // Loop hand size to add divs that display backs of cards
-            for (let j = 0; j < response.hand_sizes[i]; j++) {
-                // Not sure if these should be buttons or divs:
-                    // buttons make consistent styling
-                    // div helps differentiate them from the actual card buttons
-                const dummyCard = document.createElement('div');
-                dummyCard.className = 'playing-card card-back';
-                
-                // Add dummy card to container - do dummies need ids for animation purposes?
-                    // I think no but might change later
-                const dummyContainer = document.createElement('div');
-                dummyContainer.className = 'card-container dummy-container';
-
-                dummyContainer.appendChild(dummyCard);
-
-                document.querySelector('#' + playerOrder[i] + '-hand-container').appendChild(dummyContainer);
-            }
-            // Remove hand score
-            document.querySelector('#' + playerOrder[i] + '-hand-score').innerText = '';
-        }
+        if (!document.querySelector('#' + playerOrder[i] + '-hand-container').hasChildNodes()){
+            console.log(`${playerOrder[i]} hand is empty.`);
+        }        
         
         // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
+        // Animation idea: move current marker to new current player
         if (currentPlayer === playerOrder[i]) {
             playerContainer.dataset.current = '1';
             // Add marker to current player - '\u2192' is right pointing arrow →

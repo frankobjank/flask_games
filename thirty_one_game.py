@@ -489,6 +489,7 @@ class State:
             "game": "thirty_one",  # specifies game
             "room": self.room_name,  # name of room
             "mode": self.mode,  # current game mode - might help restrict inputs on client side
+            "action": "",  # default action to empty string - will set in app.py if needed
             "in_progress": self.in_progress,  # whether game is in progress
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name
