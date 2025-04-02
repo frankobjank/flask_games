@@ -346,16 +346,16 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 }
 
 /* Set colors of cards based on suit data attribute */
-.playing-card.card-front[data-suit='S'] {
+.rotate-card-container[data-suit='S'] {
     color: black;
 }
-.playing-card.card-front[data-suit='H'] {
+.rotate-card-container[data-suit='H'] {
     color: crimson;
 }
-.playing-card.card-front[data-suit='D'] {
+.rotate-card-container[data-suit='D'] {
     color: rgb(53, 109, 155);
 }
-.playing-card.card-front[data-suit='C'] {
+.rotate-card-container[data-suit='C'] {
     color: seagreen;
 }
 

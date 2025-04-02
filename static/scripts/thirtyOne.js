@@ -230,97 +230,30 @@ function createPlayerContainer(name) {
 
 // Replace createHandButton with buildCardObject? - for known cards
 // For unknown cards can use buildPlaceholderCard
-function createHandButton(cardStr) {
+// Added these functions to cardShared; unique thing about the cards is onclick and this can be added in this file
+// function createHandButton(cardStr) {
 
-    // serverCard = 'KS', 'QH', 'TD', '9C', ...
-    const cardButton = document.createElement('button');
-    cardButton.className = 'playing-card card-front hand-button';
-    // Preface cardstr with `card-` to prevent id starting with a number
-    cardButton.id = 'card-' + cardStr;
+//     // serverCard = 'KS', 'QH', 'TD', '9C', ...
+//     const cardButton = document.createElement('button');
+//     cardButton.className = 'playing-card card-front hand-button';
+//     // Preface cardstr with `card-` to prevent id starting with a number
+//     cardButton.id = 'card-' + cardStr;
     
-    // Adds text on hover
-    // cardButton.title = 'Discard';
-    setCardDisplay(cardStr, cardButton);
+//     // Adds text on hover
+//     // cardButton.title = 'Discard';
+//     setCardDisplay(cardStr, cardButton);
 
-    // Send server request on click
-    cardButton.onclick = () => {
-        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardStr});
-        console.log(`Requesting discard ${cardStr}`);
-    }
+//     // Send server request on click
+//     cardButton.onclick = () => {
+//         socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardStr});
+//         console.log(`Requesting discard ${cardStr}`);
+//     }
 
-    // Return container to be added to hand
-    return cardButton;
-}
+//     // Return container to be added to hand
+//     return cardButton;
+// }
 
 
-// Create outer rotating div and card-front + card-back divs
-function buildCardObject(cardStr) {
-    const rotateContainer = document.createElement('div');
-    rotateContainer.className = 'rotate-card-container';
-    // Assign id to outermost container
-    rotateContainer.id = 'card-' + cardStr;
-
-    const cardFront = document.createElement('div');
-    cardFront.className = 'playing-card card-front';
-    
-    // Get rank with first char of cardStr
-    const rank = cardStr[0]
-    // Get suit with last char of cardStr
-    const suit = cardStr[cardStr.length - 1];
-    // Add to card's dataset
-    rotateContainer.dataset.rank = rank;
-    rotateContainer.dataset.suit = suit;
-
-    // For display - check if rank is T; set to 10
-    let displayRank = rank;
-    if (displayRank === 'T') {
-        displayRank = '10';
-    }
-
-    // Set display for card
-    cardFront.innerText = `${displayRank}${SUIT_TO_DISPLAY[suit]}`;
-    
-    rotateContainer.appendChild(cardFront);
-    
-    const cardBack = document.createElement('div');
-    cardBack.className = 'playing-card card-back';
-    cardBack.innerText = 'back';
-    
-    rotateContainer.appendChild(cardBack);
-
-    return rotateContainer;
-}
-
-// Create outer rotating div and card-front + card-back divs
-function buildPlaceholderCard(discard) {
-    
-    /* 
-        <div class="rotate-card-container discard-card">
-            <div class="playing-card card-front" ></div>
-            <div class="playing-card card-back"></div>
-        </div>
-    */
-    const rotateContainer = document.createElement('div');
-    rotateContainer.className = 'rotate-card-container';
-    if (discard) {
-        rotateContainer.classList.add('discard-card');
-    }
-
-    const cardFront = document.createElement('div');
-    cardFront.className = 'playing-card card-front';
-    
-    // Set display to a single space
-    cardFront.innerText = ' ';
-    
-    rotateContainer.appendChild(cardFront);
-    
-    const cardBack = document.createElement('div');
-    cardBack.className = 'playing-card card-back';
-    
-    rotateContainer.appendChild(cardBack);
-
-    return rotateContainer;
-}
 
 
 function populateHand(playerName, hand, hand_score, mode) {
