@@ -1,5 +1,10 @@
 // Global vars
-var animationDuration = 0.8;
+
+// For animating card movement and flipping over
+const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
+const ANIMATION_DURATION = 2;
+
+
 
 function createBoard() {
 
@@ -222,12 +227,9 @@ function createPlayerContainer(name) {
     return playerContainer;
 }
 
-function createCardContainer(cardStr) {
 
-
-    return cardContainer;
-}
-
+// Replace createHandButton with buildCardObject? - for known cards
+// For unknown cards can use buildPlaceholderCard
 function createHandButton(cardStr) {
 
     // serverCard = 'KS', 'QH', 'TD', '9C', ...
@@ -249,6 +251,77 @@ function createHandButton(cardStr) {
     // Return container to be added to hand
     return cardButton;
 }
+
+
+// Create outer rotating div and card-front + card-back divs
+function buildCardObject(cardStr) {
+    const rotateContainer = document.createElement('div');
+    rotateContainer.className = 'rotate-card-container';
+    // Assign id to outermost container
+    rotateContainer.id = 'card-' + cardStr;
+
+    const cardFront = document.createElement('div');
+    cardFront.className = 'playing-card card-front';
+    
+    // Get rank with first char of cardStr
+    const rank = cardStr[0]
+    // Get suit with last char of cardStr
+    const suit = cardStr[cardStr.length - 1];
+    // Add to card's dataset
+    rotateContainer.dataset.rank = rank;
+    rotateContainer.dataset.suit = suit;
+
+    // For display - check if rank is T; set to 10
+    let displayRank = rank;
+    if (displayRank === 'T') {
+        displayRank = '10';
+    }
+
+    // Set display for card
+    cardFront.innerText = `${displayRank}${SUIT_TO_DISPLAY[suit]}`;
+    
+    rotateContainer.appendChild(cardFront);
+    
+    const cardBack = document.createElement('div');
+    cardBack.className = 'playing-card card-back';
+    cardBack.innerText = 'back';
+    
+    rotateContainer.appendChild(cardBack);
+
+    return rotateContainer;
+}
+
+// Create outer rotating div and card-front + card-back divs
+function buildPlaceholderCard(discard) {
+    
+    /* 
+        <div class="rotate-card-container discard-card">
+            <div class="playing-card card-front" ></div>
+            <div class="playing-card card-back"></div>
+        </div>
+    */
+    const rotateContainer = document.createElement('div');
+    rotateContainer.className = 'rotate-card-container';
+    if (discard) {
+        rotateContainer.classList.add('discard-card');
+    }
+
+    const cardFront = document.createElement('div');
+    cardFront.className = 'playing-card card-front';
+    
+    // Set display to a single space
+    cardFront.innerText = ' ';
+    
+    rotateContainer.appendChild(cardFront);
+    
+    const cardBack = document.createElement('div');
+    cardBack.className = 'playing-card card-back';
+    
+    rotateContainer.appendChild(cardBack);
+
+    return rotateContainer;
+}
+
 
 function populateHand(playerName, hand, hand_score, mode) {
     
@@ -289,9 +362,6 @@ function populateHand(playerName, hand, hand_score, mode) {
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
-function animateDeal() {
-
-}
 
 function animateDiscard(cardStr) {
     const discard = document.querySelector('#discard-button');
