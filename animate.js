@@ -157,8 +157,8 @@ function deal() {
 
 
 var discardHandler = function animateDiscard(event) {
-    // Can change `card` with `this`
-    // Will have to find player by looking at grandparent node
+    // `this` refers to `card`
+    // Will have to find player by looking at grandparent node?
     console.log(`current target = ${event.currentTarget}`)
     console.log(`this = ${this}`)
     console.log(`this class = ${this.className}`)

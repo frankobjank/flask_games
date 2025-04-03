@@ -52,6 +52,8 @@ function buildCardObject(cardStr) {
 function buildPlaceholderCard(kind) {
     
     /* 
+        Structure of a placeholder card
+        
         <div class="rotate-card-container discard-card">
             <div class="playing-card card-front" ></div>
             <div class="playing-card card-back"></div>

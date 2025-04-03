@@ -270,13 +270,11 @@ function populateHand(playerName, hand, hand_score, mode) {
         const cardButton = createHandButton(card);
 
         // Disable card button for all if end of round or non-self player
+        // *** Put this into card event listener rather than hand population ***
         if (mode === 'end_round' || mode === 'end_game' || username !== playerName) {
-            cardButton.disabled = true;
+            console.log('Invalid input');
+            return;
         }
-        // // Disable card button if non-self player
-        // else if (username !== playerName) {
-        //     cardButton.disabled = true;
-        // }
         
         // Create a card container - div that encloses a playing card
         const cardContainer = document.createElement('div');
