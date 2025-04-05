@@ -726,6 +726,9 @@ def on_move(data):
         print(f"Sending response: \n{response} \non {data['action']}")
         
         # Add action to response for client animation
+        # Will need to test if setting action here is sufficient 
+            # If accepted it must be broadcast and not only sent 
+            # to the user who requested the action
         response["action"] = data["action"]
 
         # Return response using update_board event

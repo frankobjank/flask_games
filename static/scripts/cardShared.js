@@ -8,7 +8,7 @@ const SUIT_TO_DISPLAY = {'S': '\u2660', 'H': '\u2665', 'D': '\u2666', 'C': '\u26
 */
 
 // Create outer rotating div and card-front + card-back divs
-function buildCardObject(cardStr) {
+function createCardObject(cardStr) {
     // cardStr = 'KS', 'QH', 'TD', '9C', ...
 
     const rotateContainer = document.createElement('div');
@@ -49,26 +49,31 @@ function buildCardObject(cardStr) {
 }
 
 // Create outer rotating div and card-front + card-back divs
-function buildPlaceholderCard(kind) {
+function createPlaceholderCard(kind) {
     
     /* 
         Structure of a placeholder card
         
-        <div class="rotate-card-container discard-card">
+        <div class="rotate-card-container" id="discard-button">
             <div class="playing-card card-front" ></div>
             <div class="playing-card card-back"></div>
         </div>
     */
     const rotateContainer = document.createElement('div');
-    rotateContainer.className = 'rotate-card-container';
+    rotateContainer.className = 'rotate-card-container placeholder-card';
+    
+    // Set identifying features depending on `kind`: discard, deck, etc.
     if (kind === 'discard') {
-        rotateContainer.classList.add('discard-card');
+        rotateContainer.id = 'discard-button';
+    }
+    else if (kind === 'deck') {
+        rotateContainer.id = 'deck-button';
     }
 
     const cardFront = document.createElement('div');
     cardFront.className = 'playing-card card-front';
     
-    // Set display to a single space
+    // Set display to a single space to make sure div fills up
     cardFront.innerText = ' ';
     
     rotateContainer.appendChild(cardFront);

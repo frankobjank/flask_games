@@ -93,7 +93,7 @@ function buildCardObject(cardStr) {
     // Add to card's dataset
     rotateContainer.dataset.rank = rank;
     rotateContainer.dataset.suit = suit;
-
+    
     // For display - check if rank is T; set to 10
     let displayRank = rank;
     if (displayRank === 'T') {

@@ -5,7 +5,6 @@ const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
 const ANIMATION_DURATION = 2;
 
 
-
 function createBoard() {
 
     // Create div for board
@@ -19,15 +18,10 @@ function createBoard() {
     deckContainer.id = 'deck-container';
     
     // Create deck button
-    const deck = document.createElement('button');
-    deck.className = 'playing-card card-back';
-    deck.id = 'deck-button';
-    // Adds text on hover
-    // deck.title = 'Draw a card from the deck.';
-
-    deck.onclick = () => {
-        socket.emit('move', {'action': 'draw', 'room': currentRoom, 'username': username});
-    }
+    const deck = createPlaceholderCard('deck');
+    
+    // Set deck to send `draw` action to server
+    deck.addEventListener('click', deckHandler);
     
     // Add deck button to container
     deckContainer.appendChild(deck);
@@ -38,15 +32,10 @@ function createBoard() {
     discardContainer.id = 'discard-container';
     
     // Create discard button
-    const discard = document.createElement('button');
-    discard.className = 'playing-card card-front';
-    discard.id = 'discard-button';
-    // Adds text on hover
-    // discard.title = 'Pick a card up from discard.';
+    const discard = createPlaceholderCard('discard');
     
-    discard.onclick = () => {
-        socket.emit('move', {'action': 'pickup', 'room': currentRoom, 'username': username});
-    }
+    // Set discard to send `pickup` action to server
+    discard.addEventListener('click', discardHandler);
     
     // Add discard button to container
     discardContainer.appendChild(discard);
@@ -227,36 +216,8 @@ function createPlayerContainer(name) {
     return playerContainer;
 }
 
-
-// Replace createHandButton with buildCardObject? - for known cards
-// For unknown cards can use buildPlaceholderCard
-// Added these functions to cardShared; unique thing about the cards is onclick and this can be added in this file
-// function createHandButton(cardStr) {
-
-//     // serverCard = 'KS', 'QH', 'TD', '9C', ...
-//     const cardButton = document.createElement('button');
-//     cardButton.className = 'playing-card card-front hand-button';
-//     // Preface cardstr with `card-` to prevent id starting with a number
-//     cardButton.id = 'card-' + cardStr;
-    
-//     // Adds text on hover
-//     // cardButton.title = 'Discard';
-//     setCardDisplay(cardStr, cardButton);
-
-//     // Send server request on click
-//     cardButton.onclick = () => {
-//         socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': cardStr});
-//         console.log(`Requesting discard ${cardStr}`);
-//     }
-
-//     // Return container to be added to hand
-//     return cardButton;
-// }
-
-
-
-
-function populateHand(playerName, hand, hand_score, mode) {
+// Populating hand with no animation
+function populateHandStatic(playerName, hand, hand_score, mode) {
     
     const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
     
@@ -267,23 +228,19 @@ function populateHand(playerName, hand, hand_score, mode) {
 
     // Create buttons for hand with array from server
     for (const card of hand) {
-        const cardButton = createHandButton(card);
+        const cardObject = createCardObject(card);
 
-        // Disable card button for all if end of round or non-self player
-        // *** Put this into card event listener rather than hand population ***
-        if (mode === 'end_round' || mode === 'end_game' || username !== playerName) {
-            console.log('Invalid input');
-            return;
-        }
-        
+        // Send server request on click
+        cardObject.addEventListener('click', handHandler);
+
         // Create a card container - div that encloses a playing card
         const cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
         // Configure id this way so container can be selected with the card id
         cardContainer.id = 'card-' + card + '-container';
         
-        // Add card button to card container
-        cardContainer.appendChild(cardButton);
+        // Add card object to card container
+        cardContainer.appendChild(cardObject);
 
         // Add card container to hand container
         playerHandContainer.appendChild(cardContainer);
@@ -293,9 +250,103 @@ function populateHand(playerName, hand, hand_score, mode) {
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
+function animateDeal() {
+    
+}
 
-function animateDiscard(cardStr) {
-    const discard = document.querySelector('#discard-button');
+// Animation of deck to player 
+    // If self, use card object and end face up
+    // If other, use placeholder and end face down
+function animateDraw() {
+
+    // use currentPlayer for player
+    const card = getRandomCard();
+
+    // Start hidden and become visible at end of animation
+    card.style.visibility = 'hidden';
+    
+    // Create new card container in hand for new card
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'card-container';
+    // Card.id = 'card-AS'
+    cardContainer.id = card.id + '-container'
+    // Add card to card container
+    cardContainer.appendChild(card);
+
+    // Add card container to hand container
+    document.querySelector('#' + currentPlayer + '-hand-container').appendChild(cardContainer);
+
+    // Add discard handler as click listener event
+    card.addEventListener('click', discardHandler);
+
+    // If other, make sure card is face down by keeping card in original face-down orientation
+    if (currentPlayer === 'other') {
+        card.style.transform += `rotateY(0deg)`;
+    }
+    
+    // Get end positions by comparing deck and new card container
+
+    // Card will start at deck and move to hand
+    // Starting position
+    const deckRect = document.querySelector('#deck-container').getBoundingClientRect();
+
+    const cardRect = card.getBoundingClientRect()
+
+    // Calc movement distances - compare left and top
+    const deltaX = deckRect.left - cardRect.left
+    const deltaY = cardRect.top - deckRect.top
+
+    // Create a clone to animate
+    // this prevents having to actually move the original card
+    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
+    const clone = card.cloneNode(true);
+    clone.classList.add('clone');
+    // Change id of clone and any child nodes that have ids so no duplicate ids
+    clone.id = 'clone-' + card.id;
+    clone.querySelector('.card-back').innerText = 'clone';
+    // Card starts face-up by default; flip over to start face-down
+    clone.style.transform = `rotateY(180deg)`;
+    clone.style.visibility = 'visible';
+
+    // Add clone to DOM
+    document.body.appendChild(clone);
+    
+    // Start clone at deck location
+    clone.style.left = `${deckRect.left}px`;
+    clone.style.top = `${deckRect.top}px`;
+    clone.style.width = `${deckRect.width}px`;
+    clone.style.height = `${deckRect.height}px`;
+    clone.style.position = 'fixed';
+
+    // Use '+=' to not overwrite existing transform properties
+    clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
+
+    // Built-in function for animating
+    requestAnimationFrame(() => {
+        clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
+        
+        // Add flip to be face-up for self
+        if (currentPlayer === 'self') {
+            clone.style.transform += `rotateY(180deg)`;
+        }
+    })
+
+    // Waits until after animation (number of setTimeout must match number in transform)
+    setTimeout(() => {
+        // Reveal real card
+        card.style.visibility = 'visible';
+
+        // Remove clone card
+        clone.remove();
+
+    // Multiply duration by 1000 for s -> ms conversion
+    }, ANIMATION_DURATION * 1000);
+}
+
+// Animating card from hand to discard
+function animateToDiscard(cardStr) {
+    
+    const discard = document.querySelector('.discard-button');
     const card = document.querySelector(`#card-${cardStr}`);
 
     // Get starting position of card
@@ -313,63 +364,77 @@ function animateDiscard(cardStr) {
     // function `cloneNode()` creates a copy of an object.
     // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
     const clone = card.cloneNode(true);
-    clone.className = 'card-clone';
+    clone.classList.add('clone');
     // change id of clone so no duplicate ids
     clone.id = 'clone-' + clone.id;
+    clone.querySelector('.card-back').innerText = 'clone';
+    
+    // Card starts face-up by default; flip over to start face-down
+    // Start face-up for self players
+    if (currentPlayer === username) {
+        clone.style.transform = `rotateY(0deg)`;
+    }
+    // Start face-down for non-self players
+    else {
+        clone.style.transform = `rotateY(180deg)`;
+    }
+
     document.body.appendChild(clone);
     
-    clone.style.position = 'fixed';
-    // Start clone at card's dimensions - not sure why this is needed if cloneNode is used, maybe style isn't copied?
+    // Start clone at card's dimensions - cloneNode doesn't copy these values
     clone.style.left = `${cardRect.left}px`;
     clone.style.top = `${cardRect.top}px`;
     clone.style.width = `${cardRect.width}px`;
     clone.style.height = `${cardRect.height}px`;
+    clone.style.position = 'fixed';
 
-    clone.style.transition = `transform ${animationDuration}s ease-out`;
+    clone.style.transition = `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
 
     // Hide original card
     card.style.visibility = 'hidden';
 
-    // Built-in function
+    // Built-in function for animation
     requestAnimationFrame(() => {
         clone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
     })
 
+    // Create new card object to put in discard; get attributes from old card
+    const newDiscard = createCardObject(cardStr);
+    newDiscard.id = 'discard-button';
+    
+    // Make sure card is face up
+    newDiscard.style.transform = 'rotateY(180deg)';
+    
+    // Add onclick to request pickup from server
+    newDiscard.addEventListener('click', discardHandler)
+    
+    // Waits until after animation (number of setTimeout must match number in transform)
     setTimeout(() => {
+        
+        // Replace old discard with new discard
+        document.querySelector('#discard-container').replaceChildren(newDiscard);
+        
         // Remove clone card
         clone.remove();
-
-        // // Remove any existing cards
-        // document.querySelector('#discard-container').replaceChildren();
-
-        // // Pop card from container in hand
-        // const cardRemoved = document.querySelector('#' + card.id + '-container').removeChild(card);
         
-        // // Remove old card container from DOM
-        // document.querySelector('#' + cardRemoved.id + '-container').remove();
-        
-        // // // Add card to discard container
-        // // document.querySelector('#discard-container').appendChild(cardRemoved);
-        // // cardRemoved.style.visibility = 'visible';
-        
-        // // // Change id to discard button
-        // // cardRemoved.id = 'discard-button';
+        // Remove original card from hand
+        card.remove()
 
     // Multiply duration by 1000 for s -> ms conversion
-    }, animationDuration*1000);
-
+    }, ANIMATION_DURATION * 1000);
 }
+
 
 function updateCardsNoAnimation(playerName, response) {
     // Create front-facing hand for self, clickable
     if (username === playerName) {
-        populateHand(playerName, response.hand, response.hand_score, response.mode);
+        populateHandStatic(playerName, response.hand, response.hand_score, response.mode);
     }
 
     // Create front-facing hand for others on game end, not clickable
     // Using `else if` here implies playerName is not the self player
     else if (response.mode === 'end_round' || response.mode === 'end_game') {
-        populateHand(playerName, response.final_hands[i], response.final_scores[i], response.mode);
+        populateHandStatic(playerName, response.final_hands[i], response.final_scores[i], response.mode);
     }
 
     // Create back-facing hand for others if not end of round / game
@@ -382,11 +447,9 @@ function updateCardsNoAnimation(playerName, response) {
             // Not sure if these should be buttons or divs:
                 // buttons make consistent styling
                 // div helps differentiate them from the actual card buttons
-            const dummyCard = document.createElement('div');
-            dummyCard.className = 'playing-card card-back';
+            const dummyCard = createPlaceholderCard('unknown');
             
-            // Add dummy card to container - do dummies need ids for animation purposes?
-                // I think no but might change later
+            // Add dummy card to container
             const dummyContainer = document.createElement('div');
             dummyContainer.className = 'card-container dummy-container';
 
@@ -396,7 +459,61 @@ function updateCardsNoAnimation(playerName, response) {
         }
         // Remove hand score
         document.querySelector('#' + playerName + '-hand-score').innerText = '';
-    }    
+    }
+
+    // Update discard 
+    
+    // If no discard card, put in placeholder
+    if (!response.discard) {
+        // Replace existing discard with new one
+        document.querySelector('#discard-container').replaceChildren(createPlaceholderCard('discard'))
+    }
+    else {
+        // If discard exists, create new card object
+        const discard = createCardObject(response.discard);
+        
+        // Set id to discard button
+        discard.id = 'discard-button';
+        
+        // Set discard to send `pickup` action to server
+        discard.addEventListener('click', discardHandler)
+        
+        // Replace existing discard with new one
+        document.querySelector('#discard-container').replaceChildren(discard)
+    }
+}
+
+// Set draw action for deck
+var deckHandler = function deckOnClick(event) {
+
+    if (mode === 'end_round' || mode === 'end_game'){
+        console.log('Draw request not sent; Game not in progress.');
+    }
+    
+    socket.emit('move', {'action': 'draw', 'room': currentRoom, 'username': username});
+}
+
+// Set discard action for card in hand
+var handHandler = function handOnClick(event) {
+    
+    // Disable input for card if end of round or non-self player
+    if (mode === 'end_round' || mode === 'end_game' || username !== playerName) {
+        return;
+    }
+    
+    // card == `this` - send rank and suit to server
+    socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': `${this.dataset.rank}${this.dataset.suit}`});
+    console.log(`Requesting discard ${this.dataset.rank}${this.dataset.suit}`);
+}
+
+// Set pickup action for discard card
+var discardHandler = function discardOnClick(event) {
+
+    if (mode === 'end_round' || mode === 'end_game'){
+        console.log('Discard request not sent; Game not in progress.');
+    }
+
+    socket.emit('move', {'action': 'pickup', 'room': currentRoom, 'username': username});
 }
 
 function updateThirtyOne(response) {
@@ -441,7 +558,6 @@ function updateThirtyOne(response) {
     // UPDATE CARDS FIRST so animation will be completed before rest of update
     // Run animation depending on response.action
     // The rest of the update will not wait until end of animation - must include all updates to cards 
-    discardCard = response.discard;
 
     // Unpack for players still in the game 
     playerOrder = response.player_order;
@@ -454,26 +570,29 @@ function updateThirtyOne(response) {
         // Animate deal if action === 'start' (combination of `draw` animations)
         switch (response.action) {
             case 'start':
+                // TODO
                 animateDeal(playerOrder[i]);
                 break;
 
             case 'draw':
+                // TODO
+                animateDraw();
                 break;
-
+                
             case 'discard':
-                // Old current player - because discard is last move before turn end
-                if (currentPlayer === username) {
-                    animateDiscard(discardCard);
-                }
+                animateToDiscard(response.discard);
                 break;
-
-            // No action; no animation will happen. Hands can be populated normally.
+                
+            case 'pickup':
+                // TODO
+                animatePickup();
+                break;
+                
+            // No action; no animation will happen.
+                // Ex: Reloading page in middle of game
             default:
-                // Add cards to hands
+                // Add cards to hands; update discard
                 updateCardsNoAnimation(playerOrder[i], response);
-
-                // Add discard card to display on discard button
-                setCardDisplay(discardCard, document.querySelector('#discard-button'));
         }
     }
         
@@ -596,7 +715,7 @@ function updateThirtyOne(response) {
         // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
         if ((username !== playerOrder[i]) && (response.mode === 'end_round' || response.mode === 'end_game')) {
-            populateHand(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
+            populateHandStatic(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
         }
 
         if (!document.querySelector('#' + playerOrder[i] + '-hand-container').hasChildNodes()){

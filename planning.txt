@@ -11,6 +11,11 @@ Client
   If animation is needed, wait to update until end of animation using SetTimeout()
 
 
+Steps:
+Update all cards to follow rotating card structure
+
+Don't need to deal with removing event listeners though because you can just destroy old card object and create new one
+
 ### Lobby / Connection ###
 
 Need to handle same user joining the same room - could prevent like runescape "you already have a session running, must wait for that one to close"

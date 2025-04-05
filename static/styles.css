@@ -318,31 +318,55 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 /* Put margin into card container rather than card itself */
 .card-container {
     margin: 0.25rem;
+    /* New */
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 2s ease-in;
+    transform: rotateY(180deg);
+}
+
+/* Container in between card-container and playing-card that facilitates animation */
+.rotate-card-container {
+    /* New */
+    position: relative;
+    width: 2.5rem;
+    height: 3.5rem;
+    outline-color: #000;
+    outline-width: medium;
+    border-radius: 0.3rem;
+    /* Animation */
+    transform-style: preserve-3d;
+    transition: transform 2s ease-in;
+    transform: rotateY(180deg);
 }
 
 /* Playing card (as opposed to Bootstrap card) */
 .playing-card {
-    /* Standard playing cards are 2.5" x 3.5" */
-    width: 2.5rem;
-    height: 3.5rem;
-    background-color: white;
-    outline-color: #000;
-    /* Shadow around cards */
-    box-shadow: -1px -1px 2px 0px #10101075;
-    /* For rounded corners */
-    border-radius: 0.3rem;
     /* Had to remove padding so `10` would appear centered in middle of card */
     padding: unset;
+    /* New */
+    border-radius: 0.3rem;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 /* Back of card */
-.playing-card.card-back {
+.card-back {
     background-color: rgb(83, 86, 87);
+    /* New */
+    transform: rotateY(180deg);
+    /* Repeat box shadow for back else shadow is flipped */
+    box-shadow: -1px -1px 2px 0px #10101075;
 }
 
 /* Front of card */
 .playing-card.card-front {
     background-color: white;
+    /* New */
+    box-shadow: -1px -1px 2px 0px #10101075;
 }
 
 /* Set colors of cards based on suit data attribute */
@@ -357,6 +381,11 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 }
 .rotate-card-container[data-suit='C'] {
     color: seagreen;
+}
+
+/* Start deck card face-down */
+.deck-button {
+    transform: rotateY(0);
 }
 
 #return-lobby-button {
