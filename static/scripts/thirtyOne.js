@@ -260,7 +260,8 @@ function animateDeal() {
 function animateDraw() {
 
     // use currentPlayer for player
-    const card = getRandomCard();
+    // Get card by looking at last card in server hand
+    const card = ;
 
     // Start hidden and become visible at end of animation
     card.style.visibility = 'hidden';
@@ -276,8 +277,8 @@ function animateDraw() {
     // Add card container to hand container
     document.querySelector('#' + currentPlayer + '-hand-container').appendChild(cardContainer);
 
-    // Add discard handler as click listener event
-    card.addEventListener('click', discardHandler);
+    // Add handler as click listener event
+    card.addEventListener('click', handHandler);
 
     // If other, make sure card is face down by keeping card in original face-down orientation
     if (currentPlayer === 'other') {
@@ -442,11 +443,9 @@ function updateCardsNoAnimation(playerName, response) {
         // Remove all cards if there were any
         document.querySelector('#' + playerName + '-hand-container').replaceChildren()
 
-        // Loop hand size to add divs that display backs of cards
+        // Loop hand size to add placeholders that display backs of cards
         for (let j = 0; j < response.hand_sizes[i]; j++) {
-            // Not sure if these should be buttons or divs:
-                // buttons make consistent styling
-                // div helps differentiate them from the actual card buttons
+
             const dummyCard = createPlaceholderCard('unknown');
             
             // Add dummy card to container
@@ -576,6 +575,14 @@ function updateThirtyOne(response) {
 
             case 'draw':
                 // TODO
+                // Player drawing must be current player
+                // Ensure current player has 4 cards
+
+                // If self is current player, new card should be at the end of the hand array
+                    // Add new card to hand (face-up)
+
+                // If other is current player, new card is placeholder
+                    // Add placeholder to hand (face-down)
                 animateDraw();
                 break;
                 
