@@ -255,33 +255,46 @@ function animateDeal() {
 }
 
 // Animation of deck to player 
-    // If self, use card object and end face up
-    // If other, use placeholder and end face down
-function animateDraw() {
-
+    // If self, use card object && end face-up
+    // If other, use placeholder && end face-down
+function animateDraw(cardStr) {
     // use currentPlayer for player
     // Get card by looking at last card in server hand
-    const card = ;
+    // If card not known, card is empty string and placeholder will be used
+    
+    // Known card for self player
+    if (cardStr.length > 0) {
+        const card = createCardObject(cardStr);
+
+        // Create new card container
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container';
+        // Card.id = 'card-AS'
+        cardContainer.id = card.id + '-container'
+    }
+    // Unknown card for non-self player
+    else {
+        const card = createPlaceholderCard('unknown');
+        
+        // Create dummy card container
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container dummy-container';
+    }
+    
+    // Add card to card container
+    cardContainer.appendChild(card);
 
     // Start hidden and become visible at end of animation
     card.style.visibility = 'hidden';
     
-    // Create new card container in hand for new card
-    const cardContainer = document.createElement('div');
-    cardContainer.className = 'card-container';
-    // Card.id = 'card-AS'
-    cardContainer.id = card.id + '-container'
-    // Add card to card container
-    cardContainer.appendChild(card);
-
-    // Add card container to hand container
+    // Add card container to hand container of current player
     document.querySelector('#' + currentPlayer + '-hand-container').appendChild(cardContainer);
 
     // Add handler as click listener event
     card.addEventListener('click', handHandler);
 
-    // If other, make sure card is face down by keeping card in original face-down orientation
-    if (currentPlayer === 'other') {
+    // If non-self player, make sure card is face down by keeping card in original face-down orientation
+    if (currentPlayer !== 'username') {
         card.style.transform += `rotateY(0deg)`;
     }
     
@@ -303,7 +316,11 @@ function animateDraw() {
     const clone = card.cloneNode(true);
     clone.classList.add('clone');
     // Change id of clone and any child nodes that have ids so no duplicate ids
-    clone.id = 'clone-' + card.id;
+    // There won't be an id for a dummy card
+    if (clone.id) {
+        clone.id = 'clone-' + card.id;
+    }
+
     clone.querySelector('.card-back').innerText = 'clone';
     // Card starts face-up by default; flip over to start face-down
     clone.style.transform = `rotateY(180deg)`;
@@ -327,7 +344,7 @@ function animateDraw() {
         clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
         
         // Add flip to be face-up for self
-        if (currentPlayer === 'self') {
+        if (currentPlayer === username) {
             clone.style.transform += `rotateY(180deg)`;
         }
     })
@@ -574,16 +591,27 @@ function updateThirtyOne(response) {
                 break;
 
             case 'draw':
-                // TODO
                 // Player drawing must be current player
+                if (playerOrder[i] !== currentPlayer) {
+                    console.log('Non-current player attempting to draw; canceling draw.');
+                    break;
+                }
                 // Ensure current player has 4 cards
+                if (response.hand_sizes[i] !== 4) {
+                    console.log('Drawing player does not have 4 cards; canceling draw.');
+                    break;
+                }
+
+                // Either find card to add or pass empty string to symbolize unknown placeholder card
+                let cardToAdd = '';
 
                 // If self is current player, new card should be at the end of the hand array
-                    // Add new card to hand (face-up)
+                if (playerOrder[i] === username) {
+                    cardToAdd = response.hand[response.hand.length - 1]
+                }
 
-                // If other is current player, new card is placeholder
-                    // Add placeholder to hand (face-down)
-                animateDraw();
+                animateDraw(cardToAdd);
+                
                 break;
                 
             case 'discard':
@@ -593,6 +621,12 @@ function updateThirtyOne(response) {
             case 'pickup':
                 // TODO
                 animatePickup();
+                break;
+
+            case 'end':
+                // TODO
+                // This would not originate as a request from the client like the other actions
+                // Would have to calculate - (by comparing progress before and after receiving update?)
                 break;
                 
             // No action; no animation will happen.
@@ -608,6 +642,7 @@ function updateThirtyOne(response) {
     // Unpack general state
     inProgress = response.in_progress;
     // Must put current player update here since turn may increment on server side
+    // Potentially animate changing current player
     currentPlayer = response.current_player;
 
     // Fill log

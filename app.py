@@ -729,7 +729,7 @@ def on_move(data):
         # Will need to test if setting action here is sufficient 
             # If accepted it must be broadcast and not only sent 
             # to the user who requested the action
-        response["action"] = data["action"]
+        response["action"] = data.get("action", "")
 
         # Return response using update_board event
         fio.emit("update_board", response, to=recipient_sid, room=data["room"])
