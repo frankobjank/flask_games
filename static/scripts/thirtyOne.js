@@ -250,35 +250,32 @@ function populateHandStatic(playerName, hand, hand_score, mode) {
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
-function animateDeal() {
-    
-}
-
 // Animation of deck to player 
     // If self, use card object && end face-up
     // If other, use placeholder && end face-down
-function animateDraw(cardStr) {
-    // use currentPlayer for player
-    // Get card by looking at last card in server hand
-    // If card not known, card is empty string and placeholder will be used
+function animateDraw(cardStr, player) {
     
-    // Known card for self player
-    if (cardStr.length > 0) {
-        const card = createCardObject(cardStr);
+    let card;
+    let cardContainer;
 
+    // Unknown card for non-self player
+    if (cardStr === 'placeholder') {
+        card = createPlaceholderCard('unknown');
+        
+        // Create dummy card container
+        cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container dummy-container';
+    }
+
+    // Known card for self player
+    else {
+        card = createCardObject(cardStr);
+    
         // Create new card container
-        const cardContainer = document.createElement('div');
+        cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
         // Card.id = 'card-AS'
         cardContainer.id = card.id + '-container'
-    }
-    // Unknown card for non-self player
-    else {
-        const card = createPlaceholderCard('unknown');
-        
-        // Create dummy card container
-        const cardContainer = document.createElement('div');
-        cardContainer.className = 'card-container dummy-container';
     }
     
     // Add card to card container
@@ -288,13 +285,13 @@ function animateDraw(cardStr) {
     card.style.visibility = 'hidden';
     
     // Add card container to hand container of current player
-    document.querySelector('#' + currentPlayer + '-hand-container').appendChild(cardContainer);
+    document.querySelector('#' + player + '-hand-container').appendChild(cardContainer);
 
     // Add handler as click listener event
     card.addEventListener('click', handHandler);
 
     // If non-self player, make sure card is face down by keeping card in original face-down orientation
-    if (currentPlayer !== 'username') {
+    if (player !== 'username') {
         card.style.transform += `rotateY(0deg)`;
     }
     
@@ -344,7 +341,7 @@ function animateDraw(cardStr) {
         clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
         
         // Add flip to be face-up for self
-        if (currentPlayer === username) {
+        if (player === username) {
             clone.style.transform += `rotateY(180deg)`;
         }
     })
@@ -442,6 +439,119 @@ function animateToDiscard(cardStr) {
     }, ANIMATION_DURATION * 1000);
 }
 
+function animatePickup(cardStr, player) {
+    console.log(`animate pickup called; card = ${cardStr}`);
+    
+    // Create card object and card container
+    let pickupCard;
+    let cardContainer;
+
+    // Unknown card for non-self player
+    if (cardStr === 'placeholder') {
+        pickupCard = createPlaceholderCard('unknown');
+        // Set rotate to ensure card is face-down
+        pickupCard.style.transform = `rotateY(0deg)`;
+        
+        // Create dummy card container
+        cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container dummy-container';
+    }
+
+    // Known card for self player
+    else {
+        pickupCard = createCardObject(cardStr);
+        
+        // Set rotate to ensure card is face-up
+        pickupCard.style.transform = `rotateY(180deg)`;
+    
+        // Create new card container
+        cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container';
+        // Card.id = 'card-AS'
+        cardContainer.id = card.id + '-container'
+    }
+    
+    // Start hidden and become visible at end of animation
+    pickupCard.style.visibility = 'hidden';
+
+    // Add handler for card in hand
+    pickupCard.addEventListener('click', handHandler);
+
+    // Add card to card container
+    cardContainer.appendChild(pickupCard);
+
+    // Add card container to hand container
+    document.querySelector('#' + player + '-hand-container').appendChild(cardContainer);
+
+    // Get animation start and end points by comparing discard and new card container
+
+    // Card will start at discard and move to hand
+    // Starting position
+    const discardRect = document.querySelector('.discard-card').getBoundingClientRect();
+    const cardRect = pickupCard.getBoundingClientRect()
+
+    // Calc movement distances - compare left and top
+    let deltaX = discardRect.left - cardRect.left
+    let deltaY = cardRect.top - discardRect.top
+
+    // Create a clone to animate
+    // this prevents having to actually move the original card
+    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
+    const clone = pickupCard.cloneNode(true);
+    clone.classList.add('clone');
+    // Change id of clone and any child nodes that have ids so no duplicate ids
+    if (pickupCard.id) {
+        clone.id = 'clone-' + pickupCard.id;
+    }
+    clone.querySelector('.card-back').innerText = 'clone';
+    // clone.style.transform = `rotateY(180deg)`;
+    // Card starts face-up by default; flip over to start face-down
+    
+    // Start face-up
+    clone.style.transform = `rotateY(0deg)`;
+    // Flip deltaX because - not sure why this is needed, I guess because rotate 180 was reversed
+    deltaX = -deltaX
+
+    clone.style.visibility = 'visible';
+    
+    // Add clone to DOM
+    document.body.appendChild(clone);
+    
+    // Start clone at deck location
+    clone.style.left = `${discardRect.left}px`;
+    clone.style.top = `${discardRect.top}px`;
+    clone.style.width = `${discardRect.width}px`;
+    clone.style.height = `${discardRect.height}px`;
+    clone.style.position = 'fixed';
+    
+    // Use '+=' to not overwrite existing transform properties
+    clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
+    
+    // Built-in function for animating
+    requestAnimationFrame(() => {
+        clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
+        // Card starts face-down by default; flip over to start face-up
+        
+        // Add flip to be face-up for self
+        if (player === username) {
+            clone.style.transform += `rotateY(0deg)`;
+        }
+        else {
+            clone.style.transform += `rotateY(180deg)`;
+        }
+    })
+
+    // Waits until after animation (number of setTimeout must match number in transform)
+    setTimeout(() => {
+        // Reveal real card
+        pickupCard.style.visibility = 'visible';
+
+        // Remove clone card
+        clone.remove();
+
+    // Multiply duration by 1000 for s -> ms conversion
+    }, ANIMATION_DURATION * 1000);
+}
 
 function updateCardsNoAnimation(playerName, response) {
     // Create front-facing hand for self, clickable
@@ -480,7 +590,7 @@ function updateCardsNoAnimation(playerName, response) {
     // Update discard 
     
     // If no discard card, put in placeholder
-    if (!response.discard) {
+    if ((!response.discard) || (response.discard.length === 0)) {
         // Replace existing discard with new one
         document.querySelector('#discard-container').replaceChildren(createPlaceholderCard('discard'))
     }
@@ -517,9 +627,9 @@ var handHandler = function handOnClick(event) {
         return;
     }
     
-    // card == `this` - send rank and suit to server
-    socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': `${this.dataset.rank}${this.dataset.suit}`});
+    // card === `this` - send rank and suit to server
     console.log(`Requesting discard ${this.dataset.rank}${this.dataset.suit}`);
+    socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'card': `${this.dataset.rank}${this.dataset.suit}`});
 }
 
 // Set pickup action for discard card
@@ -586,8 +696,19 @@ function updateThirtyOne(response) {
         // Animate deal if action === 'start' (combination of `draw` animations)
         switch (response.action) {
             case 'start':
-                // TODO
-                animateDeal(playerOrder[i]);
+                // Keep drawing until hand reaches hand size
+                for (let cardIndex = 0; cardIndex < response.hand_sizes[i]; cardIndex++) {
+                    
+                    // Either find card to add or remain as placeholder for unknown card
+                    let cardToAdd = 'placeholder';
+
+                    // If self is current player, new card should be at the end of the hand array
+                    if (playerOrder[i] === username) {
+                        cardToAdd = response.hand[cardIndex];
+                    }
+
+                    animateDraw(cardToAdd, playerOrder[i]);
+                }
                 break;
 
             case 'draw':
@@ -602,16 +723,15 @@ function updateThirtyOne(response) {
                     break;
                 }
 
-                // Either find card to add or pass empty string to symbolize unknown placeholder card
-                let cardToAdd = '';
+                // Either find card to add or remain as placeholder for unknown card
+                let cardToAdd = 'placeholder';
 
                 // If self is current player, new card should be at the end of the hand array
                 if (playerOrder[i] === username) {
-                    cardToAdd = response.hand[response.hand.length - 1]
+                    cardToAdd = response.hand[response.hand.length - 1];
                 }
 
-                animateDraw(cardToAdd);
-                
+                animateDraw(cardToAdd, currentPlayer);
                 break;
                 
             case 'discard':
@@ -619,14 +739,35 @@ function updateThirtyOne(response) {
                 break;
                 
             case 'pickup':
-                // TODO
-                animatePickup();
+                
+                // Copied validations from case 'draw'
+                // Player drawing must be current player
+                if (playerOrder[i] !== currentPlayer) {
+                    console.log('Non-current player attempting to pickup; canceling pickup.');
+                    break;
+                }
+                // Ensure current player has 4 cards
+                if (response.hand_sizes[i] !== 4) {
+                    console.log('Pickup player does not have 4 cards; canceling pickup.');
+                    break;
+                }
+
+                // Either find card to add or remain as placeholder for unknown card
+                let pickupCard = 'placeholder';
+
+                // If self is current player, new card should be at the end of the hand array
+                if (playerOrder[i] === username) {
+                    pickupCard = response.hand[response.hand.length - 1];
+                }
+
+                animatePickup(pickupCard, currentPlayer);
                 break;
 
             case 'end':
-                // TODO
+                // TODO - flip cards
                 // This would not originate as a request from the client like the other actions
                 // Would have to calculate - (by comparing progress before and after receiving update?)
+                
                 break;
                 
             // No action; no animation will happen.
