@@ -14,8 +14,6 @@ from helpers import *
 import thirty_one_game
 # import cribbage
 
-# link to access app for debug http://127.0.0.1:5000
-
 ##### TODO #####
 # Having temporary usernames persist outside of game room will cause issues with duplicate usernames. 
 # Should make usernames link on re-joining a room, but NOT re-joining lobby
