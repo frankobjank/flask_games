@@ -689,7 +689,7 @@ function updateThirtyOne(response) {
     playerOrder = response.player_order;
 
     // Iterate through player order to update all players' hands
-    for (let i = 0; i < playerOrder; i++) {
+    for (let i = 0; i < playerOrder.length; i++) {
         console.log(`Updating cards for ${playerOrder[i]}`);
         console.log(`Action = ${response.action}`);
         // Start - empty client hand, deal the required cards

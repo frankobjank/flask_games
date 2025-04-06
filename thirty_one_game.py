@@ -16,6 +16,7 @@ class Player:
         self.hand = []
         self.lives = 3  # debug = score starts at 1  # Score starts at 3
         self.log = []  # Individual logs per player
+        self.action_log = []  # list of dicts
 
     
     def __repr__(self) -> str:
@@ -46,6 +47,8 @@ class State:
         # Gameplay
         self.mode = "start"
         self.in_progress = False
+        # Should track this under player object just as other log is tracked
+        self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
 
         # Rounds
         self.round_num = 0
@@ -56,12 +59,14 @@ class State:
         self.knocked = ""  # player name
         self.blitzed_players = []  # player names; technically possible for more than 1 blitz
         self.discard = []
-        self.free_ride_alts = ["getting a free ride", "on the bike", "on the dole", "riding the bus", "barely hanging on", "having a tummy ache", "having a long day"]
+        self.free_ride_alts = ["getting a free ride", "on the bike", "barely hanging on", "having a tummy ache", "having a long day"]
         
 
     def hand_to_discard(self, card_to_discard: Card) -> None:
         """Find selected card in hand and move from hand to discard."""
 
+        # Created a function for this because it happens both during discard phase and after blitz
+        
         # Find in card in hand by comparing suit and rank
         for card in self.players[self.current_player].hand:
             if card.suit == card_to_discard.suit and card.rank == card_to_discard.rank:
@@ -71,6 +76,9 @@ class State:
         
         # Add to discard
         self.discard.append(card_to_discard)
+
+        # Add discard to action log 
+        self.action_log.append({"action": "discard", "player": self.current_player, "card": card_to_discard})
 
         # 'debug' log the actual card discarded; don't send to players
         print(f"{self.current_player} discarded: {card_to_discard}")
@@ -221,6 +229,9 @@ class State:
                 if self.calc_hand_score(p_object) == 31:
                     self.blitzed_players.append(p_name)
 
+        # Add deal to action log
+        self.action_log.append({"action": "deal", "player": "all", "card": ""})
+
         # Set a discard card; reset knocked
         self.discard = [draw_card(self.shuffled_cards)]
         self.knocked = ""
@@ -238,6 +249,8 @@ class State:
             # 1 loser AND loser knocked - loser loses 2 points
 
         # Use player_order for all calculations here (since it only includes players who are NOT knocked out)
+
+        # TODO add action logs for: round end, blitz, player KO, game end
 
         # Mode = end round; requires input from user to start next round
         self.mode = "end_round"
@@ -328,9 +341,9 @@ class State:
 
         if players_remaining == 1:
             print_and_log(f"\n{players_remaining[0]} wins!", self.players)
+            # mode `end_game` gives clients time to view the scores, leave/join rooms
             self.mode = "end_game"
             self.in_progress = False
-            # mode `end_game` gives clients time to view the scores, leave/join rooms
 
         else:
             # More than 1 player remaining; continuing game
@@ -403,6 +416,8 @@ class State:
             if packet["action"] == "knock":
                 if len(self.knocked) > 0:
                     print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", self.players, player=self.current_player)
+                    # returns "accept" here only so that the log message gets returned to client.
+                    # Could separate these mechanisms a little since the move is actually rejected.
                     return "accept"
                 self.knocked = self.current_player
                 print_and_log(f"{self.current_player} knocked.", self.players)
@@ -410,13 +425,15 @@ class State:
                 return "accept"
 
             elif packet["action"] == "pickup":
-                # Convert to str here for type consistency
+
                 taken_card = self.discard.pop()
 
             elif packet["action"] == "draw":
                 taken_card = draw_card(self.shuffled_cards)
             
+            # Reject discard here because it is `main` phase and not `discard` phase
             elif packet["action"] == "discard":
+                # This will not actually reach players because "reject" is returned
                 print_and_log("Must have 4 cards to discard.", self.players, player=self.current_player)
                 return "reject"
             
@@ -432,6 +449,9 @@ class State:
             
             # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
+            
+            # Taken card has been chosen; add to action log
+            self.action_log.append({"action": packet["action"], "player": self.current_player, "card": taken_card})
             
             # Check for blitz; can skip discard phase if blitz
             if self.calc_hand_score(self.players[self.current_player]) == 31:
@@ -483,13 +503,24 @@ class State:
                 final_hands.append(zip_hand(self.players[p_name].hand))
                 final_scores.append(self.calc_hand_score(self.players[p_name]))
 
+        # Rebuild action log so it can be customized for each player
+        custom_action_log = []
+
+        # Hide card (set to "unknown") in action log if player should not see them
+        for action_dict in self.action_log:
+            new_dict = {"player": action_dict["player"], "action": action_dict["action"]}
+            # Check card exists and is not all, and action is pickup, draw, or discard
+            if action_dict["card"] != "all" or len(action_dict["card"]) > 0 and action_dict["action"] in ["pickup", "draw", "discard"]:
+                new_dict["card"] = "unknown"
+            
+            custom_action_log.append(new_dict)
+
         # All data the client needs from server
         return {
             # Generic data
             "game": "thirty_one",  # specifies game
             "room": self.room_name,  # name of room
             "mode": self.mode,  # current game mode - might help restrict inputs on client side
-            "action": "",  # default action to empty string - will set in app.py if needed
             "in_progress": self.in_progress,  # whether game is in progress
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name
@@ -506,5 +537,7 @@ class State:
             "hand": zip_hand(self.players[player_name].hand),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
+            "action_log": custom_action_log,  # list of dicts for client animation - keys: ["action", "player", "card"]
+                                              # will reset self.action_log in app.py after all players updated
         }
     

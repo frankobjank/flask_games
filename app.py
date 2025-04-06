@@ -739,6 +739,10 @@ def on_move(data):
         # Empty log for player after update is sent
         game.players[username].log = []
 
+    # Reset action dict after all players updated 
+    game.action_log = []
+
+
     # If in_progress var has changed (game starts or ends), send update to lobby. 
     if in_progress_before_update != game.in_progress:
         fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], 
