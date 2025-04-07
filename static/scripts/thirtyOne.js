@@ -259,7 +259,7 @@ function animateDraw(cardStr, player) {
     let cardContainer;
 
     // Unknown card for non-self player
-    if (cardStr === 'placeholder') {
+    if (cardStr === 'unknown') {
         card = createPlaceholderCard('unknown');
         
         // Create dummy card container
@@ -359,7 +359,7 @@ function animateDraw(cardStr, player) {
 }
 
 // Animating card from hand to discard
-function animateToDiscard(cardStr) {
+function animateToDiscard(cardStr, player) {
     
     const discard = document.querySelector('.discard-button');
     const card = document.querySelector(`#card-${cardStr}`);
@@ -386,7 +386,7 @@ function animateToDiscard(cardStr) {
     
     // Card starts face-up by default; flip over to start face-down
     // Start face-up for self players
-    if (currentPlayer === username) {
+    if (player === username) {
         clone.style.transform = `rotateY(0deg)`;
     }
     // Start face-down for non-self players
@@ -447,7 +447,7 @@ function animatePickup(cardStr, player) {
     let cardContainer;
 
     // Unknown card for non-self player
-    if (cardStr === 'placeholder') {
+    if (cardStr === 'unknown') {
         pickupCard = createPlaceholderCard('unknown');
         // Set rotate to ensure card is face-down
         pickupCard.style.transform = `rotateY(0deg)`;
@@ -553,7 +553,7 @@ function animatePickup(cardStr, player) {
     }, ANIMATION_DURATION * 1000);
 }
 
-function updateCardsNoAnimation(playerName, response) {
+function updateHandNoAnimation(playerName, response) {
     // Create front-facing hand for self, clickable
     if (username === playerName) {
         populateHandStatic(playerName, response.hand, response.hand_score, response.mode);
@@ -587,16 +587,20 @@ function updateCardsNoAnimation(playerName, response) {
         document.querySelector('#' + playerName + '-hand-score').innerText = '';
     }
 
-    // Update discard 
+}
+
+function updateDiscardNoAnimation(discardCard) {
+    // Update discard - no animation
     
     // If no discard card, put in placeholder
-    if ((!response.discard) || (response.discard.length === 0)) {
+    if ((!discardCard) || (discardCard.length === 0)) {
         // Replace existing discard with new one
         document.querySelector('#discard-container').replaceChildren(createPlaceholderCard('discard'))
     }
+
     else {
         // If discard exists, create new card object
-        const discard = createCardObject(response.discard);
+        const discard = createCardObject(discardCard);
         
         // Set id to discard button
         discard.id = 'discard-button';
@@ -669,7 +673,9 @@ function updateThirtyOne(response) {
     // "hand": self.players[player_name].zip_hand(),  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
-    // "action": action  # For animation - lets client know the move made (discard, draw, etc.)
+    // "action_log": list of action log dicts for animation - 
+        // lets client know the move made (discard, draw, etc.)
+        // keys: ["action", "player", "card"]
     
     // Removing this from blocking updates since game needs to update to end state on game end
     if (!inProgress) {
@@ -688,99 +694,69 @@ function updateThirtyOne(response) {
     // Unpack for players still in the game 
     playerOrder = response.player_order;
 
-    // Iterate through player order to update all players' hands
-    for (let i = 0; i < playerOrder.length; i++) {
-        console.log(`Updating cards for ${playerOrder[i]}`);
-        console.log(`Action = ${response.action}`);
-        // Start - empty client hand, deal the required cards
-        // No action
-        // client hand has cards from previous round,
-        // Animate deal if action === 'start' (combination of `draw` animations)
-        switch (response.action) {
-            case 'start':
+    for (actionObject of response.action_log) {
+
+        // May need to make multiple actions async so they don't happen simultaneously
+        console.log(`Action = ${actionObject}`);
+
+        // Iterate through player order to update all players' hands
+        for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
+            
+            console.log(`Updating cards for ${playerOrder[playerIndex]}`);
+            
+            // Start - empty client hand, deal the required cards
+            // No action
+            // client hand has cards from previous round,
+            // Animate deal if action === 'start' (combination of `draw` animations)
+            if (actionObject.action === 'start') {
                 // Keep drawing until hand reaches hand size
-                for (let cardIndex = 0; cardIndex < response.hand_sizes[i]; cardIndex++) {
+                for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
                     
                     // Either find card to add or remain as placeholder for unknown card
-                    let cardToAdd = 'placeholder';
+                    let cardToAdd = 'unknown';
 
-                    // If self is current player, new card should be at the end of the hand array
-                    if (playerOrder[i] === username) {
+                    // If self is current player, iterate through response.hand
+                    if (playerOrder[playerIndex] === username) {
                         cardToAdd = response.hand[cardIndex];
                     }
 
-                    animateDraw(cardToAdd, playerOrder[i]);
+                    animateDraw(cardToAdd, playerOrder[playerIndex]);
                 }
-                break;
+            }
 
-            case 'draw':
-                // Player drawing must be current player
-                if (playerOrder[i] !== currentPlayer) {
-                    console.log('Non-current player attempting to draw; canceling draw.');
-                    break;
-                }
-                // Ensure current player has 4 cards
-                if (response.hand_sizes[i] !== 4) {
-                    console.log('Drawing player does not have 4 cards; canceling draw.');
-                    break;
-                }
+            else if (actionObject.action === 'draw') {
+                animateDraw(actionObject.card, actionObject.player);
+            }
 
-                // Either find card to add or remain as placeholder for unknown card
-                let cardToAdd = 'placeholder';
+            else if (actionObject.action === 'discard') {
+                animateToDiscard(response.discard, actionObject.player);
+            }
 
-                // If self is current player, new card should be at the end of the hand array
-                if (playerOrder[i] === username) {
-                    cardToAdd = response.hand[response.hand.length - 1];
-                }
+            else if (actionObject.action === 'pickup') {
+                animatePickup(actionObject.card, actionObject.player);
+            }
 
-                animateDraw(cardToAdd, currentPlayer);
-                break;
-                
-            case 'discard':
-                animateToDiscard(response.discard);
-                break;
-                
-            case 'pickup':
-                
-                // Copied validations from case 'draw'
-                // Player drawing must be current player
-                if (playerOrder[i] !== currentPlayer) {
-                    console.log('Non-current player attempting to pickup; canceling pickup.');
-                    break;
-                }
-                // Ensure current player has 4 cards
-                if (response.hand_sizes[i] !== 4) {
-                    console.log('Pickup player does not have 4 cards; canceling pickup.');
-                    break;
-                }
-
-                // Either find card to add or remain as placeholder for unknown card
-                let pickupCard = 'placeholder';
-
-                // If self is current player, new card should be at the end of the hand array
-                if (playerOrder[i] === username) {
-                    pickupCard = response.hand[response.hand.length - 1];
-                }
-
-                animatePickup(pickupCard, currentPlayer);
-                break;
-
-            case 'end':
+            // Many options for animating end including blitz, winner, KO
+            else if (actionObject.action === 'end') {
                 // TODO - flip cards
                 // This would not originate as a request from the client like the other actions
                 // Would have to calculate - (by comparing progress before and after receiving update?)
-                
-                break;
-                
-            // No action; no animation will happen.
-                // Ex: Reloading page in middle of game
-            default:
-                // Add cards to hands; update discard
-                updateCardsNoAnimation(playerOrder[i], response);
+            }
         }
     }
         
+    // No action; cards will be updated but no animation will happen
+        // Ex: Reloading page in middle of game
+    if (response.action_log.length === 0) {
+        // Add cards to hands
+        for (player of playerOrder) {
+            updateHandNoAnimation(player, response);
+        }
+        // update discard outside of player loop
+        updateDiscardNoAnimation(response.discard);
+    }
     
+
     
     // Unpack general state
     inProgress = response.in_progress;

@@ -537,7 +537,8 @@ class State:
             "hand": zip_hand(self.players[player_name].hand),  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
-            "action_log": custom_action_log,  # list of dicts for client animation - keys: ["action", "player", "card"]
+            "action_log": custom_action_log,  # list of dicts for client animation
+                                              # keys: ["action", "player", "card"]
                                               # will reset self.action_log in app.py after all players updated
         }
     
