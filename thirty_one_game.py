@@ -509,9 +509,17 @@ class State:
         # Hide card (set to "unknown") in action log if player should not see them
         for action_dict in self.action_log:
             new_dict = {"player": action_dict["player"], "action": action_dict["action"]}
-            # Check card exists and is not all, and action is pickup, draw, or discard
-            if action_dict["card"] != "all" or len(action_dict["card"]) > 0 and action_dict["action"] in ["pickup", "draw", "discard"]:
-                new_dict["card"] = "unknown"
+            
+            # If recipient is not the action target, hide card
+            if player_name != action_dict["player"]:
+                # Check card exists and action is pickup, draw, or discard
+                if (action_dict["action"] == "pickup" or action_dict["action"] == "draw" or action_dict["action"] == "discard") and (action_dict.get("card")):
+                    new_dict["card"] = "unknown"
+            
+            # If recipient is action target, pass real card value
+            else:
+                # Convert card to str with zip_card
+                new_dict["card"] = action_dict["card"].zip_card()
             
             custom_action_log.append(new_dict)
 

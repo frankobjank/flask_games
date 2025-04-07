@@ -261,6 +261,8 @@ function animateDraw(cardStr, player) {
     // Unknown card for non-self player
     if (cardStr === 'unknown') {
         card = createPlaceholderCard('unknown');
+        // Keep card in original face-down orientation
+        card.style.transform += `rotateY(0deg)`;
         
         // Create dummy card container
         cardContainer = document.createElement('div');
@@ -270,7 +272,9 @@ function animateDraw(cardStr, player) {
     // Known card for self player
     else {
         card = createCardObject(cardStr);
-    
+        // Set card to face-up orientation
+        card.style.transform += `rotateY(180deg)`
+
         // Create new card container
         cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
@@ -290,11 +294,6 @@ function animateDraw(cardStr, player) {
     // Add handler as click listener event
     card.addEventListener('click', handHandler);
 
-    // If non-self player, make sure card is face down by keeping card in original face-down orientation
-    if (player !== 'username') {
-        card.style.transform += `rotateY(0deg)`;
-    }
-    
     // Get end positions by comparing deck and new card container
 
     // Card will start at deck and move to hand
@@ -553,7 +552,7 @@ function animatePickup(cardStr, player) {
     }, ANIMATION_DURATION * 1000);
 }
 
-function updateHandNoAnimation(playerName, response) {
+function updateHandNoAnimation(playerName, playerIndex, response) {
     // Create front-facing hand for self, clickable
     if (username === playerName) {
         populateHandStatic(playerName, response.hand, response.hand_score, response.mode);
@@ -562,7 +561,7 @@ function updateHandNoAnimation(playerName, response) {
     // Create front-facing hand for others on game end, not clickable
     // Using `else if` here implies playerName is not the self player
     else if (response.mode === 'end_round' || response.mode === 'end_game') {
-        populateHandStatic(playerName, response.final_hands[i], response.final_scores[i], response.mode);
+        populateHandStatic(playerName, response.final_hands[playerIndex], response.final_scores[playerIndex], response.mode);
     }
 
     // Create back-facing hand for others if not end of round / game
@@ -571,7 +570,7 @@ function updateHandNoAnimation(playerName, response) {
         document.querySelector('#' + playerName + '-hand-container').replaceChildren()
 
         // Loop hand size to add placeholders that display backs of cards
-        for (let j = 0; j < response.hand_sizes[i]; j++) {
+        for (let i = 0; i < response.hand_sizes[playerIndex]; i++) {
 
             const dummyCard = createPlaceholderCard('unknown');
             
@@ -586,7 +585,6 @@ function updateHandNoAnimation(playerName, response) {
         // Remove hand score
         document.querySelector('#' + playerName + '-hand-score').innerText = '';
     }
-
 }
 
 function updateDiscardNoAnimation(discardCard) {
@@ -627,7 +625,7 @@ var deckHandler = function deckOnClick(event) {
 var handHandler = function handOnClick(event) {
     
     // Disable input for card if end of round or non-self player
-    if (mode === 'end_round' || mode === 'end_game' || username !== playerName) {
+    if (mode === 'end_round' || mode === 'end_game') { // ||  username !== playerName) {
         return;
     }
     
@@ -697,7 +695,7 @@ function updateThirtyOne(response) {
     for (actionObject of response.action_log) {
 
         // May need to make multiple actions async so they don't happen simultaneously
-        console.log(`Action = ${actionObject}`);
+        console.log(`Action = ${actionObject.action}, ${actionObject.player}, ${actionObject.card}`);
 
         // Iterate through player order to update all players' hands
         for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
@@ -708,7 +706,7 @@ function updateThirtyOne(response) {
             // No action
             // client hand has cards from previous round,
             // Animate deal if action === 'start' (combination of `draw` animations)
-            if (actionObject.action === 'start') {
+            if (actionObject.action === 'deal') {
                 // Keep drawing until hand reaches hand size
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
                     
@@ -749,8 +747,8 @@ function updateThirtyOne(response) {
         // Ex: Reloading page in middle of game
     if (response.action_log.length === 0) {
         // Add cards to hands
-        for (player of playerOrder) {
-            updateHandNoAnimation(player, response);
+        for (let playerIndex = 0; playerIndex < playerOrder; playerIndex++) {
+            updateHandNoAnimation(player, playerIndex, response);
         }
         // update discard outside of player loop
         updateDiscardNoAnimation(response.discard);
