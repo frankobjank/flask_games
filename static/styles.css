@@ -349,6 +349,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     position: absolute;
     height: 100%;
     width: 100%;
+    /* -moz-backface-visibility: hidden; */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
 }
@@ -364,6 +365,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 
 /* Front of card */
 .playing-card.card-front {
+    text-align: center;
     background-color: white;
     /* New */
     box-shadow: -1px -1px 2px 0px #10101075;
@@ -384,7 +386,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 }
 
 /* Start deck card face-down */
-.deck-button {
+#deck-button {
     transform: rotateY(0);
 }
 

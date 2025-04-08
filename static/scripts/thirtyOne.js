@@ -383,6 +383,16 @@ function animateToDiscard(cardStr, player) {
         card = cardContainer.querySelector('.rotate-card-container');
     }
 
+    // Create new card object to put in discard; get attributes from old card
+    const newDiscard = createCardObject(cardStr);
+    newDiscard.id = 'discard-button';
+    
+    // Make sure card is face up
+    newDiscard.style.transform = 'rotateY(180deg)';
+    
+    // Add onclick to request pickup from server
+    newDiscard.addEventListener('click', discardHandler);
+
     // Get starting position of card
     const cardRect = card.getBoundingClientRect();
 
@@ -397,7 +407,8 @@ function animateToDiscard(cardStr, player) {
     // this prevents having to actually move the original card
     // function `cloneNode()` creates a copy of an object.
     // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
-    const clone = card.cloneNode(true);
+    // Clone should be of newDiscard so it has display of known card
+    const clone = newDiscard.cloneNode(true);
     clone.classList.add('clone');
     // change id of clone so no duplicate ids
     clone.id = 'clone-' + clone.id;
@@ -430,16 +441,6 @@ function animateToDiscard(cardStr, player) {
     requestAnimationFrame(() => {
         clone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
     })
-
-    // Create new card object to put in discard; get attributes from old card
-    const newDiscard = createCardObject(cardStr);
-    newDiscard.id = 'discard-button';
-    
-    // Make sure card is face up
-    newDiscard.style.transform = 'rotateY(180deg)';
-    
-    // Add onclick to request pickup from server
-    newDiscard.addEventListener('click', discardHandler)
     
     // Waits until after animation (number of setTimeout must match number in transform)
     setTimeout(() => {
@@ -457,7 +458,7 @@ function animateToDiscard(cardStr, player) {
     }, ANIMATION_DURATION * 1000);
 }
 
-function animatePickup(cardStr, player) {
+function animatePickup(cardStr, replaceDiscard, player) {
     console.log(`animate pickup called; card = ${cardStr}`);
     
     // Create card object and card container
@@ -485,8 +486,8 @@ function animatePickup(cardStr, player) {
         // Create new card container
         cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
-        // Card.id = 'card-AS'
-        cardContainer.id = card.id + '-container'
+        // pickupCard.id === 'card-AS'
+        cardContainer.id = pickupCard.id + '-container'
     }
     
     // Start hidden and become visible at end of animation
@@ -505,7 +506,7 @@ function animatePickup(cardStr, player) {
 
     // Card will start at discard and move to hand
     // Starting position
-    const discardRect = document.querySelector('.discard-card').getBoundingClientRect();
+    const discardRect = document.querySelector('#discard-button').getBoundingClientRect();
     const cardRect = pickupCard.getBoundingClientRect()
 
     // Calc movement distances - compare left and top
@@ -544,7 +545,20 @@ function animatePickup(cardStr, player) {
     
     // Use '+=' to not overwrite existing transform properties
     clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
+
+    // Change discard button to new discard
+    // Create new card object to put in discard; get attributes from old card
+    const newDiscard = createCardObject(replaceDiscard);
+    newDiscard.id = 'discard-button';
     
+    // Make sure card is face up
+    newDiscard.style.transform = 'rotateY(180deg)';
+    
+    // Add onclick to request pickup from server
+    newDiscard.addEventListener('click', discardHandler);
+
+    document.querySelector('#discard-container').replaceChildren(newDiscard);
+
     // Built-in function for animating
     requestAnimationFrame(() => {
         clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
@@ -755,7 +769,7 @@ function updateThirtyOne(response) {
         }
 
         else if (actionObject.action === 'pickup') {
-            animatePickup(actionObject.card, actionObject.player);
+            animatePickup(actionObject.card, response.discard, actionObject.player);
         }
 
         // TODO - Many options for animating end
