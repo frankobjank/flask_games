@@ -69,6 +69,10 @@ function createPlaceholderCard(kind) {
     else if (kind === 'deck') {
         rotateContainer.id = 'deck-button';
     }
+    else if (kind === 'unknown') {
+        // Set card to be face-down
+        rotateContainer.style.transform += `rotateY(0deg)`;
+    }
 
     const cardFront = document.createElement('div');
     cardFront.className = 'playing-card card-front';

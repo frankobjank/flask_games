@@ -243,4 +243,3 @@ function updateGameRoom(response) {
         }
     }
 }
-

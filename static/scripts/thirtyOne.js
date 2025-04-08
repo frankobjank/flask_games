@@ -4,6 +4,10 @@
 const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
 const ANIMATION_DURATION = 2;
 
+// Get a random integer - used for discarding from non-self players
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
 
 function createBoard() {
 
@@ -218,6 +222,7 @@ function createPlayerContainer(name) {
 
 // Populating hand with no animation
 function populateHandStatic(playerName, hand, hand_score, mode) {
+    // not sure why mode is no longer used
     
     const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
     
@@ -261,8 +266,6 @@ function animateDraw(cardStr, player) {
     // Unknown card for non-self player
     if (cardStr === 'unknown') {
         card = createPlaceholderCard('unknown');
-        // Keep card in original face-down orientation
-        card.style.transform += `rotateY(0deg)`;
         
         // Create dummy card container
         cardContainer = document.createElement('div');
@@ -317,7 +320,6 @@ function animateDraw(cardStr, player) {
         clone.id = 'clone-' + card.id;
     }
 
-    clone.querySelector('.card-back').innerText = 'clone';
     // Card starts face-up by default; flip over to start face-down
     clone.style.transform = `rotateY(180deg)`;
     clone.style.visibility = 'visible';
@@ -360,8 +362,26 @@ function animateDraw(cardStr, player) {
 // Animating card from hand to discard
 function animateToDiscard(cardStr, player) {
     
-    const discard = document.querySelector('.discard-button');
-    const card = document.querySelector(`#card-${cardStr}`);
+    const discard = document.querySelector('#discard-button');
+
+    // Define card depending on self / non-self player
+    let card;
+    let cardContainer;
+
+    // If player is self, card is known
+    if (player === username) {
+        card = document.querySelector(`#card-${cardStr}`);
+        cardContainer = card.parentElement;
+    }
+    // If player is not self, pop random card from `player`'s hand
+    else {
+        // Out of hand container, get random card container
+        const handContainer = document.querySelector('#' + player + '-hand-container');
+        let allCardContainers = handContainer.querySelectorAll('.card-container');
+        cardContainer = allCardContainers[getRandomInt(allCardContainers.length)];
+        // Once random card container is chosen, there is only one card that can be selected
+        card = cardContainer.querySelector('.rotate-card-container');
+    }
 
     // Get starting position of card
     const cardRect = card.getBoundingClientRect();
@@ -381,7 +401,6 @@ function animateToDiscard(cardStr, player) {
     clone.classList.add('clone');
     // change id of clone so no duplicate ids
     clone.id = 'clone-' + clone.id;
-    clone.querySelector('.card-back').innerText = 'clone';
     
     // Card starts face-up by default; flip over to start face-down
     // Start face-up for self players
@@ -431,8 +450,8 @@ function animateToDiscard(cardStr, player) {
         // Remove clone card
         clone.remove();
         
-        // Remove original card from hand
-        card.remove()
+        // Remove original card container (and card) from hand
+        cardContainer.remove()
 
     // Multiply duration by 1000 for s -> ms conversion
     }, ANIMATION_DURATION * 1000);
@@ -502,7 +521,7 @@ function animatePickup(cardStr, player) {
     if (pickupCard.id) {
         clone.id = 'clone-' + pickupCard.id;
     }
-    clone.querySelector('.card-back').innerText = 'clone';
+
     // clone.style.transform = `rotateY(180deg)`;
     // Card starts face-up by default; flip over to start face-down
     
@@ -577,6 +596,7 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
             // Add dummy card to container
             const dummyContainer = document.createElement('div');
             dummyContainer.className = 'card-container dummy-container';
+            dummyCard
 
             dummyContainer.appendChild(dummyCard);
 
@@ -696,60 +716,64 @@ function updateThirtyOne(response) {
 
         // May need to make multiple actions async so they don't happen simultaneously
         console.log(`Action = ${actionObject.action}, ${actionObject.player}, ${actionObject.card}`);
-
-        // Iterate through player order to update all players' hands
-        for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
+        
+        
+        // Start - empty client hand, deal the required cards
+        // No action
+        // client hand has cards from previous round,
+        // Animate deal if action === 'start' (combination of `draw` animations)
+        if (actionObject.action === 'deal') {
             
-            console.log(`Updating cards for ${playerOrder[playerIndex]}`);
+            // Iterate through player order to update all players' hands
+            for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
+                console.log(`Dealing for: ${playerOrder[playerIndex]}`);
+                
+                // Empty old hand to get ready for new hand - replaceChildren with no args
+                document.querySelector('#' + playerOrder[playerIndex] + '-hand-container').replaceChildren();
             
-            // Start - empty client hand, deal the required cards
-            // No action
-            // client hand has cards from previous round,
-            // Animate deal if action === 'start' (combination of `draw` animations)
-            if (actionObject.action === 'deal') {
                 // Keep drawing until hand reaches hand size
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
                     
-                    // Either find card to add or remain as placeholder for unknown card
-                    let cardToAdd = 'unknown';
-
-                    // If self is current player, iterate through response.hand
+                    // For self player, use response.hand
                     if (playerOrder[playerIndex] === username) {
-                        cardToAdd = response.hand[cardIndex];
+                        animateDraw(response.hand[cardIndex], playerOrder[playerIndex]);
                     }
-
-                    animateDraw(cardToAdd, playerOrder[playerIndex]);
+                    // For non-self player, use unknown card
+                    else {
+                        animateDraw('unknown', playerOrder[playerIndex]);
+                    }
                 }
             }
+        }
 
-            else if (actionObject.action === 'draw') {
-                animateDraw(actionObject.card, actionObject.player);
-            }
+        else if (actionObject.action === 'draw') {
+            animateDraw(actionObject.card, actionObject.player);
+        }
 
-            else if (actionObject.action === 'discard') {
-                animateToDiscard(response.discard, actionObject.player);
-            }
+        else if (actionObject.action === 'discard') {
+            animateToDiscard(response.discard, actionObject.player);
+        }
 
-            else if (actionObject.action === 'pickup') {
-                animatePickup(actionObject.card, actionObject.player);
-            }
+        else if (actionObject.action === 'pickup') {
+            animatePickup(actionObject.card, actionObject.player);
+        }
 
-            // Many options for animating end including blitz, winner, KO
-            else if (actionObject.action === 'end') {
-                // TODO - flip cards
-                // This would not originate as a request from the client like the other actions
-                // Would have to calculate - (by comparing progress before and after receiving update?)
-            }
+        // TODO - Many options for animating end
+        else if (actionObject.action === 'end') {
+            // Server to send various actions: flipping cards, blitz, winner, KO
         }
     }
         
     // No action; cards will be updated but no animation will happen
         // Ex: Reloading page in middle of game
     if (response.action_log.length === 0) {
+        console.log('No action specified');
+
         // Add cards to hands
-        for (let playerIndex = 0; playerIndex < playerOrder; playerIndex++) {
-            updateHandNoAnimation(player, playerIndex, response);
+        for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
+            updateHandNoAnimation(playerOrder[playerIndex], playerIndex, response);
         }
+
         // update discard outside of player loop
         updateDiscardNoAnimation(response.discard);
     }
