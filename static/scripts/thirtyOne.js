@@ -255,6 +255,22 @@ function populateHandStatic(playerName, hand, hand_score, mode) {
     document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
 }
 
+function setNewDiscard(cardStr) {
+    // Create new card object
+    const newDiscard = createCardObject(cardStr);
+    
+    // Set id for discard button
+    newDiscard.id = 'discard-button';
+    
+    // Make sure card is face up
+    newDiscard.style.transform = 'rotateY(180deg)';
+    
+    // Add onclick to request pickup from server
+    newDiscard.addEventListener('click', discardHandler);
+
+    return newDiscard;
+}
+
 // Animation of deck to player 
     // If self, use card object && end face-up
     // If other, use placeholder && end face-down
@@ -389,15 +405,8 @@ function animateToDiscard(player, cardStr, handScore) {
     }
 
     // Create new card object to put in discard; get attributes from old card
-    const newDiscard = createCardObject(cardStr);
-    newDiscard.id = 'discard-button';
+    const newDiscard = setNewDiscard(cardStr);
     
-    // Make sure card is face up
-    newDiscard.style.transform = 'rotateY(180deg)';
-    
-    // Add onclick to request pickup from server
-    newDiscard.addEventListener('click', discardHandler);
-
     // Get starting position of card
     const cardRect = card.getBoundingClientRect();
 
@@ -558,15 +567,8 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
 
     // Change discard button to new discard
     // Create new card object to put in discard; get attributes from old card
-    const newDiscard = createCardObject(replaceDiscard);
-    newDiscard.id = 'discard-button';
+    const newDiscard = setNewDiscard(replaceDiscard);
     
-    // Make sure card is face up
-    newDiscard.style.transform = 'rotateY(180deg)';
-    
-    // Add onclick to request pickup from server
-    newDiscard.addEventListener('click', discardHandler);
-
     document.querySelector('#discard-container').replaceChildren(newDiscard);
 
     // Built-in function for animating
@@ -773,6 +775,9 @@ function updateThirtyOne(response) {
                     }
                 }
             }
+            // Need to populate discard - eventually animate this by flipping from deck to discard
+            const newDiscard = setNewDiscard(response.discard);
+            document.querySelector('#discard-container').replaceChildren(newDiscard);
         }
 
         else if (actionObject.action === 'draw') {
