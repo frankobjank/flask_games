@@ -258,7 +258,7 @@ function populateHandStatic(playerName, hand, hand_score, mode) {
 // Animation of deck to player 
     // If self, use card object && end face-up
     // If other, use placeholder && end face-down
-function animateDraw(cardStr, player) {
+function animateDraw(cardStr, player, handScore) {
     
     let card;
     let cardContainer;
@@ -352,6 +352,11 @@ function animateDraw(cardStr, player) {
         // Reveal real card
         card.style.visibility = 'visible';
 
+        // Update hand score if given
+        if (handScore > 0) {
+            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+        }
+
         // Remove clone card
         clone.remove();
 
@@ -360,7 +365,7 @@ function animateDraw(cardStr, player) {
 }
 
 // Animating card from hand to discard
-function animateToDiscard(cardStr, player) {
+function animateToDiscard(player, cardStr, handScore) {
     
     const discard = document.querySelector('#discard-button');
 
@@ -445,6 +450,11 @@ function animateToDiscard(cardStr, player) {
     // Waits until after animation (number of setTimeout must match number in transform)
     setTimeout(() => {
         
+        // Update hand score if given
+        if (player === username) {
+            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+        }
+
         // Replace old discard with new discard
         document.querySelector('#discard-container').replaceChildren(newDiscard);
         
@@ -458,7 +468,7 @@ function animateToDiscard(cardStr, player) {
     }, ANIMATION_DURATION * 1000);
 }
 
-function animatePickup(cardStr, replaceDiscard, player) {
+function animatePickup(cardStr, player, replaceDiscard, handScore) {
     console.log(`animate pickup called; card = ${cardStr}`);
     
     // Create card object and card container
@@ -577,6 +587,11 @@ function animatePickup(cardStr, replaceDiscard, player) {
     setTimeout(() => {
         // Reveal real card
         pickupCard.style.visibility = 'visible';
+
+        // Update hand score if self
+        if (player === username) {
+            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+        }
 
         // Remove clone card
         clone.remove();
@@ -750,26 +765,26 @@ function updateThirtyOne(response) {
                     
                     // For self player, use response.hand
                     if (playerOrder[playerIndex] === username) {
-                        animateDraw(response.hand[cardIndex], playerOrder[playerIndex]);
+                        animateDraw(response.hand[cardIndex], playerOrder[playerIndex], response.hand_score);
                     }
                     // For non-self player, use unknown card
                     else {
-                        animateDraw('unknown', playerOrder[playerIndex]);
+                        animateDraw('unknown', playerOrder[playerIndex], response.hand_score);
                     }
                 }
             }
         }
 
         else if (actionObject.action === 'draw') {
-            animateDraw(actionObject.card, actionObject.player);
+            animateDraw(actionObject.card, actionObject.player, response.hand_score);
         }
 
         else if (actionObject.action === 'discard') {
-            animateToDiscard(response.discard, actionObject.player);
+            animateToDiscard(actionObject.player, response.discard, response.hand_score);
         }
 
         else if (actionObject.action === 'pickup') {
-            animatePickup(actionObject.card, response.discard, actionObject.player);
+            animatePickup(actionObject.card, actionObject.player, response.discard, response.hand_score);
         }
 
         // TODO - Many options for animating end
@@ -868,7 +883,7 @@ function updateThirtyOne(response) {
     // Loop player order to fill containers apart from cards
     for (let i = 0; i < playerOrder.length; i++) {
         
-        // playerOrder[i] is the player name
+        console.log(`filling in player info: ${playerOrder[i]}`)
 
         // Once player array is populated, add to player panel display or dataset
         const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
