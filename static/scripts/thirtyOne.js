@@ -256,8 +256,17 @@ function populateHandStatic(playerName, hand, hand_score, mode) {
 }
 
 function setNewDiscard(cardStr) {
-    // Create new card object
-    const newDiscard = createCardObject(cardStr);
+
+    let newDiscard;
+
+    // If no discard, make placeholder card object
+    if (!cardStr || cardStr.length === 0) {
+        newDiscard = createPlaceholderCard('discard');
+    }
+    // If discard given, create card object
+    else {
+        newDiscard = createCardObject(cardStr);
+    }
     
     // Set id for discard button
     newDiscard.id = 'discard-button';
