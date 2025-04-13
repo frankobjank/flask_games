@@ -89,3 +89,39 @@ function createPlaceholderCard(kind) {
 
     return rotateContainer;
 }
+
+// Defining keyframes in js for moving card
+function moveCard(deltaX, deltaY, faceStart, faceEnd) {
+    // Degrees based on 
+    let degStart;
+    let degEnd;
+
+    // Choose rotate state based on whether card starts face up or face down
+    switch (faceStart) {
+        // Start at 0 deg for face-up card
+        case 'up':
+            degStart = '0';
+            break;
+        // Start at 180 deg for face-down
+        case 'down':
+            degStart = '180'
+            break;
+    }
+
+    // Same options as faceStart, could put in array but only 2 cases
+    switch (faceEnd) {
+        case 'up':
+            degEnd = '0';
+            break;
+        case 'down':
+            degEnd = '180'
+            break;
+    }
+
+    return [
+        // Starting keyframe
+        { transform: `translate(0, 0) rotateY(${degStart}deg)` },
+        // Ending keyframe
+        { transform: `translate(${deltaX}px, ${deltaY}px) rotateY(${degEnd}deg)` }
+    ];
+};

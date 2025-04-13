@@ -2,7 +2,8 @@
 
 // For animating card movement and flipping over
 const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
-const ANIMATION_DURATION = 2;
+const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
+const ANIMATION_DURATION = 1;
 
 // Get a random integer - used for discarding from non-self players
 function getRandomInt(max) {
@@ -322,7 +323,7 @@ function animateDraw(cardStr, player, handScore) {
     const cardRect = card.getBoundingClientRect()
 
     // Calc movement distances - compare left and top
-    const deltaX = deckRect.left - cardRect.left
+    const deltaX = cardRect.left - deckRect.left
     const deltaY = cardRect.top - deckRect.top
 
     // Create a clone to animate
@@ -350,34 +351,33 @@ function animateDraw(cardStr, player, handScore) {
     clone.style.height = `${deckRect.height}px`;
     clone.style.position = 'fixed';
 
-    // Use '+=' to not overwrite existing transform properties
-    clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
+    // Clone animation
 
-    // Built-in function for animating
-    requestAnimationFrame(() => {
-        clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
-        
-        // Add flip to be face-up for self
-        if (player === username) {
-            clone.style.transform += `rotateY(180deg)`;
-        }
-    })
+    // Set animation object so `finish` event listener can be added
+    let animObject;
 
-    // Waits until after animation (number of setTimeout must match number in transform)
-    setTimeout(() => {
+    // Flip if for self
+    if (player === username) {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'up'), ANIMATION_TIMING);
+    }
+    // Keep face-down for other
+    else {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
+    }
+
+    // Add event listener to animObject to trigger on animation end
+    animObject.addEventListener('finish', () => {
         // Reveal real card
         card.style.visibility = 'visible';
+    
+        // Remove clone card
+        clone.remove();
 
         // Update hand score if given
         if (handScore > 0) {
             document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
-        }
-
-        // Remove clone card
-        clone.remove();
-
-    // Multiply duration by 1000 for s -> ms conversion
-    }, ANIMATION_DURATION * 1000);
+        };
+    });
 }
 
 // Animating card from hand to discard
