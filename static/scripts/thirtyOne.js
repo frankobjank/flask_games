@@ -383,7 +383,7 @@ function animateDraw(cardStr, player, handScore) {
         clone.remove();
 
         // Update hand score if given
-        if (player === username && handScore > 0) {
+        if (player === username) {
             document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
         };
     });
