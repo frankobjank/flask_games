@@ -383,7 +383,7 @@ function animateDraw(cardStr, player, handScore) {
         clone.remove();
 
         // Update hand score if given
-        if (handScore > 0) {
+        if (player === username && handScore > 0) {
             document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
         };
     });
@@ -435,16 +435,6 @@ function animateToDiscard(player, cardStr, handScore) {
     clone.classList.add('clone');
     // change id of clone so no duplicate ids
     clone.id = 'clone-' + clone.id;
-    
-    // Card starts face-up by default; flip over to start face-down
-    // Start face-up for self players
-    if (player === username) {
-        clone.style.transform = `rotateY(0deg)`;
-    }
-    // Start face-down for non-self players
-    else {
-        clone.style.transform = `rotateY(180deg)`;
-    }
 
     document.body.appendChild(clone);
     
@@ -454,25 +444,23 @@ function animateToDiscard(player, cardStr, handScore) {
     clone.style.width = `${cardRect.width}px`;
     clone.style.height = `${cardRect.height}px`;
     clone.style.position = 'fixed';
-
-    clone.style.transition = `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
-
+    
     // Hide original card
     card.style.visibility = 'hidden';
 
-    // Built-in function for animation
-    requestAnimationFrame(() => {
-        clone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-    })
+    // set animation object to add event listener
+    let animObject;
     
-    // Waits until after animation (number of setTimeout must match number in transform)
-    setTimeout(() => {
-        
-        // Update hand score if given
-        if (player === username) {
-            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
-        }
+    if (player === username) {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'up'), ANIMATION_TIMING);
+    }
+    // Flip up for other
+    else {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'up'), ANIMATION_TIMING);
+    }
 
+    // Add event listener to `finish`
+    animObject.addEventListener('finish', () => {
         // Replace old discard with new discard
         document.querySelector('#discard-container').replaceChildren(newDiscard);
         
@@ -481,9 +469,14 @@ function animateToDiscard(player, cardStr, handScore) {
         
         // Remove original card container (and card) from hand
         cardContainer.remove()
+        
+        console.log(`I am ${username}. Player in animateToDiscard: ${player}`);
 
-    // Multiply duration by 1000 for s -> ms conversion
-    }, ANIMATION_DURATION * 1000);
+        // Update hand score if given
+        if (player === username) {
+            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+        }
+    });
 }
 
 function animatePickup(cardStr, player, replaceDiscard, handScore) {
@@ -532,19 +525,20 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
 
     // Get animation start and end points by comparing discard and new card container
 
+    const oldDiscard = document.querySelector('#discard-button');
+    
     // Card will start at discard and move to hand
     // Starting position
-    const discardRect = document.querySelector('#discard-button').getBoundingClientRect();
+    const discardRect = oldDiscard.getBoundingClientRect();
     const cardRect = pickupCard.getBoundingClientRect()
-
+    
     // Calc movement distances - compare left and top
     let deltaX = discardRect.left - cardRect.left
     let deltaY = cardRect.top - discardRect.top
-
-    // Create a clone to animate
-    // this prevents having to actually move the original card
-    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
-    const clone = pickupCard.cloneNode(true);
+    
+    // Use value of old discard to clone so it is visible even if picking up player
+    // is not self
+    const clone = oldDiscard.cloneNode(true);
     clone.classList.add('clone');
     // Change id of clone and any child nodes that have ids so no duplicate ids
     if (pickupCard.id) {
@@ -572,7 +566,7 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
     clone.style.position = 'fixed';
     
     // Use '+=' to not overwrite existing transform properties
-    clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
+    // clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
 
     // Change discard button to new discard
     // Create new card object to put in discard; get attributes from old card
@@ -580,35 +574,30 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
     
     document.querySelector('#discard-container').replaceChildren(newDiscard);
 
-    // Built-in function for animating
-    requestAnimationFrame(() => {
-        clone.style.transform += `translate(${deltaX}px, ${deltaY}px)`;
-        // Card starts face-down by default; flip over to start face-up
-        
-        // Add flip to be face-up for self
-        if (player === username) {
-            clone.style.transform += `rotateY(0deg)`;
-        }
-        else {
-            clone.style.transform += `rotateY(180deg)`;
-        }
-    })
+    // Set animation object to add `finish` event listener
+    let animObject;
 
-    // Waits until after animation (number of setTimeout must match number in transform)
-    setTimeout(() => {
+    // Keep face up for self
+    if (player === username) {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'up'), ANIMATION_TIMING);
+    }
+    // Flip down for other
+    else {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'down'), ANIMATION_TIMING);
+    }
+
+    animObject.addEventListener('finish', () => {
         // Reveal real card
         pickupCard.style.visibility = 'visible';
+    
+        // Remove clone card
+        clone.remove();
 
         // Update hand score if self
         if (player === username) {
             document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
         }
-
-        // Remove clone card
-        clone.remove();
-
-    // Multiply duration by 1000 for s -> ms conversion
-    }, ANIMATION_DURATION * 1000);
+    })
 }
 
 function updateHandNoAnimation(playerName, playerIndex, response) {
