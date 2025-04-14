@@ -283,10 +283,6 @@ input[type="radio"]{
     height: calc(3 * var(--card-height));
 }
 
-/* Grid that contains board - should be bigger than players' grids */
-#game-grid-5{
-}
-
 /* grid - 9 parts to put up to 8 players around the board */
 /* 
             1  2  3
