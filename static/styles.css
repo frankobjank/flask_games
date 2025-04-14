@@ -2,6 +2,8 @@
 :root {
     /* Makes all nav links white */
     --bs-nav-link-color: white;
+    --card-width: 2.5rem;
+    --card-height: 3.5rem;
 }
 
 /* Home & Header and Footer */
@@ -268,34 +270,40 @@ input[type="radio"]{
     margin: 3rem;
 }
 
-#game-container {
+#game-grid-container {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
-    /* Creates space on all sides */
-    /* margin: 10%; */
-    /* width: 25rem; */
-    /* height: 25rem; */
+    justify-items: center;
 }
 
-/* Change this to grid - maybe 9 parts to put up to 8 players around the board */
-/* 
-    Something like:
+.game-grid {
+    /* Make sure the grids are fixed size or for animation */
+    width: calc(5 * var(--card-width));
+    height: calc(3 * var(--card-height));
+}
 
+/* Grid that contains board - should be bigger than players' grids */
+#game-grid-5{
+}
+
+/* grid - 9 parts to put up to 8 players around the board */
+/* 
             1  2  3
             4  5  6
             7  8  9
 
-            2: player 2
+            2: player 2 if two people; 3 if 3-4 people
 
-4:player 3  5: deck, discard  6: player 4
+4:player 2      5: deck     6: player 4 if 4 people
+if 3 people     discard
 
-            8: player 1
+            8: self
 */
 
 #board {
     display: inline-flex;
-    grid-column: 5;
+    /* grid-column: 5; */
 }
 
 /* Self container */
@@ -329,8 +337,10 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 .rotate-card-container {
     /* New */
     position: relative;
-    width: 2.5rem;
-    height: 3.5rem;
+    width: var(--card-width);
+    height: var(--card-height);
+    /* width: 2.5rem;
+    height: 3.5rem; */
     outline-color: #000;
     outline-width: medium;
     border-radius: 0.3rem;
@@ -413,9 +423,13 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     color: gray;
 }
 
+#move-button-container {
+    margin-top: 1.5rem;
+    display: inline-block;
+}
+
 #draw-pickup-knock-container {
-    display: inline-flex;
-    margin: 1.5rem;
+    display: flex;
 }
 
 #chat-log-panel {
@@ -424,7 +438,6 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     background-color: #c8d5e3;
     color: rgb(46, 45, 45);
     border-radius: 5px;
-    /* border: 3px solid #0b0b0b; */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     /* Display adjacent to game container */
     display: inline-block;

@@ -21,7 +21,7 @@ function createLobbyButton() {
 
 function createGameContainer(game) {
     const gameContainer = document.createElement('div');
-    gameContainer.id = 'game-container';
+    gameContainer.id = 'game-grid-container';
 
     // Use different number of grids for each game?
     // Create 3x3 grid for game container to add board and players to
@@ -32,7 +32,7 @@ function createGameContainer(game) {
             for (let row = 1; row < 4; row++) {
                 
                 const gridItem = document.createElement('div');
-                gridItem.class = 'game-grid';
+                gridItem.className = 'game-grid';
     
                 // Convert row and col to ID number, starting at 1 left->right and ending at 9
                 gridItem.id = 'game-grid-' + (row + ((col - 1) * 3));
