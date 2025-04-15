@@ -201,12 +201,12 @@ class State:
         self.turn_num = 0
             
         # Calculate new first player index based on round number
-        first_player_index = ((self.round_num)-1) % len(self.player_order)
+        first_player_index = ((self.round_num) - 1) % len(self.player_order)
         
         # Set dealer, first player, current player, blitzed players
         self.first_player = self.player_order[first_player_index]
         self.current_player = self.player_order[first_player_index]
-        self.dealer = self.player_order[first_player_index-1]
+        self.dealer = self.player_order[first_player_index - 1]
         self.blitzed_players = []
         
         print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)

@@ -19,6 +19,7 @@ class Player:
         self.unplayed_cards = []  # For the play
         self.played_cards = []  # For the play
         self.log = []
+        self.action_log = []
     
 
     def __repr__(self) -> str:
@@ -44,17 +45,12 @@ class State:
         self.mode = "start"
         self.in_progress = False
         
-        ### From shared round
-        
+        # Rounds
         self.round_num = 0
         self.turn_num = 0
-        
         self.first_player = ""
         self.current_player = ""
         self.dealer = ""
-        
-        ### End shared round
-
         self.crib = []
         self.starter = None
         self.go = []  # names of players; list for > 2 players
@@ -72,7 +68,14 @@ class State:
         self.go_scored = False
         self.current_plays = []
 
-    
+
+    # This is currently only called from app.py
+    def add_player(self, name) -> None:
+        """Initializes a player and adds to players dict."""
+
+        self.players[name] = Player(name)
+
+
     def start_game(self) -> None:
         
         # Validations
@@ -109,12 +112,16 @@ class State:
         assert len(self.player_order) > 0, "Player order must be set before new_round is called."
 
         # Increment first player and set dealer, current player
-        first_player_index = ((self.round_num)-1) % len(self.player_order)
+        first_player_index = ((self.round_num) - 1) % len(self.player_order)
 
         self.first_player = self.player_order[first_player_index]
         self.current_player = self.player_order[first_player_index]
-        self.dealer = self.player_order[first_player_index-1]
+        self.dealer = self.player_order[first_player_index - 1]
         
+        print_and_log(f"--- ROUND {self.round_num} ---\n", self.players)
+        print_and_log("\n--- DEALING ---", self.players)
+        print_and_log(f"Please pick {len(self.players[self.current_player].hand) - 4} card(s) to add to the crib. The dealer is {self.dealer}.", self.players)
+
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
         
@@ -146,9 +153,6 @@ class State:
         # Reset other play vars that get reset between plays within a round
         self.new_play()
         
-        print(f"--- ROUND {self.round_num} ---\n")
-        print("\n--- DEALING ---")
-
         self.start_turn()
 
 
@@ -220,6 +224,8 @@ class State:
     def get_next_player(self) -> str:
         """Get the next player."""
 
+        # Next player rules varies between play and show, and all can play during discard.
+        
         # Make copy of player order since order will be constantly changing during the play.
         player_order = self.player_order.copy()
         
@@ -243,29 +249,9 @@ class State:
         
         # Otherwise get next player normally using turn number
         else:
-            next_player = player_order[((self.turn_num + ((self.round_num-1) % len(player_order))) % len(player_order))]
+            next_player = player_order[((self.turn_num + ((self.round_num - 1) % len(player_order))) % len(player_order))]
         
         return next_player
-
-
-    # Will have to recreate this on front-end
-    def format_play_msgs(self) -> dict:
-        msgs_per_player = {player: "" for player in self.player_order}
-        for p_name in self.player_order:
-            for i in range(12 - len(p_name)):
-                msgs_per_player[p_name] += " "
-            # msgs_per_player[p_name] += "|"
-        for play in self.current_plays:
-            for p_name in self.player_order:
-                if play.player == p_name:
-                    # have to account for 10 (double digits)
-                    if play.card.rank == "10":
-                        msgs_per_player[p_name] += f"{play.card}|"
-                    else:
-                        msgs_per_player[p_name] += f"{play.card} |"
-                else:
-                    msgs_per_player[p_name] += "   |"
-        return msgs_per_player
 
 
     def score_play(self, played_card: Card, go: bool) -> None:
@@ -540,7 +526,7 @@ class State:
         elif self.mode == "play" and packet["action"] == "play":
             self.score_play(packet["card"], packet["go"])
 
-            if 4*len(self.players.keys()) == len(self.all_plays):
+            if 4 * len(self.players.keys()) == len(self.all_plays):
                 self.mode = "show"
 
             self.end_turn()
@@ -562,18 +548,12 @@ class State:
         # If not returned early, move was accepted
         return "accept"
 
-    # def print_state(self):
-    #     if self.mode == "play":
-    #         msgs_per_player = self.format_play_msgs()
-    #         for p, msg in msgs_per_player.items():
-    #             print(f"{p}: {msg}")
-    #     # else:
-    #     #     self.sleep_print(f"Hand: {self.players[self.current_player].hand}")
-
 
     def add_score_log(self, player: str, points: int, reason: str):
-        print_and_log(f"{player} scored {points} for {reason}.", self.players)
+        """Adds scores to player object and prints scores to log."""
+
         self.players[player].score += points
+        print_and_log(f"{player} scored {points} for {reason}.", self.players)
 
 
     # Packages state for each player individually. Includes sid for socketio
@@ -581,19 +561,32 @@ class State:
         
         # Build lists in order of player_order to make sure they're unpacked correctly
         hand_sizes = []
-        final_hands = []
+        total_scores = []  # Overall score of game (0-121)
+        played_cards = []  # For the play
+        final_hands = []  # For the show
+        final_scores = []  # Currently unused - may be useful for animating show score
 
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
             # Play: self hand is unplayed cards, opponents' hand is opponents' len(unplayed cards)
                 # AND played cards (face up) will be 
         for p_name in self.player_order:
+            
+            # Get total score from player dict
+            total_scores = self.players[p_name].score
+
             if self.mode == "discard":
                 hand_sizes.append(len(self.players[p_name].hand))
 
             elif self.mode == "play":
+                # Only need card since it can be unpacked with player order
+                # Build played_cards - list of cards played during the play
+                played_cards.append([play.card.zip_card() for play in self.current_plays if play.player == p_name])
 
+                # Can infer unplayed cards using `hand` and `hand_sizes`
+                    
             elif self.mode == "show":
+                # Scoring should appear in log - can also make graphic for scoring on front end
                 final_hands.append(zip_hand(self.players[p_name].hand))
 
         # All data the client needs from server
@@ -607,15 +600,16 @@ class State:
             "player_order": self.player_order,  # list of player names in order
             "current_player": self.current_player,  # current player's name
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
+            "total_scores": total_scores,  # overall score of game (0-121)
+            "crib_size": len(self.crib),  # show size of crib as players discard
             "dealer": self.dealer,  # dealer of round
-            "knocked": self.knocked,  # player who knocked (empty string until a knock)
+            "played_cards": played_cards,  # list of cards played during the play
             "final_hands": final_hands,  # reveal all hands to all players
             "final_scores": final_scores,  # reveal all scores to all players
 
             # Specific to player
             "recipient": player_name,
             "hand": self.players[player_name].zip_hand(),  # hand for self only
-            "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
         }
     
@@ -625,7 +619,7 @@ class State:
 def is_run(potential_run):
     indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(card) for card in potential_run])
 
-    return all(indices[i+1] - indices[i] == 1 for i in range(len(indices)-1))
+    return all(indices[i + 1] - indices[i] == 1 for i in range(len(indices) - 1))
 
 
 ### Notes
