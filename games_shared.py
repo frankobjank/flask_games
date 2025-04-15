@@ -1,6 +1,8 @@
 ### Functions shared by all games
 
 def print_and_log(msg, players_dict, player="all") -> None:
+    """Print to terminal and add to players' logs"""
+
     print(msg)
 
     # Send to all clients

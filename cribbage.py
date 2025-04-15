@@ -58,6 +58,7 @@ class State:
         self.current_plays = []  # list of Plays for a single play
         self.all_plays = []  # list of Plays for all plays of round
         self.has_played_show = set() # names of players
+        self.action_log = []
     
 
     def new_play(self):
@@ -430,13 +431,6 @@ class State:
     # Convert to front-end code
     def get_user_input(self) -> dict:
 
-                
-        if self.mode == "discard":
-            # Accept inputs from ALL players during discard
-            # num_to_discard = len(self.players[self.current_player].hand) - 4
-            # Check if 
-            print_and_log(f"Please pick {len(self.players[self.current_player].hand) - 4} card(s) to add to the crib. The dealer is {self.dealer}.", self.players)
-            
         elif self.mode == "play":
             
             current_count = sum([play.card.value for play in self.current_plays])
@@ -457,35 +451,27 @@ class State:
                 else:
                     print_and_log("You cannot play any more cards and must say 'Go'.", self.players)
 
-
-            print(f"Current count: {current_count}")
-
             # User input should be a card
             packet = self.user_input_to_packet(action="play", msg=user_input)
 
             # Check if chosen card will put count over 31
-            if len(user_input) > 0 and current_count + self.players[self.current_player].unplayed_cards[int(user_input)-1].value > 31:
+            if len(user_input) > 0 and current_count + self.players[self.current_player].unplayed_cards[int(user_input) - 1].value > 31:
                 print("You cannot exceed 31. Please choose another card")
 
         elif self.mode == "show":
             # Had action as continue, but I think it could automatically proceed at the end of the play
             packet = self.user_input_to_packet(action="continue", msg="")
 
-        elif self.mode == "end_round":
-            # Can automate end turns and end rounds
-            pass
-
-        elif self.mode == "end_game":
-            pass
-            # Allow user to start new game
-
 
     def update(self, packet: dict):
         # {"name": "", "action": "", "card": "", "cards": ["", ""], "go": bool}
         # actions: start, discard, play, continue, new_game
+
+        # Packet must include player name because must accept input from all players during discard
         
         assert len(packet) > 0, "empty packet"
         
+        # I think this covers when self.mode == "end_game"
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
@@ -504,6 +490,12 @@ class State:
         elif self.mode == "discard" and packet["action"] == "discard":
             # Cards to discard can be sent as packet["cards"]
             
+            # Validate number of cards
+            if len(packet["cards"]) != len(self.players[packet["name"]].hand) - 4:
+
+                print_and_log(f"You must choose {len(self.players[packet["name"]].hand) - 4} card(s) to add to the crib.", self.players, packet["name"])
+                return "reject"
+
             # Iterate through cards to discard
             for discard_card in packet["cards"]:
                 unzipped_card = unzip_card(discard_card)
@@ -517,15 +509,52 @@ class State:
                         # Remove from hand and add to crib on match
                         self.crib.append(card)
                         self.players[self.current_player].hand.remove(card)
+                        
+                        # Break inner loop once card is found
                         break
             
             # Check for end of discard
             if len(self.crib) == 4:
-                self.mode = "play"                
+                self.mode = "play"
             
         elif self.mode == "play" and packet["action"] == "play":
+
+            if packet["name"] != self.current_player:
+                print(f"Received play move from {packet['name']}; not their turn.")
+                return "reject"
+
+            played_card = unzip_card(packet["card"])
+
+            current_count = sum([play.card.value for play in self.current_plays])
+            
+            # Validate input
+            if current_count + played_card.value > 31:
+                print_and_log("Invalid move, count will exceed 31.", self.players, packet["name"])
+                return "reject"
+
+            ### Taken from get_user_input - put this in start turn?
+            current_count = sum([play.card.value for play in self.current_plays])
+
+            # If player cannot play a card without exceeding 31, force them to say go
+            if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
+
+                # Everyone else has said go; round should end
+                if len(self.player_order) - len(self.go) == 1:
+                    go_players = ""
+                    for player in self.go:
+                        if len(go_players) == 1:
+                            go_players += " and "
+                        go_players += player
+                    print_and_log(f"{go_players} said 'Go'. You cannot play any more cards.", self.players)
+
+                # Say go but proceed as there are still other players to check for go
+                else:
+                    print_and_log("You cannot play any more cards and must say 'Go'.", self.players)
+            ### Taken from get_user_input
+
             self.score_play(packet["card"], packet["go"])
 
+            # Check if all players have played all their cards
             if 4 * len(self.players.keys()) == len(self.all_plays):
                 self.mode = "show"
 
@@ -533,11 +562,18 @@ class State:
         
         elif self.mode == "show":
             # Reveal can be timed and animated on client-side - server can send at once
+            
+            # Score regular hand
             self.score_show(four_card_hand=self.players[self.current_player].hand, crib=False)
             
+            # Add to action log for client-side animation
+            self.action_log.append({"action": "score_show", "player": self.current_player, "cards": self.players[self.current_player].hand})
+            
+            # If dealer, score crib as well
             if self.current_player == self.dealer:
                 self.score_show(four_card_hand=self.crib, crib=True)
-
+                self.action_log.append({"action": "score_crib", "player": self.current_player, "cards": self.crib})
+            
             # Check for end of show; end round if over
             if len(self.has_played_show) == len(self.player_order):
                 self.end_round()
@@ -561,10 +597,12 @@ class State:
         
         # Build lists in order of player_order to make sure they're unpacked correctly
         hand_sizes = []
+        num_to_discard = 0  # number of cards self needs to discard
         total_scores = []  # Overall score of game (0-121)
-        played_cards = []  # For the play
+        played_cards = []  # For the play - list of dicts {"player": ..., "card": ...}
         final_hands = []  # For the show
         final_scores = []  # Currently unused - may be useful for animating show score
+        play_count = 0  # count for each play
 
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
@@ -573,21 +611,34 @@ class State:
         for p_name in self.player_order:
             
             # Get total score from player dict
-            total_scores = self.players[p_name].score
+            total_scores.append(self.players[p_name].score)
 
-            if self.mode == "discard":
+            # Hand sizes must be calculated differently if during play vs not
+            if self.mode != "play":
+                # Hand size outside of play can be calculated with hand
                 hand_sizes.append(len(self.players[p_name].hand))
 
             elif self.mode == "play":
-                # Only need card since it can be unpacked with player order
-                # Build played_cards - list of cards played during the play
-                played_cards.append([play.card.zip_card() for play in self.current_plays if play.player == p_name])
+                # Hand size in play can be taken from unplayed_cards
+                hand_sizes.append(len(self.players[p_name]).unplayed_cards)
 
-                # Can infer unplayed cards using `hand` and `hand_sizes`
-                    
-            elif self.mode == "show":
+            # Send all hands if show
+            if self.mode == "show":
                 # Scoring should appear in log - can also make graphic for scoring on front end
                 final_hands.append(zip_hand(self.players[p_name].hand))
+        
+        # Get num to discard outside of loop since only has to be for self
+        if self.mode == "discard":
+            num_to_discard = len(self.players[player_name].hand) - 4
+
+        # Played cards can be retrieved outside of loop since it's independent of player order
+        elif self.mode == "play":
+            for play in self.current_plays:
+                # Build played_cards - list of cards played during the play
+                played_cards.append({"player": play.player, "card": play.card.zip_card()})
+
+                # Count play
+                play_count += play.card.value
 
         # All data the client needs from server
         return {
@@ -603,13 +654,15 @@ class State:
             "total_scores": total_scores,  # overall score of game (0-121)
             "crib_size": len(self.crib),  # show size of crib as players discard
             "dealer": self.dealer,  # dealer of round
-            "played_cards": played_cards,  # list of cards played during the play
+            "played_cards": played_cards,  # list of dicts {"player": ..., "card": ...}
+            "play_count": play_count,  # current count of the play
             "final_hands": final_hands,  # reveal all hands to all players
             "final_scores": final_scores,  # reveal all scores to all players
 
             # Specific to player
             "recipient": player_name,
             "hand": self.players[player_name].zip_hand(),  # hand for self only
+            "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
             "log": self.players[player_name].log,  # new log msgs - split up for each player
         }
     
