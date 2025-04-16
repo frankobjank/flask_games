@@ -453,6 +453,12 @@ class State:
             if self.current_player != self.dealer:
                 self.has_played_show.add(self.current_player)
 
+            # Add to action log for client-side animation
+            # TODO send action log for every scoring for animation purposes
+            # Maybe can add action log to score log
+                # Then would have to add score log incrementally throughout the show instead of at the end
+            self.action_log.append({"action": "score_show", "player": self.current_player, "cards": self.players[self.current_player].hand})
+
         if crib:
             if len(set(card.suit for card in show_hand)) == 1:
                 print_and_log(f"5 points for a flush.", self.players)
@@ -465,6 +471,11 @@ class State:
         
             # Player must be dealer; mark as finished with the show
             self.has_played_show.add(self.current_player)
+
+            # Add to action log for client-side animation
+            # TODO send action log for every scoring for animation purposes
+            self.action_log.append({"action": "score_crib", "player": self.current_player, "cards": self.crib})
+
 
 
     def update(self, packet: dict):
@@ -556,13 +567,9 @@ class State:
             # Score regular hand
             self.score_show(four_card_hand=self.players[self.current_player].hand, crib=False)
             
-            # Add to action log for client-side animation
-            self.action_log.append({"action": "score_show", "player": self.current_player, "cards": self.players[self.current_player].hand})
-            
             # If dealer, score crib as well
             if self.current_player == self.dealer:
                 self.score_show(four_card_hand=self.crib, crib=True)
-                self.action_log.append({"action": "score_crib", "player": self.current_player, "cards": self.crib})
             
             # Check for end of show; end round if over
             if len(self.has_played_show) == len(self.player_order):
@@ -580,6 +587,8 @@ class State:
 
         self.players[player].score += points
         print_and_log(f"{player} scored {points} for {reason}.", self.players)
+
+        # Might add something to action log as well so client can animate each score
 
 
     # Packages state for each player individually. Includes sid for socketio
