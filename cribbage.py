@@ -105,12 +105,15 @@ class State:
 
     def new_round(self) -> None:
         
+        # Make sure player order has been set
+        assert len(self.player_order) > 0, "Player order must be set before new_round is called."
+
         self.round_num += 1
         self.turn_num = 0
         self.mode = "discard"
-        
-        # Make sure player order has been set
-        assert len(self.player_order) > 0, "Player order must be set before new_round is called."
+
+        # Will have to decide if using 'card' or 'cards' in the action log
+        self.action_log.append({"action": "deal", "player": "all", "cards": ""})        
 
         # Increment first player and set dealer, current player
         first_player_index = ((self.round_num) - 1) % len(self.player_order)
@@ -485,8 +488,7 @@ class State:
             else:
                 return "reject"
         
-        ### Turn modes: "discard", "play", "show"
-
+        # Turn modes: "discard", "play", "show"
         elif self.mode == "discard" and packet["action"] == "discard":
             # Cards to discard can be sent as packet["cards"]
             
@@ -495,8 +497,12 @@ class State:
 
                 print_and_log(f"You must choose {len(self.players[packet["name"]].hand) - 4} card(s) to add to the crib.", self.players, packet["name"])
                 return "reject"
-
-            # Iterate through cards to discard
+            
+            # Discard move accepted; add to action log and adjust player hand / crib
+            # Number of cards could be passed though 'cards' key? Or make a new one?
+            self.action_log.append({"action": "discard", "player": packet["name"], "cards": len(packet["cards"])})
+            
+            # Iterate through cards to remove from hand and add to crib
             for discard_card in packet["cards"]:
                 unzipped_card = unzip_card(discard_card)
                 
