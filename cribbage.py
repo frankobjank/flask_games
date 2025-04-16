@@ -199,13 +199,34 @@ class State:
 
         if self.mode == "play":
             # set starter (one-time action when play starts)
-            if self.starter.value == 0:
+            if self.starter is None:
                 self.starter = draw_card(self.shuffled_cards)
                 print_and_log(f"The starter is {self.starter}.", self.players)
 
                 if self.starter.rank == "J":
                     print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.", self.players)
                     self.add_score_log(self.dealer, 2, "his heels (starter is a J)")
+
+
+
+            ### Taken from get_user_input - put this in start turn?
+            current_count = sum([play.card.value for play in self.current_plays])
+
+            # If player cannot play a card without exceeding 31, force them to say go
+            if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
+
+                # Everyone else has said go; round should end
+                if len(self.player_order) - len(self.go) == 1:
+                    # I think this message is covered within score_go
+                    # print_and_log(f"All other players have said 'Go'. You cannot play any more cards.", self.players)
+                    self.score_go()
+
+                # Say go but proceed as there are still other players to check for go
+                else:
+                    print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.", self.players)
+            ### Taken from get_user_input
+
+
 
             # Set unplayed_cards
             for player in self.players.values():
@@ -214,7 +235,7 @@ class State:
             # Reset play vars:
                 # for 31 count after end of play is checked
                 # if all players in round have said go and go has been scored
-            if sum([play.card.value for play in self.current_plays]) == 31 or len(self.player_order) == len(self.go) and self.go_scored:
+            if sum([play.card.value for play in self.current_plays]) == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
                 self.new_play()
                 print_and_log(f"Round ending, {self.current_player} will start the next round.", self.players)
             # 3 total players, 1 is out of cards starting the round - they will actually need to say go and be counted in self.go so this will have the same result
@@ -258,88 +279,91 @@ class State:
         return next_player
 
 
-    def score_play(self, played_card: Card, go: bool) -> None:
-        
-        # On go
-        if go:
-            assert len(card) == 0, "Card should not be present if go is True."
-            self.go.append(self.current_player)
-            print_and_log(f"{self.current_player} has said 'Go'.", self.players)
-            # score a go
-            if len(set(self.player_order) - set(self.go)) == 1:
-                player_left = next(iter(set(self.player_order) - set(self.go)))
-                self.add_score_log(player_left, 1, "a go")
-                self.go_scored = True
+    def score_go(self) -> None:
+        """Determines if player is last to say go and should score a point."""
 
-        # On playing a card
-        else:
-            # Placeholder for `Play` object to be assigned in loop
-            play = None
+        self.go.append(self.current_player)
+        print_and_log(f"{self.current_player} has said 'Go'.", self.players)
 
-            # Find played card in hand - compare rank and suit to card given
-            for card in self.players[self.current_player].unplayed_cards:
-                if card.suit == played_card.suit and card.rank == played_card.rank:
-                    
-                    # Get played card by removing from player's unplayed list; add to played list
-                    self.players[self.current_player].unplayed_cards.remove(card)
-                    self.players[self.current_player].played_cards.append(card)
-            
-                    # Assign `Play` object
-                    play = Play(self.current_player, card)
-                    
-                    # Break loop on finding card
-                    break
-            
-            assert play is not None, "Play must not be None at this point."
+        # Check if there is only 1 player left after the go
+        if len(set(self.player_order) - set(self.go)) == 1:
+            # Score a go for remaining player
+            player_left = next(iter(set(self.player_order) - set(self.go)))
+            self.add_score_log(player_left, 1, "a go")
+            # Set go_scored to True so round can be reset
+            self.go_scored = True
 
-            # Add to lists: all plays, current plays 
-            self.all_plays.append(play)
-            self.current_plays.append(play)
 
-            # Notify users about play
-            print_and_log(f"{play.player} played: {play.card}.", self.players)
+    def score_play(self, played_card: Card) -> None:
+        """Determine if any points should be scored depending on the card just played."""
 
-            # Check count for 15, 31
-            if sum([play.card.value for play in self.current_plays]) == 15:
-                self.add_score_log(self.current_player, 2, "a 15")
-            
-            elif sum([play.card.value for play in self.current_plays]) == 31:
-                if self.go_scored:
-                    self.add_score_log(self.current_player, 1, "a 31")
+        # Placeholder for `Play` object to be assigned in loop
+        play = None
+
+        # Find played card in hand - compare rank and suit to card given
+        for card in self.players[self.current_player].unplayed_cards:
+            if card.suit == played_card.suit and card.rank == played_card.rank:
                 
-                else:
-                    self.add_score_log(self.current_player, 2, "a 31 and a go")
+                # Get played card by removing from player's unplayed list; add to played list
+                self.players[self.current_player].unplayed_cards.remove(card)
+                self.players[self.current_player].played_cards.append(card)
+        
+                # Assign `Play` object
+                play = Play(self.current_player, card)
+                
+                # Break loop on finding card
+                break
+        
+        assert play is not None, "Play must not be None at this point."
 
-            # Check for pairs
-            play_ranks = [play.card.rank for play in self.current_plays]
-            
-            pairs = [play_ranks[-1]]
-            for rank in reversed(play_ranks[:-1]):
-                if rank in pairs:
-                    pairs.append(rank)
-                else:
-                    break
+        # Add to lists: all plays, current plays 
+        self.all_plays.append(play)
+        self.current_plays.append(play)
 
-            if len(pairs) == 2:
-                self.add_score_log(self.current_player, 2, "a pair")
+        # Notify users about play
+        print_and_log(f"{play.player} played: {play.card}.", self.players)
+
+        # Check count for 15, 31
+        if sum([play.card.value for play in self.current_plays]) == 15:
+            self.add_score_log(self.current_player, 2, "a 15")
+        
+        elif sum([play.card.value for play in self.current_plays]) == 31:
+            if self.go_scored:
+                self.add_score_log(self.current_player, 1, "a 31")
             
-            elif len(pairs) == 3:
-                self.add_score_log(self.current_player, 6, "three of a kind")
-            
-            elif len(pairs) == 4:
-                self.add_score_log(self.current_player, 12, "four of a kind")
-            
-            # Check for runs (min 3)
-            for i in range(len(play_ranks)-2):
-                if is_run(play_ranks[i:]):
-                    # Need both add score log and print and log to print the exact run
-                    self.add_score_log(self.current_player, len(play_ranks[i:]), "a run")
-                    print_and_log(f"Run: {sorted(play_ranks[i:])}", self.players)
-                    break
-            
-            # Check for end of round
-            if all(len(player.unplayed_cards) == 0 for player in self.players.values()):
-                self.add_score_log(self.current_player, 1, "playing the last card")
+            else:
+                self.add_score_log(self.current_player, 2, "a 31 and a go")
+
+        # Check for pairs
+        play_ranks = [play.card.rank for play in self.current_plays]
+        
+        pairs = [play_ranks[-1]]
+        for rank in reversed(play_ranks[:-1]):
+            if rank in pairs:
+                pairs.append(rank)
+            else:
+                break
+
+        if len(pairs) == 2:
+            self.add_score_log(self.current_player, 2, "a pair")
+        
+        elif len(pairs) == 3:
+            self.add_score_log(self.current_player, 6, "three of a kind")
+        
+        elif len(pairs) == 4:
+            self.add_score_log(self.current_player, 12, "four of a kind")
+        
+        # Check for runs (min 3)
+        for i in range(len(play_ranks)-2):
+            if is_run(play_ranks[i:]):
+                # Need both add score log and print and log to print the exact run
+                self.add_score_log(self.current_player, len(play_ranks[i:]), "a run")
+                print_and_log(f"Run: {sorted(play_ranks[i:])}", self.players)
+                break
+        
+        # Check for end of round
+        if all(len(player.unplayed_cards) == 0 for player in self.players.values()):
+            self.add_score_log(self.current_player, 1, "playing the last card")
         
 
     def score_show(self, four_card_hand: list, crib: bool):
@@ -431,41 +455,6 @@ class State:
             self.has_played_show.add(self.current_player)
 
 
-    # Convert to front-end code
-    def get_user_input(self) -> dict:
-
-        elif self.mode == "play":
-            
-            current_count = sum([play.card.value for play in self.current_plays])
-
-            # If player cannot play a card without exceeding 31, force them to say go
-            if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
-
-                # Everyone else has said go; round should end
-                if len(self.player_order) - len(self.go) == 1:
-                    go_players = ""
-                    for player in self.go:
-                        if len(go_players) == 1:
-                            go_players += " and "
-                        go_players += player
-                    print_and_log(f"{go_players} said 'Go'. You cannot play any more cards.", self.players)
-
-                # Say go but proceed as there are still other players to check for go
-                else:
-                    print_and_log("You cannot play any more cards and must say 'Go'.", self.players)
-
-            # User input should be a card
-            packet = self.user_input_to_packet(action="play", msg=user_input)
-
-            # Check if chosen card will put count over 31
-            if len(user_input) > 0 and current_count + self.players[self.current_player].unplayed_cards[int(user_input) - 1].value > 31:
-                print("You cannot exceed 31. Please choose another card")
-
-        elif self.mode == "show":
-            # Had action as continue, but I think it could automatically proceed at the end of the play
-            packet = self.user_input_to_packet(action="continue", msg="")
-
-
     def update(self, packet: dict):
         # {"name": "", "action": "", "card": "", "cards": ["", ""], "go": bool}
         # actions: start, discard, play, continue, new_game
@@ -535,33 +524,16 @@ class State:
             
             # Validate input
             if current_count + played_card.value > 31:
-                print_and_log("Invalid move, count will exceed 31.", self.players, packet["name"])
+                print_and_log("You cannot exceed 31. Please choose another card.", self.players, packet["name"])
                 return "reject"
 
-            ### Taken from get_user_input - put this in start turn?
-            current_count = sum([play.card.value for play in self.current_plays])
+            # Go will never be scored here - they will be determined automatically in mode_maintenance
+            self.score_play(played_card)
 
-            # If player cannot play a card without exceeding 31, force them to say go
-            if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
-
-                # Everyone else has said go; round should end
-                if len(self.player_order) - len(self.go) == 1:
-                    go_players = ""
-                    for player in self.go:
-                        if len(go_players) == 1:
-                            go_players += " and "
-                        go_players += player
-                    print_and_log(f"{go_players} said 'Go'. You cannot play any more cards.", self.players)
-
-                # Say go but proceed as there are still other players to check for go
-                else:
-                    print_and_log("You cannot play any more cards and must say 'Go'.", self.players)
-            ### Taken from get_user_input
-
-            self.score_play(packet["card"], packet["go"])
-
-            # Check if all players have played all their cards
+            # Check if anyone has cards left to play
             if 4 * len(self.players.keys()) == len(self.all_plays):
+                
+                # Move on to show if no cards left for play
                 self.mode = "show"
 
             self.end_turn()
