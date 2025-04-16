@@ -63,6 +63,8 @@ class State:
 
     def new_play(self):
         """Reset play variables between rounds of the play."""
+
+        # Set current player to first person who said go last round
         if len(self.go) > 0:
             self.current_player = self.go[0]
         self.go = []
@@ -220,6 +222,16 @@ class State:
                     # I think this message is covered within score_go
                     # print_and_log(f"All other players have said 'Go'. You cannot play any more cards.", self.players)
                     self.score_go()
+
+                    ### Copied from update() -- how to get this in without creating control flow issues?
+                    # Check if anyone has cards left to play
+                    if 4 * len(self.players.keys()) == len(self.all_plays):
+                        
+                        # Move on to show if no cards left for play
+                        self.mode = "show"
+
+                    self.end_turn()
+                    ### Copied from update()
 
                 # Say go but proceed as there are still other players to check for go
                 else:
