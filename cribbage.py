@@ -203,11 +203,14 @@ class State:
             # set starter (one-time action when play starts)
             if self.starter is None:
                 self.starter = draw_card(self.shuffled_cards)
-                print_and_log(f"The starter is {self.starter}.", self.players)
+                # Replace text log msg with action log
+                self.action_log.append({"action": "starter", "player": "all", "cards": [self.starter.zip_card()]})
+                # print_and_log(f"The starter is {self.starter}.", self.players)
 
                 if self.starter.rank == "J":
-                    print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.", self.players)
-                    self.add_score_log(self.dealer, 2, "his heels (starter is a J)")
+                    # This is redundant
+                    # print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.", self.players)
+                    self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.zip_card()])
 
 
 
@@ -379,7 +382,6 @@ class State:
         
 
     def score_show(self, four_card_hand: list, crib: bool):
-        # check for pairs and runs. 6, 7, 7, 8 -> catch double (or triple) 7, calculate 15s and runs with each of the sevens. can use suit to differentiate
         show_hand = four_card_hand + [self.starter]
         
         # Keep running tally of score; ONLY add once at the end
@@ -446,18 +448,16 @@ class State:
 
             # END OF SHOW FOR NON-CRIB
 
-            # Add total score for show
-            self.add_score_log(self.current_player, score, "the show")
+            # Print total score for show
+            # Split for correct grammar
+            if score == 1:
+                print_and_log(f"{self.current_player} scored a total of {score} point for the show.")
+            else:
+                print_and_log(f"{self.current_player} scored a total of {score} points for the show.")
                 
             # If player is not dealer, add them to the played show set
             if self.current_player != self.dealer:
                 self.has_played_show.add(self.current_player)
-
-            # Add to action log for client-side animation
-            # TODO send action log for every scoring for animation purposes
-            # Maybe can add action log to score log
-                # Then would have to add score log incrementally throughout the show instead of at the end
-            self.action_log.append({"action": "score_show", "player": self.current_player, "cards": self.players[self.current_player].hand})
 
         if crib:
             if len(set(card.suit for card in show_hand)) == 1:
@@ -466,16 +466,15 @@ class State:
 
             # END OF SHOW FOR CRIB
 
-            # Add total score for crib
-            self.add_score_log(self.current_player, score, "the show (crib)")
+            # Print total score for crib
+            # Split for correct grammar
+            if score == 1:
+                print_and_log(f"{self.current_player} scored a total of {score} point for the crib.")
+            else:
+                print_and_log(f"{self.current_player} scored a total of {score} points for the crib.")
         
             # Player must be dealer; mark as finished with the show
             self.has_played_show.add(self.current_player)
-
-            # Add to action log for client-side animation
-            # TODO send action log for every scoring for animation purposes
-            self.action_log.append({"action": "score_crib", "player": self.current_player, "cards": self.crib})
-
 
 
     def update(self, packet: dict):
@@ -538,7 +537,7 @@ class State:
         elif self.mode == "play" and packet["action"] == "play":
 
             if packet["name"] != self.current_player:
-                print(f"Received play move from {packet['name']}; not their turn.")
+                print(f"Rejecting play move from {packet['name']}; not their turn.")
                 return "reject"
 
             played_card = unzip_card(packet["card"])
@@ -575,6 +574,7 @@ class State:
             if len(self.has_played_show) == len(self.player_order):
                 self.end_round()
             
+            # Not everyone has played show, end turn and increment current player
             else:
                 self.end_turn()
 
@@ -582,13 +582,16 @@ class State:
         return "accept"
 
 
-    def add_score_log(self, player: str, points: int, reason: str):
-        """Adds scores to player object and prints scores to log."""
+    def add_score_log(self, player: str, points: int, reason: str, cards: list[str]):
+        """Adds scores to player, prints scores to log, and adds to action log for client."""
 
         self.players[player].score += points
         print_and_log(f"{player} scored {points} for {reason}.", self.players)
 
-        # Might add something to action log as well so client can animate each score
+        # Add to action log with cards so client can animate each score
+        # Maybe replace adding to log with action log so message can go in log at the same time as animation takes place
+        # Could to recreate the log message on client-side with `player`, `points`, and `reason`
+        self.action_log.append({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards})
 
 
     # Packages state for each player individually. Includes sid for socketio
