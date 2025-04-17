@@ -58,7 +58,7 @@ class State:
         self.current_plays = []  # list of Plays for a single play
         self.all_plays = []  # list of Plays for all plays of round
         self.has_played_show = set() # names of players
-        self.action_log = []
+        self.action_log = []  # list of dicts - {"action": ... , "player": ..., "cards": ...}
     
 
     def new_play(self):
@@ -114,8 +114,8 @@ class State:
         self.turn_num = 0
         self.mode = "discard"
 
-        # Will have to decide if using 'card' or 'cards' in the action log
-        self.action_log.append({"action": "deal", "player": "all", "cards": ""})        
+        # Use 'cards' in the action log - array of cards involved in action
+        self.action_log.append({"action": "deal", "player": "all", "cards": []})        
 
         # Increment first player and set dealer, current player
         first_player_index = ((self.round_num) - 1) % len(self.player_order)
@@ -223,7 +223,7 @@ class State:
                 # Everyone else has said go; round should end
                 if len(self.player_order) - len(self.go) == 1:
                     # I think this message is covered within score_go
-                    # print_and_log(f"All other players have said 'Go'. You cannot play any more cards.", self.players)
+                    # print_and_log(f"All other players have said 'Go'. You cannot play any more cards and must say go.", self.players)
                     self.score_go()
 
                     ### Copied from update() -- how to get this in without creating control flow issues?
@@ -304,7 +304,7 @@ class State:
         if len(set(self.player_order) - set(self.go)) == 1:
             # Score a go for remaining player
             player_left = next(iter(set(self.player_order) - set(self.go)))
-            self.add_score_log(player_left, 1, "a go")
+            self.add_score_log(player_left, 1, "go", cards=[])
             # Set go_scored to True so round can be reset
             self.go_scored = True
 
@@ -340,14 +340,18 @@ class State:
 
         # Check count for 15, 31
         if sum([play.card.value for play in self.current_plays]) == 15:
-            self.add_score_log(self.current_player, 2, "a 15")
+            self.add_score_log(self.current_player, 2, "15", cards=[])
         
+        # On 31, check if go has been scored already
         elif sum([play.card.value for play in self.current_plays]) == 31:
+            # Only score for 31 if go has been scored
             if self.go_scored:
-                self.add_score_log(self.current_player, 1, "a 31")
+                self.add_score_log(self.current_player, 1, "31", cards=[])
             
+            # Score 2 points if go has not been scored
             else:
-                self.add_score_log(self.current_player, 2, "a 31 and a go")
+                self.add_score_log(self.current_player, 1, "31", cards=[])
+                self.add_score_log(self.current_player, 1, "go", cards=[])
 
         # Check for pairs
         play_ranks = [play.card.rank for play in self.current_plays]
@@ -360,25 +364,32 @@ class State:
                 break
 
         if len(pairs) == 2:
-            self.add_score_log(self.current_player, 2, "a pair")
+            # Pass in last two cards
+            self.add_score_log(self.current_player, 2, "pair", cards=[play.card.zip_card() for play in self.current_plays[-2:]])
         
         elif len(pairs) == 3:
-            self.add_score_log(self.current_player, 6, "three of a kind")
+            # Pass in last three cards
+            self.add_score_log(self.current_player, 6, "three of a kind", cards=[play.card.zip_card() for play in self.current_plays[-3:]])
         
         elif len(pairs) == 4:
-            self.add_score_log(self.current_player, 12, "four of a kind")
+            # Pass in last four cards
+            self.add_score_log(self.current_player, 12, "four of a kind", cards=[play.card.zip_card() for play in self.current_plays[-4:]])
         
         # Check for runs (min 3)
         for i in range(len(play_ranks)-2):
             if is_run(play_ranks[i:]):
-                # Need both add score log and print and log to print the exact run
-                self.add_score_log(self.current_player, len(play_ranks[i:]), "a run")
+                # Pass in `i` to end of current plays in cards
+                self.add_score_log(self.current_player, len(play_ranks[i:]), "run", cards=[play.card.zip_card() for play in self.current_plays[i:]])
+
+                # Print and log and print the run in order
                 print_and_log(f"Run: {sorted(play_ranks[i:])}", self.players)
+                
+                # Can break at first run found because starting search from outside-in
                 break
         
         # Check for end of round
         if all(len(player.unplayed_cards) == 0 for player in self.players.values()):
-            self.add_score_log(self.current_player, 1, "playing the last card")
+            self.add_score_log(self.current_player, 1, "playing the last card", cards=[self.current_plays[-1].card.zip_card()])
         
 
     def score_show(self, four_card_hand: list, crib: bool):
@@ -400,7 +411,7 @@ class State:
 
                 if sum(card.value for card in j) == 15:
                     # 15 found; report the cards involved
-                    print_and_log(f"2 points for a 15: {j}.", self.players)
+                    self.add_score_log(self.current_player, 2, "15", cards=)
                     
                     # Add to tally to score at end
                     score += 2
@@ -548,6 +559,9 @@ class State:
             if current_count + played_card.value > 31:
                 print_and_log("You cannot exceed 31. Please choose another card.", self.players, packet["name"])
                 return "reject"
+            
+            # 
+            self.action_log.append({"action": "play_card", "player": packet["name"], "cards": [played_card]})
 
             # Go will never be scored here - they will be determined automatically in mode_maintenance
             self.score_play(played_card)
@@ -585,13 +599,24 @@ class State:
     def add_score_log(self, player: str, points: int, reason: str, cards: list[str]):
         """Adds scores to player, prints scores to log, and adds to action log for client."""
 
+        # Add score to player object
         self.players[player].score += points
-        print_and_log(f"{player} scored {points} for {reason}.", self.players)
+        
+        # Check if `a` needs to be added in the log for grammar
+        add_a = ["15", "31", "go", "run", "flush", "pair"]
+        score_text = reason
+        if reason in add_a:
+            score_text = f"a {reason}"
+
+        # Add to text log - this may be redundant with action log
+        print_and_log(f"{player} scored {points} for {score_text}.", self.players)
 
         # Add to action log with cards so client can animate each score
         # Maybe replace adding to log with action log so message can go in log at the same time as animation takes place
-        # Could to recreate the log message on client-side with `player`, `points`, and `reason`
-        self.action_log.append({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards})
+        # Could recreate the log message on client-side with `player`, `points`, and `reason`
+        # Should specify mode since pairs, 15s, and runs can be scored in both show and play
+            # mode can be taken from self.mode
+        self.action_log.append({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards, "mode": self.mode})
 
 
     # Packages state for each player individually. Includes sid for socketio
@@ -671,9 +696,11 @@ class State:
 
 
 # Other helper functions
-def is_run(potential_run):
-    indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(card) for card in potential_run])
+def is_run(potential_run: list[str]):
+    # Convert card ranks to sorted list of indices of this list of card ranks
+    indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(rank) for rank in potential_run])
 
+    # Check if all adjacent indices are within 1 of each other
     return all(indices[i + 1] - indices[i] == 1 for i in range(len(indices) - 1))
 
 
