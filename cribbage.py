@@ -393,6 +393,11 @@ class State:
         
 
     def score_show(self, four_card_hand: list, crib: bool):
+
+        # Action log to reveal show cards to all players
+        self.action_log.append({"action": "start_show", "player": self.current_player, "cards": four_card_hand})
+
+        # Hand plus starter used for scoring the show
         show_hand = four_card_hand + [self.starter]
         
         # Keep running tally of score; ONLY add once at the end
