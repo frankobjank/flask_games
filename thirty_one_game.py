@@ -487,7 +487,7 @@ class State:
         # Get discard card
         discard_card = None
         if len(self.discard) > 0:
-            discard_card = self.discard[-1].zip_card()
+            discard_card = self.discard[-1].portable
 
         # Build lists in order of player_order to make sure they're unpacked correctly
         hand_sizes = []
@@ -518,8 +518,8 @@ class State:
             
             # If recipient is action target, pass real card value
             else:
-                # Convert card to str with zip_card
-                new_dict["card"] = action_dict["card"].zip_card()
+                # Replace card with card str 
+                new_dict["card"] = action_dict["card"].portable
             
             custom_action_log.append(new_dict)
 

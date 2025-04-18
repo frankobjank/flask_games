@@ -21,6 +21,8 @@ class Card:
         self.value = RANK_TO_VALUE[self.rank]
         self.suit = suit
         self.suit_display = SUIT_TO_DISPLAY[self.suit]
+        # Easier to store this value in the card rather than calc on-the-fly
+        self.portable = self.zip_card()
     
     
     def __repr__(self) -> str:

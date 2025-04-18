@@ -204,13 +204,13 @@ class State:
             if self.starter is None:
                 self.starter = draw_card(self.shuffled_cards)
                 # Replace text log msg with action log
-                self.action_log.append({"action": "starter", "player": "all", "cards": [self.starter.zip_card()]})
+                self.action_log.append({"action": "starter", "player": "all", "cards": [self.starter.portable]})
                 # print_and_log(f"The starter is {self.starter}.", self.players)
 
                 if self.starter.rank == "J":
                     # This is redundant
                     # print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.", self.players)
-                    self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.zip_card()])
+                    self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
 
 
 
@@ -365,21 +365,21 @@ class State:
 
         if len(pairs) == 2:
             # Pass in last two cards
-            self.add_score_log(self.current_player, 2, "pair", cards=[play.card.zip_card() for play in self.current_plays[-2:]])
+            self.add_score_log(self.current_player, 2, "pair", cards=[play.card.portable for play in self.current_plays[-2:]])
         
         elif len(pairs) == 3:
             # Pass in last three cards
-            self.add_score_log(self.current_player, 6, "three of a kind", cards=[play.card.zip_card() for play in self.current_plays[-3:]])
+            self.add_score_log(self.current_player, 6, "three of a kind", cards=[play.card.portable for play in self.current_plays[-3:]])
         
         elif len(pairs) == 4:
             # Pass in last four cards
-            self.add_score_log(self.current_player, 12, "four of a kind", cards=[play.card.zip_card() for play in self.current_plays[-4:]])
+            self.add_score_log(self.current_player, 12, "four of a kind", cards=[play.card.portable for play in self.current_plays[-4:]])
         
         # Check for runs (min 3)
         for i in range(len(play_ranks)-2):
             if is_run(play_ranks[i:]):
                 # Pass in `i` to end of current plays in cards
-                self.add_score_log(self.current_player, len(play_ranks[i:]), "run", cards=[play.card.zip_card() for play in self.current_plays[i:]])
+                self.add_score_log(self.current_player, len(play_ranks[i:]), "run", cards=[play.card.portable for play in self.current_plays[i:]])
 
                 # Print and log and print the run in order
                 print_and_log(f"Run: {sorted(play_ranks[i:])}", self.players)
@@ -389,18 +389,19 @@ class State:
         
         # Check for end of round
         if all(len(player.unplayed_cards) == 0 for player in self.players.values()):
-            self.add_score_log(self.current_player, 1, "playing the last card", cards=[self.current_plays[-1].card.zip_card()])
+            self.add_score_log(self.current_player, 1, "playing the last card", cards=[self.current_plays[-1].card.portable])
         
 
-    def score_show(self, four_card_hand: list, crib: bool):
+    def score_show(self, four_card_hand: list[Card], crib: bool):
+        # There are a lot of loops in this function, could probably condense if it became a performance issue
 
         # Action log to reveal show cards to all players
-        self.action_log.append({"action": "start_show", "player": self.current_player, "cards": four_card_hand})
+        self.action_log.append({"action": "start_show", "player": self.current_player, "cards": [card.portable for card in four_card_hand]})
 
         # Hand plus starter used for scoring the show
         show_hand = four_card_hand + [self.starter]
         
-        # Keep running tally of score; ONLY add once at the end
+        # Keep running tally of score; use this value to report overall score at the end
         score = 0
 
         if not crib:
@@ -411,40 +412,53 @@ class State:
         print(f"Starter = {self.starter}\n")
 
         # Count 15s
-        for i in range(2, len(show_hand)+1):
-            for j in combinations(show_hand, i):
+        # Looks at every combination of cards starting with the first 2 cards
+        for i in range(2, len(show_hand) + 1):
+            for combo_15 in combinations(show_hand, i):
 
-                if sum(card.value for card in j) == 15:
+                # Check for sum of 15
+                if sum(card.value for card in combo_15) == 15:
+
                     # 15 found; report the cards involved
-                    self.add_score_log(self.current_player, 2, "15", cards=)
-                    
-                    # Add to tally to score at end
+                    self.add_score_log(self.current_player, 2, "15", cards=[card.portable for card in combo_15])
+                    # Add to tally
                     score += 2
 
         # Count pairs - processes 3 or 4 of a kind as multiples of pairs
-        for cards in combinations(show_hand, 2):
-            if cards[0].rank == cards[1].rank:
-                print_and_log(f"2 points for a pair: {cards}.", self.players)
+        for combo_pair in combinations(show_hand, 2):
+            # Compare `rank` -- not value because face cards all have value 10
+            if combo_pair[0].rank == combo_pair[1].rank:
+                self.add_score_log(self.current_player, 2, "pair", cards=[card.portable for card in combo_pair])
                 score += 2
         
         # Jack matching suits with starter
         for card in four_card_hand:
             if card.rank == "J" and card.suit == self.starter.suit:
-                print_and_log(f"1 point for his knobs ({card} matches the suit of the starter).", self.players)
+                # If sending as reason `knobs` will have to explain in log on client side
+                # match_jack is more descriptive
+                self.add_score_log(self.current_player, 1, "match_jack", cards=[card.portable])
+                # self.add_score_log(self.current_player, 1, "knobs", cards=[card])
+                # print_and_log(f"1 point for his knobs ({card} matches the suit of the starter).", self.players)
                 score += 1
         
         # Find runs
         runs = []
-        for i in range(3, len(show_hand)+1):
+        # Look for run in combinations of 3 cards
+        for i in range(3, len(show_hand) + 1):
             for pot_run in combinations(show_hand, i):
                 if is_run(card.rank for card in pot_run):
                     runs.append(pot_run)
 
-        # If run was found
+        # If run(s) was found, find the longest
         if len(runs) > 0:
+            # Find the longest run out of all runs found
             max_len = max(len(run) for run in runs)
-            runs = [run for run in runs if len(run) == max_len]
-            for run in runs:
+            longest_runs = [run for run in runs if len(run) == max_len]
+            
+            # Score each run
+            for run in longest_runs:
+                self.add_score_log(self.current_player, len(run), "run", cards=[card.portable for card in run])
+                # The below log is a little redundant but does show the sorted run so may be useful
                 print_and_log(f"{len(run)} points for a run: {sorted(run, key=lambda x: x.value)}.", self.players)
                 score += len(run)
 
@@ -454,11 +468,12 @@ class State:
         if not crib:
             # Check 5 card flush first
             if len(set(card.suit for card in show_hand)) == 1:
-                print_and_log("5 points for a flush.", self.players)
+                self.add_score_log(self.current_player, 5, "flush", cards=[card.portable for card in show_hand])
                 score += 5
+
             # Check 4 card flush - elif implies no 5 card flush
             elif len(set(card.suit for card in four_card_hand)) == 1:
-                # print_and_log(f"{len(four_card_hand)} points for a flush.", self.players)
+                self.add_score_log(self.current_player, 4, "flush", cards=[card.portable for card in four_card_hand])
                 print_and_log("4 points for a flush.", self.players)
                 score += 4
 
@@ -472,11 +487,13 @@ class State:
                 print_and_log(f"{self.current_player} scored a total of {score} points for the show.")
                 
             # If player is not dealer, add them to the played show set
+            # If dealer, handled below under crib
             if self.current_player != self.dealer:
                 self.has_played_show.add(self.current_player)
 
         if crib:
             if len(set(card.suit for card in show_hand)) == 1:
+                self.add_score_log(self.current_player, 5, "flush", cards=[card.portable for card in show_hand])
                 print_and_log(f"5 points for a flush.", self.players)
                 score += 5
 
@@ -526,8 +543,9 @@ class State:
                 return "reject"
             
             # Discard move accepted; add to action log and adjust player hand / crib
-            # Number of cards could be passed though 'cards' key? Or make a new one?
-            self.action_log.append({"action": "discard", "player": packet["name"], "cards": len(packet["cards"])})
+            # Pass in actual cards and hide if sending to non-self player
+            # Don't nede to unzip packet["cards"] because it is already in portable format
+            self.action_log.append({"action": "discard", "player": packet["name"], "cards": [card for card in packet["cards"]], "num_to_discard": len(packet["cards"])})
             
             # Iterate through cards to remove from hand and add to crib
             for discard_card in packet["cards"]:
@@ -667,10 +685,24 @@ class State:
         elif self.mode == "play":
             for play in self.current_plays:
                 # Build played_cards - list of cards played during the play
-                played_cards.append({"player": play.player, "card": play.card.zip_card()})
+                played_cards.append({"player": play.player, "card": play.card.portable})
 
                 # Count play
                 play_count += play.card.value
+
+        custom_action_log = []
+
+        # Hide card (set to "unknown") in action log if player should not see them
+        for action_dict in self.action_log:
+            new_dict = action_dict
+            
+            # If recipient is not the action target and the action is discard, hide the cards
+            if action_dict["action"] == "discard" and player_name != action_dict["player"]:
+                new_dict["cards"] = "unknown"
+            
+            # Add to new list
+            custom_action_log.append(new_dict)
+
 
         # All data the client needs from server
         return {
@@ -696,6 +728,7 @@ class State:
             "hand": self.players[player_name].zip_hand(),  # hand for self only
             "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
             "log": self.players[player_name].log,  # new log msgs - split up for each player
+            "action_log": custom_action_log,
         }
     
 
