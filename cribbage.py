@@ -1,6 +1,5 @@
 from collections import namedtuple
 from itertools import combinations
-import random
 
 from cards_shared import *
 from games_shared import *
