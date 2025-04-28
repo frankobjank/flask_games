@@ -92,7 +92,7 @@ function createPlaceholderCard(kind) {
 
 // Defining keyframes in js for moving card
 function moveCard(deltaX, deltaY, faceStart, faceEnd) {
-    // Degrees based on 
+    // Degrees based on whether card is face up or face down
     let degStart;
     let degEnd;
 

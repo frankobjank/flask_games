@@ -1,15 +1,3 @@
-// Global vars
-
-// For animating card movement and flipping over
-const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
-const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
-const ANIMATION_DURATION = 1;
-
-// Get a random integer - used for discarding from non-self players
-function getRandomInt(max) {
-    return Math.floor(Math.random() * max);
-}
-
 function createBoard() {
 
     // Create div for board
@@ -470,8 +458,6 @@ function animateToDiscard(player, cardStr, handScore) {
         // Remove original card container (and card) from hand
         cardContainer.remove()
         
-        console.log(`I am ${username}. Player in animateToDiscard: ${player}`);
-
         // Update hand score if given
         if (player === username) {
             document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';

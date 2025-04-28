@@ -1,3 +1,10 @@
+// Global vars
+
+// For animating card movement and flipping over
+const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
+const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
+const ANIMATION_DURATION = 1;
+
 // Game state
 let inProgress = false;
 var mode;
@@ -6,6 +13,11 @@ var discardCard;
 var playerOrder = [];
 var chatLogCount = 0;  // Number of entries in chat log
 let playersConnected = [];  // Keep track of player names connected
+
+// Get a random integer - used for choosing a random object from non-self player
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
 
 // Create `Return to lobby` button
 function createLobbyButton() {
@@ -38,6 +50,7 @@ function createConnectedPlayers() {
     return connectedPlayers;
 }
 
+// Create grid for game; 3x3 with board in middle.
 function createGameContainer(game) {
     const gameContainer = document.createElement('div');
     gameContainer.id = 'game-grid-container';
@@ -132,8 +145,10 @@ function removePlayers(players) {
             
             const containerID = '#' + playersConnected[i] + '-container'
 
-            // Remove player from DOM
-            remove(document.querySelector(containerID));
+            // Remove player from DOM - I believe this was incorrect; fixed below
+            // remove(document.querySelector(containerID));
+            document.querySelector(containerID).remove();
+
             
             console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} room.`);
             

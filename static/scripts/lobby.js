@@ -12,8 +12,8 @@ var currentRoom;
 // Global var chosenGame set in game.html - from flask session
 
 // Use for validation when creating new usernames / room names
-const nameValidation = '[a-zA-Z0-9_]{4,12}';  // Alphanumeric, underscores, len 3-12
-const roomNameValidation = '[a-zA-Z0-9_]{4,18}';  // Alphanumeric, underscores, len 3-18
+const nameValidation = '[a-zA-Z0-9_]{4,12}';  // Alphanumeric, underscores, len 4-12
+const roomNameValidation = '[a-zA-Z0-9_]{4,18}';  // Alphanumeric, underscores, len 4-18
 const roompwValidation = '^$|.{4,18}';  // Empty OR any string len 4-18
 const GAME_DISPLAY_NAMES = { 'thirty_one': '31', 'cribbage': 'Cribbage', 'natac': 'Natac' };
 
