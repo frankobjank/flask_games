@@ -71,8 +71,7 @@ rooms["Test_2"] = Room(
 )
 
 rooms["Test_3"] = Room(
-    name="Test_2", roompw=ws.generate_password_hash("llll"), 
-    game_name="cribbage", 
+    name="Test_3", roompw="", game_name="cribbage", 
     capacity=GAMES_TO_CAPACITY["cribbage"], date_created=int(time()), creator="Frankobjank"
 )
 

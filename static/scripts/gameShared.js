@@ -7,9 +7,10 @@ var playerOrder = [];
 var chatLogCount = 0;  // Number of entries in chat log
 let playersConnected = [];  // Keep track of player names connected
 
+// Create `Return to lobby` button
 function createLobbyButton() {
     const toLobby = document.createElement('button');
-    toLobby.className = 'room-nav btn btn-secondary';
+    toLobby.className = 'room-nav room-header btn btn-secondary';
     toLobby.id = 'return-lobby-button';
     toLobby.innerText = 'Return to Lobby';
     toLobby.onclick = () => {
@@ -17,6 +18,24 @@ function createLobbyButton() {
         leaveAndJoin(username, 'lobby');
     }
     return toLobby;
+}
+
+// Visual of players currently connected
+// Eventually will be used as a way to show players connected before creating player containers
+// Players will be assigned spots around the board when a new game is started instead of immediately when they join
+function createConnectedPlayers() {
+    const connectedPlayers = document.createElement('ul');
+    connectedPlayers.className = 'room-header';
+    connectedPlayers.id = 'connected-players-div';
+    for (const player of playersConnected) {
+        const playerLi = document.createElement('li');
+        playerLi.
+        playerLi.id = 'connected-players-' + player;
+        playerLi.innerText = player;
+        connectedPlayers.appendChild(playerLi);
+    }
+
+    return connectedPlayers;
 }
 
 function createGameContainer(game) {
@@ -70,7 +89,7 @@ function addPlayers(players, game) {
         // Check if player already in list
         if (!(playersConnected.includes(players[i]))) {
             playersConnected.push(players[i]);
-        }   
+        }
 
         // Create new player container if one does not exist
         if (document.querySelector('#' + players[i] + '-container') === null) {
@@ -167,6 +186,11 @@ function updateGameRoom(response) {
         
         // Add return to lobby button to header; must remove on leave
         document.querySelector('#sub-header-left').appendChild(createLobbyButton());
+        
+        // Keep track of players connected
+        // So that multiple lists are not needed to keep track, can update Connected Players panel
+        // Whenever playersConnected changes
+        document.querySelector('#sub-header-right').appendChild(createConnectedPlayers());
 
         /* Game container - contains board, players, controls */
         gameRoomContainer.appendChild(createGameContainer(response.game));
