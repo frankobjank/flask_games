@@ -1,4 +1,4 @@
-function createBoard() {
+function createBoardThirtyOne() {
 
     // Create div for board
     const board = document.createElement('div');
@@ -40,7 +40,10 @@ function createBoard() {
     return board;
 }
 
-function createMoveButtons() {
+function createMoveButtonsThirtyOne() {
+    // Create draw, pickup, and knock buttons
+        // + Continue Round and New Game buttons
+
     const moveButtonsContainer = document.createElement('div');
     moveButtonsContainer.id = 'move-button-container';
 
@@ -200,18 +203,11 @@ function createPlayerContainer(name) {
     playerContainer.appendChild(lives);
     playerContainer.appendChild(handScore);
 
-    // if (name === username) {
-
-    //     // Highlight self name and player info
-    //     playerContainer.style.color = 'purple';
-    // }
-
     return playerContainer;
 }
 
-// Populating hand with no animation
-function populateHandStatic(playerName, hand, hand_score, mode) {
-    // not sure why mode is no longer used
+// Populating hand with no animation; called in updateHandNoAnimation()
+function populateHandStatic(playerName, hand, hand_score) {
     
     const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
     
@@ -586,16 +582,17 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
     })
 }
 
+// Calls populateHandStatic() for front-facing cards; populates placeholders for back-facing cards
 function updateHandNoAnimation(playerName, playerIndex, response) {
     // Create front-facing hand for self, clickable
     if (username === playerName) {
-        populateHandStatic(playerName, response.hand, response.hand_score, response.mode);
+        populateHandStatic(playerName, response.hand, response.hand_score);
     }
 
     // Create front-facing hand for others on game end, not clickable
     // Using `else if` here implies playerName is not the self player
     else if (response.mode === 'end_round' || response.mode === 'end_game') {
-        populateHandStatic(playerName, response.final_hands[playerIndex], response.final_scores[playerIndex], response.mode);
+        populateHandStatic(playerName, response.final_hands[playerIndex], response.final_scores[playerIndex]);
     }
 
     // Create back-facing hand for others if not end of round / game
@@ -611,7 +608,6 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
             // Add dummy card to container
             const dummyContainer = document.createElement('div');
             dummyContainer.className = 'card-container dummy-container';
-            dummyCard
 
             dummyContainer.appendChild(dummyCard);
 
@@ -622,6 +618,7 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
     }
 }
 
+// Setting discard card for 31
 function updateDiscardNoAnimation(discardCard) {
     // Update discard - no animation
     

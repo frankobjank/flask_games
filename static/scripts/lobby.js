@@ -595,7 +595,7 @@ function updateLobby(response) {
         // Update page title
         document.querySelector('title').innerText = 'The Space: Lobby';
 
-        // Update header
+        // Update header - only time chosenGame var is used
         document.querySelector('#sub-header-center-h2').innerText = `Lobby - ${GAME_DISPLAY_NAMES[chosenGame]}`;
         
         // Create lobby container

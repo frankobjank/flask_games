@@ -8,6 +8,7 @@ const ANIMATION_DURATION = 1;
 // Game state
 let inProgress = false;
 var mode;
+var game;
 var currentPlayer;
 var discardCard;
 var playerOrder = [];
@@ -59,36 +60,35 @@ function createGameContainer(game) {
     // Create 3x3 grid for game container to add board and players to
     // Grid IDs are 1-indexed for easier visualization
     // Board will go in div 5 (2, 2), self in div 8 (2, 3), other spots filled as players are added
-    if (game === 'thirty_one') {
-        for (let col = 1; col < 4; col++) {
-            for (let row = 1; row < 4; row++) {
-                
-                const gridItem = document.createElement('div');
-                gridItem.className = 'game-grid';
-    
-                // Convert row and col to ID number, starting at 1 left->right and ending at 9
-                gridItem.id = 'game-grid-' + (row + ((col - 1) * 3));
-                
-                // Set row and column values
-                gridItem.style.gridArea = `${col} / ${row}`;
-
-                if (gridItem.id === 'game-grid-5') {
-                    // Create board and add to middle cell of grid
-                    gridItem.appendChild(createBoard());
-                    
-                    // Add move buttons after player panel so it appears at the bottom
-                    gridItem.appendChild(createMoveButtons());
-
-                }
-    
-                gameContainer.appendChild(gridItem);
-            }
+    for (let col = 1; col < 4; col++) {
+        for (let row = 1; row < 4; row++) {
+            
+            const gridItem = document.createElement('div');
+            gridItem.className = 'game-grid';
+            
+            // Convert row and col to ID number, starting at 1 left->right and ending at 9
+            gridItem.id = 'game-grid-' + (row + ((col - 1) * 3));
+            
+            // Set row and column values
+            gridItem.style.gridArea = `${col} / ${row}`;
+            
+            gameContainer.appendChild(gridItem);
         }
     }
 
-    if (game === 'cribbage') {
-        // Instead of numbered cells for grid, maybe use top, center, bottom,
-        // and left (for optional third player)
+    // Fill in grid depending on game
+    if (game === 'thirty_one') {
+        
+        // Create board and add to center of grid
+        document.querySelector('#game-grid-5').appendChild(createBoardThirtyOne());
+        
+        // Add move buttons to center of grid
+        document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
+    }
+    
+    else if (game === 'cribbage') {
+        // Put deck and crib in grid-4
+        document.querySelector('#game-grid-4').appendChild(createBoardCribbage());
     }
 
     return gameContainer;
@@ -184,6 +184,9 @@ function updateGameRoom(response) {
 
         // Update page title
         document.querySelector('title').innerText = `The Space: ${GAME_DISPLAY_NAMES[response.game]}`;
+        
+        // Save game name (thirty_one, cribbage, natac) in `game` var
+        game = response.game;
 
         // Update header (title of room)
         document.querySelector('#sub-header-center-h2').innerText = `${response.room} - ${GAME_DISPLAY_NAMES[response.game]}`;
