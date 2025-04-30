@@ -221,7 +221,7 @@ function populateHandStatic(playerName, hand, hand_score) {
         const cardObject = createCardObject(card);
 
         // Send server request on click
-        cardObject.addEventListener('click', handHandler);
+        cardObject.addEventListener('click', handHandlerThirtyOne);
 
         // Create a card container - div that encloses a playing card
         const cardContainer = document.createElement('div');
@@ -263,114 +263,6 @@ function setNewDiscard(cardStr) {
     newDiscard.addEventListener('click', discardHandler);
 
     return newDiscard;
-}
-
-// Animation of deck to player 
-    // If self, use card object && end face-up
-    // If other, use placeholder && end face-down
-function animateDraw(cardStr, player, handScore) {
-    
-    let card;
-    let cardContainer;
-
-    // Unknown card for non-self player
-    if (cardStr === 'unknown') {
-        card = createPlaceholderCard('unknown');
-        
-        // Create dummy card container
-        cardContainer = document.createElement('div');
-        cardContainer.className = 'card-container dummy-container';
-    }
-
-    // Known card for self player
-    else {
-        card = createCardObject(cardStr);
-        // Set card to face-up orientation
-        card.style.transform += `rotateY(180deg)`
-
-        // Create new card container
-        cardContainer = document.createElement('div');
-        cardContainer.className = 'card-container';
-        // Card.id = 'card-AS'
-        cardContainer.id = card.id + '-container'
-    }
-    
-    // Add card to card container
-    cardContainer.appendChild(card);
-
-    // Start hidden and become visible at end of animation
-    card.style.visibility = 'hidden';
-    
-    // Add card container to hand container of current player
-    document.querySelector('#' + player + '-hand-container').appendChild(cardContainer);
-
-    // Add handler as click listener event
-    card.addEventListener('click', handHandler);
-
-    // Get end positions by comparing deck and new card container
-
-    // Card will start at deck and move to hand
-    // Starting position
-    const deckRect = document.querySelector('#deck-container').getBoundingClientRect();
-
-    const cardRect = card.getBoundingClientRect()
-
-    // Calc movement distances - compare left and top
-    const deltaX = cardRect.left - deckRect.left
-    const deltaY = cardRect.top - deckRect.top
-
-    // Create a clone to animate
-    // this prevents having to actually move the original card
-    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
-    const clone = card.cloneNode(true);
-    clone.classList.add('clone');
-    // Change id of clone and any child nodes that have ids so no duplicate ids
-    // There won't be an id for a dummy card
-    if (clone.id) {
-        clone.id = 'clone-' + card.id;
-    }
-
-    // Card starts face-up by default; flip over to start face-down
-    clone.style.transform = `rotateY(180deg)`;
-    clone.style.visibility = 'visible';
-
-    // Add clone to DOM
-    document.body.appendChild(clone);
-    
-    // Start clone at deck location
-    clone.style.left = `${deckRect.left}px`;
-    clone.style.top = `${deckRect.top}px`;
-    clone.style.width = `${deckRect.width}px`;
-    clone.style.height = `${deckRect.height}px`;
-    clone.style.position = 'fixed';
-
-    // Clone animation
-
-    // Set animation object so `finish` event listener can be added
-    let animObject;
-
-    // Flip if for self
-    if (player === username) {
-        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'up'), ANIMATION_TIMING);
-    }
-    // Keep face-down for other
-    else {
-        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
-    }
-
-    // Add event listener to animObject to trigger on animation end
-    animObject.addEventListener('finish', () => {
-        // Reveal real card
-        card.style.visibility = 'visible';
-    
-        // Remove clone card
-        clone.remove();
-
-        // Update hand score if given
-        if (player === username) {
-            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
-        };
-    });
 }
 
 // Animating card from hand to discard
@@ -452,7 +344,7 @@ function animateToDiscard(player, cardStr, handScore) {
         clone.remove();
         
         // Remove original card container (and card) from hand
-        cardContainer.remove()
+        cardContainer.remove();
         
         // Update hand score if given
         if (player === username) {
@@ -461,6 +353,7 @@ function animateToDiscard(player, cardStr, handScore) {
     });
 }
 
+// Animating card from discard to hand
 function animatePickup(cardStr, player, replaceDiscard, handScore) {
     console.log(`animate pickup called; card = ${cardStr}`);
     
@@ -497,7 +390,7 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
     pickupCard.style.visibility = 'hidden';
 
     // Add handler for card in hand
-    pickupCard.addEventListener('click', handHandler);
+    pickupCard.addEventListener('click', handHandlerThirtyOne);
 
     // Add card to card container
     cardContainer.appendChild(pickupCard);
@@ -654,7 +547,7 @@ var deckHandler = function deckOnClick(event) {
 }
 
 // Set discard action for card in hand
-var handHandler = function handOnClick(event) {
+var handHandlerThirtyOne = function handOnClickThirtyOne(event) {
     
     // Disable input for card if end of round or non-self player
     if (mode === 'end_round' || mode === 'end_game') { // ||  username !== playerName) {
@@ -803,7 +696,7 @@ function updateThirtyOne(response) {
 
     // Fill log
     for (const msg of response.log) {
-        addToLog(msg, "system");
+        addToLog(msg, 'system');
     }
     
     // Disable knock button (for all) if there has been a knock

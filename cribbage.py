@@ -542,7 +542,7 @@ class State:
                 return "reject"
             
             # Discard move accepted; add to action log and adjust player hand / crib
-            # Pass in actual cards and hide if sending to non-self player
+            # Pass in actual cards and hide if sending to non-self player -- hidden during package_state()
             # Don't nede to unzip packet["cards"] because it is already in portable format
             self.action_log.append({"action": "discard", "player": packet["name"], "cards": [card for card in packet["cards"]], "num_to_discard": len(packet["cards"])})
             
@@ -582,7 +582,7 @@ class State:
                 print_and_log("You cannot exceed 31. Please choose another card.", self.players, packet["name"])
                 return "reject"
             
-            # 
+            # Action log to play a card
             self.action_log.append({"action": "play_card", "player": packet["name"], "cards": [played_card]})
 
             # Go will never be scored here - they will be determined automatically in mode_maintenance
@@ -720,7 +720,7 @@ class State:
             "played_cards": played_cards,  # list of dicts {"player": ..., "card": ...}
             "play_count": play_count,  # current count of the play
             "final_hands": final_hands,  # reveal all hands to all players
-            "final_scores": final_scores,  # reveal all scores to all players
+            # "final_scores": final_scores,  # reveal all scores to all players
 
             # Specific to player
             "recipient": player_name,

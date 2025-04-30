@@ -89,6 +89,9 @@ function createGameContainer(game) {
     else if (game === 'cribbage') {
         // Put deck and crib in grid-4
         document.querySelector('#game-grid-4').appendChild(createBoardCribbage());
+        
+        // Add move buttons to grid-4? or player's grid
+        document.querySelector('#game-grid-4').appendChild(createMoveButtonsCribbage());
     }
 
     return gameContainer;
@@ -284,4 +287,121 @@ function updateGameRoom(response) {
 
         }
     }
+}
+
+// Moved this from thirtyOne.js to gameShared.js since it can be reused in cribbage
+
+// Animation of deck to player 
+    // If self, use card object && end face-up
+    // If other, use placeholder && end face-down
+function animateDraw(cardStr, player, handScore=0) {
+
+    let card;
+    let cardContainer;
+
+    // Unknown card for non-self player
+    if (cardStr === 'unknown') {
+        card = createPlaceholderCard('unknown');
+        
+        // Create dummy card container
+        cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container dummy-container';
+    }
+
+    // Known card for self player
+    else {
+        card = createCardObject(cardStr);
+        // Set card to face-up orientation
+        card.style.transform += `rotateY(180deg)`
+
+        // Create new card container
+        cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container';
+        // Card.id = 'card-AS'
+        cardContainer.id = card.id + '-container'
+    }
+    
+    // Add card to card container
+    cardContainer.appendChild(card);
+
+    // Start hidden and become visible at end of animation
+    card.style.visibility = 'hidden';
+    
+    // Add card container to hand container of current player
+    document.querySelector('#' + player + '-hand-container').appendChild(cardContainer);
+
+    // Add handler as click listener event
+    if (game === 'thirty_one') {
+        card.addEventListener('click', handHandlerThirtyOne);
+    }
+    else if (game === 'cribbage') {
+        card.addEventListener('click', handHandlerCribbage);
+    }
+
+    // Get end positions by comparing deck and new card container
+
+    // Card will start at deck and move to hand
+    // Starting position
+    const deckRect = document.querySelector('#deck-container').getBoundingClientRect();
+
+    const cardRect = card.getBoundingClientRect()
+
+    // Calc movement distances - compare left and top
+    const deltaX = cardRect.left - deckRect.left
+    const deltaY = cardRect.top - deckRect.top
+
+    // Create a clone to animate
+    // this prevents having to actually move the original card
+    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
+    const clone = card.cloneNode(true);
+    clone.classList.add('clone');
+    // Change id of clone and any child nodes that have ids so no duplicate ids
+    // There won't be an id for a dummy card
+    if (clone.id) {
+        clone.id = 'clone-' + card.id;
+    }
+
+    // Card starts face-up by default; flip over to start face-down
+    clone.style.transform = `rotateY(180deg)`;
+    clone.style.visibility = 'visible';
+
+    // Add clone to DOM
+    document.body.appendChild(clone);
+    
+    // Start clone at deck location
+    clone.style.left = `${deckRect.left}px`;
+    clone.style.top = `${deckRect.top}px`;
+    clone.style.width = `${deckRect.width}px`;
+    clone.style.height = `${deckRect.height}px`;
+    clone.style.position = 'fixed';
+
+    // Clone animation
+
+    // Set animation object so `finish` event listener can be added
+    let animObject;
+
+    // Flip if for self
+    if (player === username) {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'up'), ANIMATION_TIMING);
+    }
+    // Keep face-down for other
+    else {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
+    }
+
+    // Add event listener to animObject to trigger on animation end
+    animObject.addEventListener('finish', () => {
+        // Reveal real card
+        card.style.visibility = 'visible';
+    
+        // Remove clone card
+        clone.remove();
+
+        // Update hand score if given (only for 31)
+        if (game === 'thirty_one') {
+            if (player === username && handScore > 0) {
+                document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+            };
+        }
+    });
 }
