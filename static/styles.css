@@ -405,8 +405,14 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     margin-right: 0.3rem;
 }
 
+/* thirtyOne 31 */
 .life-stars-container {
     color: rgb(192, 55, 64);
+}
+
+/* Cribbage */
+.staged-for-discard {
+    transform: translateY(-20%);
 }
 
 /* Visual marker for current player */

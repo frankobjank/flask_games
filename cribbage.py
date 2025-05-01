@@ -674,7 +674,7 @@ class State:
             # Send all hands if show
             if self.mode == "show":
                 # Scoring should appear in log - can also make graphic for scoring on front end
-                final_hands.append(zip_hand(self.players[p_name].hand))
+                final_hands.append([card.portable for card in self.players[p_name].hand])
         
         # Get num to discard outside of loop since only has to be for self
         if self.mode == "discard":
@@ -724,7 +724,7 @@ class State:
 
             # Specific to player
             "recipient": player_name,
-            "hand": self.players[player_name].zip_hand(),  # hand for self only
+            "hand": [card.portable for card in self.players[player_name].hand],  # hand for self only
             "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
             "log": self.players[player_name].log,  # new log msgs - split up for each player
             "action_log": custom_action_log,

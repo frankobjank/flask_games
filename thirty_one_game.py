@@ -500,7 +500,7 @@ class State:
             lives.append(self.players[p_name].lives)
 
             if self.mode == "end_round" or self.mode == "end_game":
-                final_hands.append(zip_hand(self.players[p_name].hand))
+                final_hands.append([card.portable for card in self.players[p_name].hand])
                 final_scores.append(self.calc_hand_score(self.players[p_name]))
 
         # Rebuild action log so it can be customized for each player
@@ -542,7 +542,7 @@ class State:
 
             # Specific to player
             "recipient": player_name,
-            "hand": zip_hand(self.players[player_name].hand),  # hand for self only
+            "hand": [card.portable for card in self.players[player_name].hand],  # hand for self only
             "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
             "log": self.players[player_name].log,  # new log msgs - split up for each player
             "action_log": custom_action_log,  # list of dicts for client animation

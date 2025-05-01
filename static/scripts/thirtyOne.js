@@ -593,7 +593,7 @@ function updateThirtyOne(response) {
     
     // # Specific to player
     // "recipient": player_name,
-    // "hand": self.players[player_name].zip_hand(),  # hand for self only
+    // "hand": [card.portable for card in self.players[player_name].hand],  # hand for self only
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
     // "action_log": list of action log dicts for animation - 

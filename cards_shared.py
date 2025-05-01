@@ -81,15 +81,6 @@ def sort_hand(hand: list[Card]) -> list[Card]:
     return sorted(sorted(hand, key=attrgetter("suit"), reverse=True), key=attrgetter("value"), reverse=True)
 
 
-def zip_hand(hand: list[Card]) -> list[str]:
-    """Convert hand to portable strings to send to client."""
-    
-    cards = []
-    for c in hand:
-        cards.append(c.zip_card())
-    
-    return cards
-
 # Previously part of State class methods
 def shuffle_deck(deck: Deck) -> list[Card]:
     cards_to_add = deck.unshuffled_cards.copy()

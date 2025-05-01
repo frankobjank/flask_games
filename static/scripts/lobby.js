@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Can use same one for every modal since it covers whole screen
 const modalOverlay = document.createElement('div');
 modalOverlay.id = 'modal-overlay';
+
 // Allows user to click outside of modal to close it
 modalOverlay.onclick = () => {
     const modals = document.querySelectorAll('.modal.active');
@@ -126,8 +127,8 @@ function createUsernameModal() {
     return usernameModal;
 }
 
-const usernameModal = createUsernameModal();
-document.querySelector('body').appendChild(usernameModal);
+// Add username modal to document
+document.querySelector('body').appendChild(createUsernameModal());
 
 function setUsernameOnclick(roomToJoin) {
 
@@ -293,8 +294,7 @@ function createPasswordModal() {
     return passwordModal;
 }
 
-const passwordModal = createPasswordModal();
-document.querySelector('body').appendChild(passwordModal);
+document.querySelector('body').appendChild(createPasswordModal());
 
 function setPasswordOnclick(roomToJoin) {
 
@@ -325,6 +325,42 @@ function setPasswordOnclick(roomToJoin) {
     };
 }    
 
+function createRulesModal() {
+
+    const rulesModal = document.createElement('div');
+    rulesModal.className = 'modal game-rules';
+    rulesModal.id = 'rules-modal';
+    
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'modal-header game-rules';
+    
+    const modalTitle = document.createElement('div');
+    modalTitle.className = 'modal-title game-rules';
+    modalTitle.id = 'rules-modal-title';
+    modalTitle.innerText = 'Rules';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'modal-close-button game-rules';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = () => {
+        closeModal(rulesModal);
+    }
+
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeButton);
+    
+    const modalBody = document.createElement('div');
+    modalBody.className = 'modal-body game-rules mt-3 mb-3';
+    modalBody.id = 'rules-modal-body';
+    // Add rules to body according to game
+    
+    rulesModal.appendChild(modalHeader);
+    rulesModal.appendChild(modalBody);
+    
+    return rulesModal;
+}
+
+document.querySelector('body').appendChild(createRulesModal())
 
 
 // Include (for addRooms()):

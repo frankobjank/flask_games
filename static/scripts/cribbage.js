@@ -45,7 +45,7 @@ function createMoveButtonsCribbage() {
     const discardConfirm = document.createElement('button');
     discardConfirm.className = 'move-button';
     discardConfirm.id = 'discard-confirm-button';
-    discardConfirm.innerText = 'Confirm discard';
+    discardConfirm.innerText = 'Discard to crib';
     
     discardConfirm.onclick = () => {
         // Get all cards staged for discard
@@ -167,7 +167,7 @@ function updateCribbage(response) {
 
     // # Specific to player
     // "recipient": player_name,
-    // "hand": self.players[player_name].zip_hand(),  # hand for self only
+    // "hand": [card.portable for card in self.players[player_name].hand],  # hand for self only
     // "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
     // "log": self.players[player_name].log,  # new log msgs - split up for each player
     // "action_log": custom_action_log,
@@ -238,8 +238,8 @@ function updateCribbage(response) {
 
         // Create animateToCrib - turns all cards face-down and put in crib container
         else if (actionObject.action === 'discard') {
+            // REMEMBER TO UNSTAGE ALL CARDS AFTER CARDS ARE DISCARDED, disallow staging cards, and hide discard button
             animateToCrib(actionObject.player, actionObject.cards, actionObject.num_to_discard);
-            // REMEMBER TO UNSTAGE ALL CARDS AFTER CARDS ARE DISCARDED, and disallow 
         }
 
         // Create animateFlip - flip up a card in place

@@ -33,6 +33,21 @@ function createLobbyButton() {
     return toLobby;
 }
 
+// Create `Rules` button to pull up the rules modal
+function createRulesButton() {
+    const rules = document.createElement('button');
+    rules.className = 'room-nav room-header btn btn-secondary';
+    rules.id = 'rules-button';
+    rules.innerText = 'Rules';
+    rules.onclick = () => {
+
+        // Open rules modal
+        openModal(document.querySelector('#rules-modal'));
+    }
+
+    return rules;
+}
+
 // Visual of players currently connected
 // Eventually will be used as a way to show players connected before creating player containers
 // Players will be assigned spots around the board when a new game is started instead of immediately when they join
@@ -52,7 +67,7 @@ function createConnectedPlayers() {
 }
 
 // Create grid for game; 3x3 with board in middle.
-function createGameContainer(game) {
+function createGameContainer() {
     const gameContainer = document.createElement('div');
     gameContainer.id = 'game-grid-container';
 
@@ -71,31 +86,15 @@ function createGameContainer(game) {
             
             // Set row and column values
             gridItem.style.gridArea = `${col} / ${row}`;
-            
+
             gameContainer.appendChild(gridItem);
         }
     }
 
-    // Fill in grid depending on game
-    if (game === 'thirty_one') {
-        
-        // Create board and add to center of grid
-        document.querySelector('#game-grid-5').appendChild(createBoardThirtyOne());
-        
-        // Add move buttons to center of grid
-        document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
-    }
-    
-    else if (game === 'cribbage') {
-        // Put deck and crib in grid-4
-        document.querySelector('#game-grid-4').appendChild(createBoardCribbage());
-        
-        // Add move buttons to grid-4? or player's grid
-        document.querySelector('#game-grid-4').appendChild(createMoveButtonsCribbage());
-    }
-
     return gameContainer;
 }
+
+
 
 function addPlayers(players, game) {
 
@@ -134,7 +133,6 @@ function addPlayers(players, game) {
             document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
         }
     }
-
 }
 
 // Opposite of addPlayers
@@ -148,18 +146,15 @@ function removePlayers(players) {
             
             const containerID = '#' + playersConnected[i] + '-container'
 
-            // Remove player from DOM - I believe this was incorrect; fixed below
-            // remove(document.querySelector(containerID));
+            // Remove player container from DOM
             document.querySelector(containerID).remove();
 
-            
-            console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} room.`);
+            console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} from room.`);
             
             // Remove player from local list
             playersConnected.splice(i, 1);
         }
     }
-
 }
 
 // Mostly same across games; change will probably be with board
@@ -211,10 +206,34 @@ function updateGameRoom(response) {
         // Keep track of players connected
         // So that multiple lists are not needed to keep track, can update Connected Players panel
         // Whenever playersConnected changes
-        document.querySelector('#sub-header-right').appendChild(createConnectedPlayers());
+        // document.querySelector('#sub-header-right').appendChild(createConnectedPlayers());
+        document.querySelector('#sub-header-right').appendChild(createRulesButton());
+
+        // Update rules modal according to game
+        document.querySelector('#rules-modal-title').innerText = `Rules of ${GAME_DISPLAY_NAMES[response.game]}`;
+        document.querySelector('#rules-modal-body').innerText = `${RULES[response.game]}`;
 
         /* Game container - contains board, players, controls */
-        gameRoomContainer.appendChild(createGameContainer(response.game));
+        gameRoomContainer.appendChild(createGameContainer());
+
+        // Fill in game container depending on game
+        if (response.game === 'thirty_one') {
+            
+            // Create board and add to center of grid
+            document.querySelector('#game-grid-5').appendChild(createBoardThirtyOne());
+            
+            // Add move buttons to center of grid
+            document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
+        }
+        
+        else if (response.game === 'cribbage') {
+            // Put deck and crib in grid-4
+            document.querySelector('#game-grid-4').appendChild(createBoardCribbage());
+            
+            // Add move buttons to grid-4? or player's grid
+            document.querySelector('#game-grid-4').appendChild(createMoveButtonsCribbage());
+        }
+
         
         /* End of game container */
         
@@ -250,8 +269,7 @@ function updateGameRoom(response) {
         discardCard = '';
         playerOrder = [];
         playersConnected = [];
-        mode = '';
-        
+        mode = '';        
     }
 
     // Add players to player panel on join
@@ -404,4 +422,13 @@ function animateDraw(cardStr, player, handScore=0) {
             };
         }
     });
+}
+
+// Rules for each game
+const RULES = {
+    'thirty_one': 
+    'Each turn, a player must either draw a card from the deck or pick up a card from the discard pile. The player must then discard a card to the discard pile, thereby maintaining 3 cards in their hand at all times. The goal of the game is to not be caught with the lowest score. Your score is the highest combination of cards in your hand that are of the same suit. Face cards are all worth 10 points and aces are worth 11 points. The highest possible score is 31. If a player achieves this score, they "blitz" and the round ends immediately. All other players lose an extra life. If you think you have more points than at least one other player, you can "knock". When a player knocks, all other players get one more draw, and then everyone reveals their cards. The player with the lowest score loses an extra life. If the player who knocked has the lowest score, they lose 2 extra lives. A player is knocked out of the game when they lose a life after losing all of their extra lives. The last remaining player wins the game.',
+    
+    'cribbage':
+    'cribbage rules to come',
 }
