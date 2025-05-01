@@ -109,22 +109,15 @@ function addPlayers(players, game) {
         // Create new player container if one does not exist
         if (document.querySelector('#' + players[i] + '-container') === null) {
             
-            // Check game and place players according to game
-            if (game === 'thirty_one') {
-                // Can check for first empty game container
-                // Loop to check for empty grid spaces: check if grid has children or not
-                for (let j = 1; j < 10; j++) {
-                    
-                    // If grid space does not have child nodes, append new player container
-                    if (!document.querySelector('#game-grid-' + j).hasChildNodes()) {
-                        document.querySelector('#game-grid-' + j).appendChild(createPlayerContainer(players[i]));
-                        break;
-                    }
+            // Add player container to first free grid spot; will move at game start
+            // Loop to check for empty grid spaces: check if grid has children or not
+            for (let j = 1; j < 10; j++) {
+                
+                // If grid space does not have child nodes, append new player container
+                if (!document.querySelector('#game-grid-' + j).hasChildNodes()) {
+                    document.querySelector('#game-grid-' + j).appendChild(createPlayerContainer(players[i]));
+                    break;
                 }
-            }
-
-            else if (game === 'cribbage') {
-                // Add to bottom if self, top if 2nd, left if third
             }
         }
 
@@ -306,6 +299,61 @@ function updateGameRoom(response) {
         }
     }
 }
+
+// Moving player containers around the board on game start
+function movePlayers(playerOrder) {
+    // Grids that should be filled according to number of players, starting with self (8)
+    let gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
+
+    // Order to fill in the grids if they are present so that players are always in clockwise order
+    const priorityOrder = [8, 7, 4, 1, 2, 3, 6, 9];
+
+    // Get index for self in player order
+    const selfIndex = playerOrder.indexOf(username);
+
+    // Ex: playerOrder = [P1, me, P3]
+    // Need to fill in 8: me, 2: P3, 6: P1
+
+    // Associate array linking player to order and number
+    let playerContainers = [];
+
+    // Iterate through player order starting at self index
+    for (let i = selfIndex; i < playerOrder.length + selfIndex; i++) {
+        
+        // Since i will overflow length, use modulo for accessing array
+        let modIndex = selfIndex % playerOrder.length
+
+        let playerContainer = document.querySelector('#' + playerOrder[modIndex] + '-container');
+        
+        // Check if player container exists
+        if (playerContainer !== null) {
+            
+            // Remove with removeChild from parentElement (grid) so that it can be returned. 
+            playerContainers.push(playerContainer.parentElement.removeChild(playerContainer));
+        }
+
+        // Container does not exist
+        else {
+            console.log(`Cannot move ${playerOrder[modIndex]}; container does not exist.`)
+        }
+    }
+
+    // Fill in grid numbers according to 'gridsToFill', in order of 'priorityOrder'
+    for (let j = 0; j < priorityOrder.length; j++) {
+        
+        // Iterate through 'priorityOrder' and check if number is in 'gridsToFill'
+        if (j in gridsToFill) {
+            
+            // Elements in playerContainers have already been ordered
+            // Add container to the grid that appeared in both priorityOrder and gridsToFill
+            // Use shift as opposite of pop - remove and return first element
+            document.querySelector('#game-grid-' + priorityOrder[j]).appendChild(playerContainers.shift());
+        }
+    }
+    // Elements should now be in order with self at the bottom and other players filled in around the board
+}
+
+// Animations/ general game functions
 
 // Moved this from thirtyOne.js to gameShared.js since it can be reused in cribbage
 
