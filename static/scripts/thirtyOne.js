@@ -150,7 +150,7 @@ function createMoveButtonsThirtyOne() {
     return moveButtonsContainer;
 }
 
-function createPlayerContainer(name) {
+function createPlayerContainerThirtyOne(name) {
     
     /* Structure:
         Name ( - knocked)?
@@ -617,6 +617,27 @@ function updateThirtyOne(response) {
     // Unpack for players still in the game 
     playerOrder = response.player_order;
 
+    // Check if game is in progress; create player containers if they don't exist
+    if (inProgress) {
+
+        let missingContainers = []
+
+        // Iterate through player order to see if there are any missing players
+        for (let p = 0; p < playerOrder.length; p++) {
+            if (playerOrder[p])
+        }
+        // Self player container doesn't exist; create player containers
+        if (document.querySelector('#' + username + '-container') === null) {
+
+        }
+
+        // Self container does exist; check if number of player containers = playerOrder
+        else {
+
+        }
+    }
+
+    // Iterate through action log
     for (actionObject of response.action_log) {
 
         // May need to make multiple actions async so they don't happen simultaneously

@@ -52,14 +52,18 @@ function createRulesButton() {
 // Eventually will be used as a way to show players connected before creating player containers
 // Players will be assigned spots around the board when a new game is started instead of immediately when they join
 function createConnectedPlayers() {
+
     const connectedPlayers = document.createElement('ul');
     connectedPlayers.className = 'room-header';
     connectedPlayers.id = 'connected-players-div';
+
     for (const player of playersConnected) {
+
         const playerLi = document.createElement('li');
-        playerLi.
+        playerLi.className = 'connected-players-li';
         playerLi.id = 'connected-players-' + player;
         playerLi.innerText = player;
+
         connectedPlayers.appendChild(playerLi);
     }
 
@@ -96,7 +100,7 @@ function createGameContainer() {
 
 
 
-function addPlayers(players, game) {
+function addPlayers(players) {
 
     // Save player list
     for (let i = 0; i < players.length; i++) {
@@ -105,27 +109,28 @@ function addPlayers(players, game) {
         if (!(playersConnected.includes(players[i]))) {
             playersConnected.push(players[i]);
         }
-
-        // Create new player container if one does not exist
-        if (document.querySelector('#' + players[i] + '-container') === null) {
-            
-            // Add player container to first free grid spot; will move at game start
-            // Loop to check for empty grid spaces: check if grid has children or not
-            for (let j = 1; j < 10; j++) {
+        
+        // Hold off on creating player container until game start
+        // // Create new player container if one does not exist
+        // if (document.querySelector('#' + players[i] + '-container') === null) { 
+        
+        //     // Add player container to first free grid spot; will move at game start
+        //     // Loop to check for empty grid spaces: check if grid has children or not
+        //     for (let j = 1; j < 10; j++) {
                 
-                // If grid space does not have child nodes, append new player container
-                if (!document.querySelector('#game-grid-' + j).hasChildNodes()) {
-                    document.querySelector('#game-grid-' + j).appendChild(createPlayerContainer(players[i]));
-                    break;
-                }
-            }
-        }
+        //         // If grid space does not have child nodes, append new player container
+        //         if (!document.querySelector('#game-grid-' + j).hasChildNodes()) {
+        //             document.querySelector('#game-grid-' + j).appendChild(createPlayerContainer(players[i]));
+        //             break;
+        //         }
+        //     }
+        // }
 
-        // Container exists already; set `connected` to True
-        else {
+        // Container exists; set `connected` to True
+        if (document.querySelector('#' + players[i] + '-container') !== null) {
             document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
         }
-    }
+    }   
 }
 
 // Opposite of addPlayers
@@ -197,9 +202,6 @@ function updateGameRoom(response) {
         document.querySelector('#sub-header-left').appendChild(createLobbyButton());
         
         // Keep track of players connected
-        // So that multiple lists are not needed to keep track, can update Connected Players panel
-        // Whenever playersConnected changes
-        // document.querySelector('#sub-header-right').appendChild(createConnectedPlayers());
         document.querySelector('#sub-header-right').appendChild(createRulesButton());
 
         // Update rules modal according to game
@@ -208,6 +210,10 @@ function updateGameRoom(response) {
 
         /* Game container - contains board, players, controls */
         gameRoomContainer.appendChild(createGameContainer());
+
+        // So that multiple lists are not needed to keep track, can update Connected Players panel
+        // Whenever playersConnected changes
+        // document.querySelector('#game-grid-2').appendChild(createConnectedPlayers());
 
         // Fill in game container depending on game
         if (response.game === 'thirty_one') {
@@ -267,7 +273,7 @@ function updateGameRoom(response) {
 
     // Add players to player panel on join
     else if (response.action === 'add_players') {
-        addPlayers(response.players, response.game);
+        addPlayers(response.players);
     }
     
     // Remove players on leave
@@ -303,7 +309,7 @@ function updateGameRoom(response) {
 // Moving player containers around the board on game start
 function movePlayers(playerOrder) {
     // Grids that should be filled according to number of players, starting with self (8)
-    let gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
+    const gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
 
     // Order to fill in the grids if they are present so that players are always in clockwise order
     const priorityOrder = [8, 7, 4, 1, 2, 3, 6, 9];

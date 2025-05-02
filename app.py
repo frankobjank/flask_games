@@ -496,6 +496,7 @@ def on_join(data):
     # Log msg that player has joined
     fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "system",
              "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+    
 
     
     # Send updated player count to anyone remaining in lobby
@@ -509,12 +510,18 @@ def on_join(data):
     # If game doesn't exist or game is not in progress, add only players who are connected
     # TODO Check special cases, i.e. new games with different players in same room
     if not game or not game.in_progress:
-        print(f"Sending update room to {data['room']} to add {list((user.name for user in rooms[data['room']].users if user.connected))}")
+        
+        connected_users = [user.name for user in rooms[data['room']].users if user.connected]
+        
+        # List all players in room for client
+        fio.emit("chat_log", {"msg": f"Users in room: {connected_users}.", "sender": "system",
+                "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+        
+        print(f"Sending update room to {data['room']} to add {connected_users}")
 
         # Send updated list of players to others in room
         fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-                 "game": rooms[data["room"]].game_name,
-                 "players": list(user.name for user in rooms[data["room"]].users if user.connected)},
+                 "game": rooms[data["room"]].game_name, "players": connected_users},
                  room=data["room"], broadcast=True)
     
     # If game does exist, add ALL players in game on reconnect
@@ -605,7 +612,11 @@ def on_leave(data):
     # Remove leaving player from list of players
     if not rooms[data["room"]].game or (rooms[data["room"]].game 
                                         and not rooms[data["room"]].game.in_progress):
-        
+
+        # List all players in room for client
+        fio.emit("chat_log", {"msg": f"Users in room: {[user.name for user in rooms[data['room']].users if user.connected]}.",
+                 "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"], broadcast=True)
+
         # Remove all non-connected players
         # Broadbast = True since notification should go to all other players in room
         fio.emit("update_gameroom", {"action": "remove_players", "room": data["room"],
