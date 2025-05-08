@@ -361,7 +361,8 @@ function movePlayers(playerOrder) {
     // Elements should now be in order with self at the bottom and other players filled in around the board
 }
 
-function fillPlayerGrid(playerOrder) {
+// Determine where player containers should go in game grid
+function fillPlayerGrid(playerOrder, gameName) {
     // Grids that should be filled according to number of players, starting with self (8)
     const gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
 
@@ -525,7 +526,7 @@ function animateDraw(cardStr, player, handScore=0) {
 // Rules for each game
 const RULES = {
     'thirty_one': 
-    'Each turn, a player must either draw a card from the deck or pick up a card from the discard pile. The player must then discard a card to the discard pile, thereby maintaining 3 cards in their hand at all times. The goal of the game is to not be caught with the lowest score. Your score is the highest combination of cards in your hand that are of the same suit. Face cards are all worth 10 points and aces are worth 11 points. The highest possible score is 31. If a player achieves this score, they "blitz" and the round ends immediately. All other players lose an extra life. If you think you have more points than at least one other player, you can "knock". When a player knocks, all other players get one more draw, and then everyone reveals their cards. The player with the lowest score loses an extra life. If the player who knocked has the lowest score, they lose 2 extra lives. A player is knocked out of the game when they lose a life after losing all of their extra lives. The last remaining player wins the game.',
+    "Each turn, a player must either draw a card from the deck, pick up a card from the discard pile. The player must then discard a card to the discard pile, thereby maintaining 3 cards in their hand at all times. A player can also 'knock' on their turn. The knock marks the end of the round. The player who knocks does not draw or discard a card the turn that they knock. When a player knocks, all other players get one more turn, and then everyone reveals their cards. The player with the lowest score loses an extra life (denoted by the stars below a player's name). If the player who knocked has the lowest score, they lose 2 extra lives. Each player starts with three extra lives, and a player is kicked out of the game after losing four lives.  The last remaining player wins the game.\nA player's hand score is the highest combination of cards in their hand that are of the same suit. Face cards are all worth 10 points and aces are worth 11 points. The highest possible score is 31. If a player achieves this score, they 'blitz' and the round ends immediately, and all other players lose an extra life.",
     
     'cribbage':
     'cribbage rules to come',

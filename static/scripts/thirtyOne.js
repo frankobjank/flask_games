@@ -150,7 +150,7 @@ function createMoveButtonsThirtyOne() {
     return moveButtonsContainer;
 }
 
-function createPlayerContainerThirtyOne(name) {
+function createPlayerContainerThirtyOne(name, order, gridNumber) {
     
     /* Structure:
         Name ( - knocked)?
@@ -202,6 +202,10 @@ function createPlayerContainerThirtyOne(name) {
     // Text displays beneath cards
     playerContainer.appendChild(lives);
     playerContainer.appendChild(handScore);
+
+    // Set order and grid number in dataset
+    playerContainer.dataset.order = order;
+    playerContainer.dataset.gridNumber = gridNumber;
 
     return playerContainer;
 }
@@ -610,18 +614,23 @@ function updateThirtyOne(response) {
         return;
     }
     
-    // UPDATE CARDS FIRST so animation will be completed before rest of update
-    // Run animation depending on response.action
-    // The rest of the update will not wait until end of animation - must include all updates to cards 
-
     // Unpack for players still in the game 
     playerOrder = response.player_order;
 
+    // Create player containers if any are missing
     // Check if game is in progress; create player containers if they don't exist
     if (inProgress) {
 
-        let missingContainers = []
+        
+        // Create new player containers if there is mismatch in length between
+        // playerOrder and number of player containers - this may not be sufficient
+        // check because on new game with same number of players there could be a new
+        // order. Complete check would check all player names and see if they were in
+        // the right order. Would run fillPlayerGrid to determine if player container
+        // needs to be created or not
+        if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
 
+        }
         // Iterate through player order to see if there are any missing players
         for (let p = 0; p < playerOrder.length; p++) {
             if (playerOrder[p])
@@ -636,6 +645,11 @@ function updateThirtyOne(response) {
 
         }
     }
+
+
+    // UPDATE CARDS before the rest of game state so animations can happen first
+    // Run animation depending on response.action
+    // The rest of the update will not wait until end of animation - must include all updates to cards 
 
     // Iterate through action log
     for (actionObject of response.action_log) {
@@ -788,11 +802,10 @@ function updateThirtyOne(response) {
         // Once player array is populated, add to player panel display or dataset
         const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
 
-        // Update order
-        playerContainer.dataset.order = i;
+        // Update order --- commenting out as this should be set when container is created in createPlayerContainerThirtyOne
+        // playerContainer.dataset.order = i;
         
         // Update lives
-    
         // If not knocked out, set number of extra lives
         document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
         playerContainer.dataset.lives = response.lives[i];
