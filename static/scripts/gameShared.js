@@ -99,7 +99,6 @@ function createGameContainer() {
 }
 
 
-
 function addPlayers(players) {
 
     // Save player list
@@ -110,7 +109,7 @@ function addPlayers(players) {
             playersConnected.push(players[i]);
         }
         
-        // Hold off on creating player container until game start
+        // Commented out --- Hold off on creating player container until game start
         // // Create new player container if one does not exist
         // if (document.querySelector('#' + players[i] + '-container') === null) { 
         
@@ -142,12 +141,13 @@ function removePlayers(players) {
         // Check if player already in list
         if ((players.includes(playersConnected[i]))) {
             
-            const containerID = '#' + playersConnected[i] + '-container'
+            // Commenting out removing container --- containers will be created during game and not here
+            // const containerID = '#' + playersConnected[i] + '-container'
 
-            // Remove player container from DOM
-            document.querySelector(containerID).remove();
+            // // Remove player container from DOM
+            // document.querySelector(containerID).remove();
 
-            console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} from room.`);
+            // console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} from room.`);
             
             // Remove player from local list
             playersConnected.splice(i, 1);
@@ -306,6 +306,8 @@ function updateGameRoom(response) {
     }
 }
 
+// Changing this to fillPlayerGrid where it will create player containers
+    // instead of move existing ones
 // Moving player containers around the board on game start
 function movePlayers(playerOrder) {
     // Grids that should be filled according to number of players, starting with self (8)
@@ -358,6 +360,48 @@ function movePlayers(playerOrder) {
     }
     // Elements should now be in order with self at the bottom and other players filled in around the board
 }
+
+function fillPlayerGrid(playerOrder) {
+    // Grids that should be filled according to number of players, starting with self (8)
+    const gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
+
+    // Order to fill in the grids if they are present so that players are always in clockwise order
+    const priorityOrder = [8, 7, 4, 1, 2, 3, 6, 9];
+
+    // Get index for self in player order
+    const selfIndex = playerOrder.indexOf(username);
+
+    // Ex: playerOrder = [P1, me, P3]
+    // Need to fill in 8: me, 2: P3, 6: P1
+
+    let newOrder = [];
+
+    // Iterate through player order starting at self index
+    for (let i = selfIndex; i < playerOrder.length + selfIndex; i++) {
+        // Since i will overflow length, use modulo for accessing array
+        let modIndex = i % playerOrder.length;
+
+        // console.log(
+        //   `i = ${i}; self index = ${selfIndex} modIndex = ${modIndex}; Player ${playerOrder[modIndex]}`
+        // );
+        newOrder.push(playerOrder[modIndex]);
+    }
+    console.log(gridsToFill);
+    // Fill in grid numbers according to 'gridsToFill', in order of 'priorityOrder'
+    for (let j = 0; j < priorityOrder.length; j++) {
+        // Iterate through 'priorityOrder' and check if number is in 'gridsToFill'
+        if (gridsToFill.includes(priorityOrder[j])) {
+            console.log(`Priority Order = ${priorityOrder[j]}`);
+            // Get player index from the index that priorityOrder[j] appears in gridsToFill
+            let playerIndex = gridsToFill.indexOf(priorityOrder[j]);
+            console.log(
+                `Player ${newOrder[playerIndex]} should go in grid ${priorityOrder[j]}`
+            );
+        }
+    }
+    // Elements should now be in order with self at the bottom and other players filled in around the board
+}
+
 
 // Animations/ general game functions
 
