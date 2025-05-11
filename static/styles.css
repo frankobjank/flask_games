@@ -219,6 +219,11 @@ footer {
     align-items: center;
 }
 
+/* For rules modal, change display from flex to block */
+#rules-modal-body {
+    display: block;
+}
+
 /* Override bootstrap border for modal footers */
 .modal-footer {
     border: none;

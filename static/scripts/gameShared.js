@@ -155,6 +155,25 @@ function removePlayers(players) {
     }
 }
 
+// Update rules modal depending on game
+function updateRuleModal(game) {
+    // Update modal title
+    document.querySelector('#rules-modal-title').innerText = `Rules of ${GAME_DISPLAY_NAMES[game]}`;
+    
+    // Rules is one big string containing newlines at breaks. Split string by newline for display
+    const rulesSplit = RULES[game].split('\n');
+    
+    for (let i = 0; i < rulesSplit.length; i++) {
+        let p = document.createElement('p');
+        p.className = 'rules-modal-p';
+        p.innerText = rulesSplit[i];
+        
+        // Update modal body
+        document.querySelector('#rules-modal-body').appendChild(p);
+    }
+
+}
+
 // Mostly same across games; change will probably be with board
 function updateGameRoom(response) {
     if (response === undefined) {
@@ -205,8 +224,7 @@ function updateGameRoom(response) {
         document.querySelector('#sub-header-right').appendChild(createRulesButton());
 
         // Update rules modal according to game
-        document.querySelector('#rules-modal-title').innerText = `Rules of ${GAME_DISPLAY_NAMES[response.game]}`;
-        document.querySelector('#rules-modal-body').innerText = `${RULES[response.game]}`;
+        updateRuleModal(response.game);
 
         /* Game container - contains board, players, controls */
         gameRoomContainer.appendChild(createGameContainer());
@@ -551,8 +569,24 @@ function animateDraw(cardStr, player, handScore=0) {
 
 // Rules for each game
 const RULES = {
-    'thirty_one': 
-    "Each turn, a player must either draw a card from the deck, pick up a card from the discard pile. The player must then discard a card to the discard pile, thereby maintaining 3 cards in their hand at all times. A player can also 'knock' on their turn. The knock marks the end of the round. The player who knocks does not draw or discard a card the turn that they knock. When a player knocks, all other players get one more turn, and then everyone reveals their cards. The player with the lowest score loses an extra life (denoted by the stars below a player's name). If the player who knocked has the lowest score, they lose 2 extra lives. Each player starts with three extra lives, and a player is kicked out of the game after losing four lives.  The last remaining player wins the game.\nA player's hand score is the highest combination of cards in their hand that are of the same suit. Face cards are all worth 10 points and aces are worth 11 points. The highest possible score is 31. If a player achieves this score, they 'blitz' and the round ends immediately, and all other players lose an extra life.",
+    'thirty_one':
+    "Each turn, a player must either draw a card from the deck or pick up a card from the discard pile. \
+    The player must then discard a card to the discard pile, so that they always have 3 cards in their \
+    hand at the end of their turn.\
+    \n\
+    A player's hand score is the highest combination of cards in their hand that are of the same suit. \
+    Face cards are all worth 10 points and aces are worth 11 points. The highest possible score is 31. \
+    If a player achieves this score, they 'blitz' and the round ends immediately, and all other players \
+    lose an extra life.\
+    \n\
+    A player can also 'knock' on their turn instead of picking up a card, triggering the end of a round. \
+    The player who knocks does not draw or discard a card the turn that they knock. All other players get \
+    one more turn, and then everyone reveals their cards. The player with the lowest score loses an extra \
+    life (represented by the stars below the player's name). If the player who knocked has the lowest score, \
+    they lose 2 extra lives.\
+    \n\
+    Each player starts with three extra lives, and a player is kicked out of the game after losing all extra \
+    lives, plus one additional life. The last remaining player wins the game.",
     
     'cribbage':
     'cribbage rules to come',
