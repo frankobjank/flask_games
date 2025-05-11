@@ -242,14 +242,6 @@ function updateGameRoom(response) {
             // Add move buttons to center of grid
             document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
         }
-        
-        else if (response.game === 'cribbage') {
-            // Put deck and crib in grid-4
-            document.querySelector('#game-grid-4').appendChild(createBoardCribbage());
-            
-            // Add move buttons to grid-4? or player's grid
-            document.querySelector('#game-grid-4').appendChild(createMoveButtonsCribbage());
-        }
 
         
         /* End of game container */
@@ -434,11 +426,6 @@ function fillPlayerGrid(playerOrder, gameName) {
                     newOrder[playerIndex], playerOrder.indexOf(newOrder[playerIndex]), priorityOrder[j]
                 );
             }
-            else if (gameName === 'cribbage') {
-                playerContainer = createPlayerContainerCribbage(
-                    newOrder[playerIndex], playerOrder.indexOf(newOrder[playerIndex]), priorityOrder[j]
-                );
-            }
 
             // Add player container to grid
             document.querySelector('#game-grid-' + priorityOrder[j]).appendChild(playerContainer);
@@ -494,9 +481,6 @@ function animateDraw(cardStr, player, handScore=0) {
     // Add handler as click listener event
     if (game === 'thirty_one') {
         card.addEventListener('click', handHandlerThirtyOne);
-    }
-    else if (game === 'cribbage') {
-        card.addEventListener('click', handHandlerCribbage);
     }
 
     // Get end positions by comparing deck and new card container
@@ -587,7 +571,5 @@ const RULES = {
     \n\
     Each player starts with three extra lives, and a player is kicked out of the game after losing all extra \
     lives, plus one additional life. The last remaining player wins the game.",
-    
-    'cribbage':
-    'cribbage rules to come',
+
 }

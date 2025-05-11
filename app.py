@@ -12,7 +12,6 @@ import flask_socketio as fio
 # Local Python files
 from helpers import *
 import thirty_one_game
-import cribbage
 
 ##### TODO #####
 # Having temporary usernames persist outside of game room will cause issues with duplicate usernames. 
@@ -69,12 +68,6 @@ rooms["Test_2"] = Room(
     game_name="thirty_one", 
     capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
 )
-
-rooms["Test_3"] = Room(
-    name="Test_3", roompw="", game_name="cribbage", 
-    capacity=GAMES_TO_CAPACITY["cribbage"], date_created=int(time()), creator="Frankobjank"
-)
-
 
 # Uses session cookie
 # If there's nothing in flask or socketio that tracks when users join
@@ -649,9 +642,6 @@ def on_move(data):
         if not rooms[data["room"]].game:
             if rooms[data["room"]].game_name == "thirty_one":
                 rooms[data["room"]].game = thirty_one_game.State(data["room"])
-            
-            elif rooms[data["room"]].game_name == "cribbage":
-                rooms[data["room"]].game = cribbage.State(data["room"])
         
         # Reject if game has already started
         if rooms[data["room"]].game.in_progress:
