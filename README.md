@@ -6,4 +6,4 @@ The goal of this project is to create a site that hosts games. The site will not
 
 ## Design
 
-This project utilizes Python for the server and HTML/CSS/Javascript for the client. The JavaScript library, [socket.io](https://socket.io/), is used by the client to establish websockets that connect to the server. The server is built with Flask, and uses the [Flask-SocketIO library](https://github.com/miguelgrinberg/Flask-SocketIO) to communicate back with the client via websockets.
+This project utilizes Python for the server and JavaScript for the client. The JavaScript library, [socket.io](https://socket.io/), is used by the client to establish websockets that connect to the server. The server is built with Flask, and uses the [Flask-SocketIO library](https://github.com/miguelgrinberg/Flask-SocketIO) to communicate back with the client via websockets.
