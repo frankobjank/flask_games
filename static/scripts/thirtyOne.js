@@ -582,6 +582,7 @@ function updateThirtyOne(response) {
     // Update board based on server response:
 
     // # Generic data
+    // "game": "thirty_one",  # specifies game
     // "room": self.room_name,  # name of room
     // "mode": self.mode,  # current game mode - might help restrict inputs on client side
     // "in_progress": self.in_progress,  # whether game is in progress
@@ -601,9 +602,11 @@ function updateThirtyOne(response) {
     // "hand_score": self.calc_hand_score(self.players[player_name]),  # hand score for self
     
     // "action_log": list of action log dicts for animation - 
-        // lets client know the move made (discard, draw, etc.)
-        // keys: ["action", "player", "card"]
+    // lets client know the move made (discard, draw, etc.)
+    // keys: ["action", "player", "card"]
     
+    inProgress = response.in_progress;
+
     // Removing this from blocking updates since game needs to update to end state on game end
     if (!inProgress) {
         console.log('Received update response but game is not in progress.');
@@ -621,6 +624,7 @@ function updateThirtyOne(response) {
     // Check if game is in progress; create player containers if they don't exist
     if (inProgress) {
 
+        console.log('Game is in progress; check if player containers need to be created');
         
         // Create new player containers if there is mismatch in length between
         // playerOrder and number of player containers - this may not be sufficient
@@ -629,21 +633,18 @@ function updateThirtyOne(response) {
         // the right order. Would run fillPlayerGrid to determine if player container
         // needs to be created or not
         if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
-
+            console.log('Calling fillPlayerGrid to create player containers');
+            fillPlayerGrid(playerOrder, response.game);
         }
+
+        // ?? Undetermined what is else is needed here; will wait
+            // until further along in development
         // Iterate through player order to see if there are any missing players
-        for (let p = 0; p < playerOrder.length; p++) {
-            if (playerOrder[p])
-        }
-        // Self player container doesn't exist; create player containers
-        if (document.querySelector('#' + username + '-container') === null) {
+        // for (let p = 0; p < playerOrder.length; p++) {
+        //     if (playerOrder[p]) {
 
-        }
-
-        // Self container does exist; check if number of player containers = playerOrder
-        else {
-
-        }
+        //     }
+        // }
     }
 
 
@@ -655,7 +656,7 @@ function updateThirtyOne(response) {
     for (actionObject of response.action_log) {
 
         // May need to make multiple actions async so they don't happen simultaneously
-        console.log(`Action = ${actionObject.action}, ${actionObject.player}, ${actionObject.card}`);
+        console.log(`Action = ${actionObject.action}, player = ${actionObject.player}, card = ${actionObject.card}`);
         
         
         // Start - empty client hand, deal the required cards
@@ -724,7 +725,6 @@ function updateThirtyOne(response) {
 
     
     // Unpack general state
-    inProgress = response.in_progress;
     // Must put current player update here since turn may increment on server side
     // Potentially animate changing current player
     currentPlayer = response.current_player;

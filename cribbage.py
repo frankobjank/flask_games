@@ -22,7 +22,7 @@ class Player:
     
 
     def __repr__(self) -> str:
-        return self.name
+        return f"Player({self.name})"
 
 
 class State:

@@ -20,7 +20,7 @@ class Player:
 
     
     def __repr__(self) -> str:
-        return f"{Player(self.name)}"
+        return f"Player({self.name})"
 
 
 class State:
@@ -156,6 +156,35 @@ class State:
         self.players[name] = Player(name)
 
 
+    def set_player_order(self):
+        """Sets player order to a random order."""
+        
+        # Empty player order list
+        self.player_order = []
+        # For reordered players dict
+        new_player_dict = {}
+
+        # Names to pick randomly
+        player_names = [name for name in self.players.keys()]
+
+        # Pick random player change order from 0 -> num players
+        for i in range(len(player_names)):
+            rand_player = player_names[random.randint(0, len(player_names)-1)]
+            self.players[rand_player].order = i
+            self.player_order.append(rand_player)
+            player_names.remove(rand_player)
+
+        # # Modify player order in place to match new order attribute of players
+        # self.player_order.sort(key=lambda player_name: self.players[player_name].order)
+        
+        # Reorder the players dict (dicts are ordered now?) for parity with player order
+        for player in self.player_order:
+            new_player_dict[player] = self.players[player]
+
+        # Assign old dict to new dict
+        self.players = new_player_dict
+
+
     def start_game(self) -> None:
 
         # Validations
@@ -169,13 +198,20 @@ class State:
             return
         
         # Reset game vars
-        self.player_order = []
         self.round_num = 0
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player
 
-        # Set player order - eventually should be random
-        self.player_order = [p_name for p_name in self.players.keys()]
+        # Broadcast starting message
+        print_and_log("Starting new game", self.players)
+
+        # Set player order
+        self.set_player_order()
+        
+        # Broadcast player order
+        print_and_log("Player order:", self.players)
+        for i, player in enumerate(self.player_order):
+            print_and_log(f"{i+1} - {player}", self.players)
 
         self.in_progress = True
 

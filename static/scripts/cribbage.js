@@ -111,6 +111,55 @@ function createMoveButtonsCribbage() {
     return moveButtonsContainer;
 }
 
+function createPlayerContainerCribbage(name, order, gridNumber) {
+    
+    /* Structure:
+        Name - Dealer
+        Hand
+    */
+    
+    const playerContainer = document.createElement('div');
+    playerContainer.className = 'player-container';
+
+    // Give container id of 'playerName-container'
+    playerContainer.id = name + '-container';
+    
+    const playerNameContainer = document.createElement('div');
+    playerNameContainer.id = name + '-name-container';
+
+    const currentPlayerStrong = document.createElement('strong');
+    currentPlayerStrong.id = name + '-current-strong';
+    playerNameContainer.appendChild(currentPlayerStrong);
+    
+    const playerNameStrong = document.createElement('strong');
+    playerNameStrong.id = name + '-name-strong';
+    playerNameStrong.innerText = name;
+    playerNameContainer.appendChild(playerNameStrong);
+
+    // Create spot for dealer indicator to be filled in later
+    const dealerStrong = document.createElement('strong');
+    dealerStrong.id = name + '-dealer-strong';
+    playerNameContainer.appendChild(dealerStrong);
+    
+    playerContainer.appendChild(playerNameContainer);
+    
+    // Put hand in div
+    const hand = document.createElement('div');
+    hand.className = 'hand-container';
+    hand.id = name + '-hand-container';
+    
+    playerContainer.appendChild(hand);
+    
+    // Set order and grid number in dataset
+    playerContainer.dataset.order = order;
+    playerContainer.dataset.gridNumber = gridNumber;
+    
+    // Set dealer to 0 by default; will be changed on game update
+    playerContainer.dataset.dealer = '0';
+
+    return playerContainer;
+}
+
 // Set discard action for card in hand
 var handHandlerCribbage = function handOnClickCribbage(event) {
     
@@ -277,15 +326,6 @@ function updateCribbage(response) {
         addToLog(msg, 'system');
     }
     
-    // Disable knock button (for all) if there has been a knock
-    if (response.knocked) {
-        document.querySelector('#knock-button').disabled = true;
-    }
-    // Enable knock button if no one has knocked
-    else {
-        document.querySelector('#knock-button').disabled = false;
-    }
-    
     // Disable start button when game in progress; Enable when not in progress
     document.querySelector('#start-button').disabled = inProgress;
     if (inProgress) {
@@ -315,27 +355,6 @@ function updateCribbage(response) {
         document.querySelector('#continue-button').style.display = 'none';
     }
 
-    
-    // Check for knocked out players
-    // Display should only be reset when next round round starts. Server can wait to knock them out
-    // Until beginning of next round
-    for (const player of playersConnected) {
-        if (!response.player_order.includes(player)) {
-            // Replace lives with 'knocked out'
-            document.querySelector('#' + player + '-lives').innerText = 'Knocked out';
-            // Remove all cards
-            document.querySelector('#' + player + '-hand-container').replaceChildren();
-            // Remove hand score
-            document.querySelector('#' + player + '-hand-score').innerText = '';
-            
-            // Reset `current` status
-            document.querySelector('#' + player + '-current-strong').innerText = '';
-            document.querySelector('#' + player + '-container').dataset.current = '0';
-            // Reset `knocked`
-            document.querySelector('#' + player + '-knocked-strong').innerText = '';
-            document.querySelector('#' + player + '-container').dataset.knocked = '0';
-        }
-    }
 
     // Loop player order to fill containers apart from cards
     for (let i = 0; i < playerOrder.length; i++) {
@@ -344,42 +363,6 @@ function updateCribbage(response) {
 
         // Once player array is populated, add to player panel display or dataset
         const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
-
-        // Update order
-        playerContainer.dataset.order = i;
-        
-        // Update lives
-    
-        // If not knocked out, set number of extra lives
-        document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
-        playerContainer.dataset.lives = response.lives[i];
-        
-        // Use NUMBERS for comparisons, not strings!
-        // Add stars according to number of lives left
-        if (response.lives[i] > 0) {
-            const lifeStarsContainer = document.createElement('span');
-            lifeStarsContainer.className = 'life-stars-container';
-
-            for (let life = 0; life < response.lives[i]; life++) {
-                lifeStarsContainer.innerText += '\u2605 ';
-            } 
-            document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
-        }
-
-        // If 0 lives, add 'on the bike'
-        else if (response.lives[i] === 0) {
-            
-            // Remove any stars remaining
-            document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
-            
-            // Add text
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
-        }
-                    
-        // Server will set lives to -1 if knocked out
-        else if (response.lives[i] === -1) {
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
-        }
 
         // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
@@ -405,15 +388,15 @@ function updateCribbage(response) {
         
         // Set connected status to True when creating player
         playerContainer.dataset.connected = '1';
-        
-        // Set knocked status - add text to name container
-        if (response.knocked === playerOrder[i]) {
-            playerContainer.dataset.knocked = '1';
-            document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = ' - knocked';
+
+        // Add dealer indicator and update player container dataset
+        if (response.dealer === playerOrder[i]) {
+            playerContainer.dataset.dealer = '1';
+            document.querySelector('#' + playerOrder[i] + '-dealer-strong').innerText = ' - Dealer'
         }
         else {
-            playerContainer.dataset.knocked = '0';
-            document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = '';
+            playerContainer.dataset.dealer = '0';
+            document.querySelector('#' + playerOrder[i] + '-dealer-strong').innerText = ''
         }
     }
 }
