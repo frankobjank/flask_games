@@ -80,6 +80,7 @@ def login_required(f):
 
     return decorated_function
 
+
 # Not sure if this will be needed
 def username_required(f):
     """
@@ -126,6 +127,25 @@ def get_all_clients(rooms: dict[str, Room]) -> set:
         all_clients.union(r.users)
     
     return all_clients
+
+
+def get_connected_users_str(users: list[str]) -> str:
+    """List of users connected to a room in string format."""
+    
+    # Get all names of users connected
+    users_connected = [user.name for user in users if user.connected]
+    
+    final_string = ""
+    
+    for i, username in enumerate(users_connected):
+        final_string += username
+        
+        # Check if end of list to add comma at end
+        if i != len(users_connected) - 1:
+            final_string += ", "
+
+    return final_string
+            
 
 
 def validate_name_input(name: str, max_len: str) -> dict[str, str|bool]:

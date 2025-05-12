@@ -108,9 +108,10 @@ footer {
 /* Card is the Bootstrap div. Card in a game is game-card */
 .card {
     width: 18rem;
+    height: 22rem;
     display: inline-block;
     /* Margin caps at 3 cards per line, no margin allows more than 3 cards */
-    /* margin: 1rem; */
+    margin: 1rem;
 }
 
 .btn-custom:hover {
@@ -120,6 +121,7 @@ footer {
 
 .btn-custom {
     width:100%; /* Makes button fill the container */
+    height:100%; /* Makes button fill the container */
     background-color: #dfdfdf;
     border: 1px solid black;
     border-radius: 0.25rem;

@@ -512,12 +512,13 @@ def on_join(data):
     if not game or not game.in_progress:
         
         connected_users = [user.name for user in rooms[data['room']].users if user.connected]
-        
+        users_string = get_connected_users_str(rooms[data['room']].users)
+
         # List all players in room for client
-        fio.emit("chat_log", {"msg": f"Users in room: {connected_users}.", "sender": "system",
+        fio.emit("chat_log", {"msg": f"Users in room: {users_string}.", "sender": "system",
                 "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
         
-        print(f"Sending update room to {data['room']} to add {connected_users}")
+        print(f"Sending update room to {data['room']} to add {users_string}")
 
         # Send updated list of players to others in room
         fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
@@ -614,7 +615,7 @@ def on_leave(data):
                                         and not rooms[data["room"]].game.in_progress):
 
         # List all players in room for client
-        fio.emit("chat_log", {"msg": f"Users in room: {[user.name for user in rooms[data['room']].users if user.connected]}.",
+        fio.emit("chat_log", {"msg": f"Users in room: {get_connected_users_str(rooms[data['room']].users)}.",
                  "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"], broadcast=True)
 
         # Remove all non-connected players
