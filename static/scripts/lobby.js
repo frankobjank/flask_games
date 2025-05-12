@@ -1176,6 +1176,10 @@ socket.on('update_board', data => {
     if (data.game === 'thirty_one') {
         updateThirtyOne(data);
     }
+
+    else if (data.game === 'cribbage') {
+        updateCribbage(data);
+    }
 });
 
 // Example from socket.io using socket.recovered

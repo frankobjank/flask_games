@@ -138,11 +138,7 @@ def get_connected_users_str(users: list[str]) -> str:
     final_string = ""
     
     for i, username in enumerate(users_connected):
-        final_string += username
-        
-        # Check if end of list to add comma at end
-        if i != len(users_connected) - 1:
-            final_string += ", "
+        final_string += f"\n{i+1}: {username}"
 
     return final_string
             

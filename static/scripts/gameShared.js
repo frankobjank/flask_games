@@ -382,6 +382,7 @@ function movePlayers(playerOrder) {
 // Determine where player containers should go in game grid
 // Fills WHOLE GRID, not specific spots
 function fillPlayerGrid(playerOrder, gameName) {
+    console.log(`fillPlayerGrid called with args: playerOrder = ${playerOrder}, gameName = ${gameName}`);
     // Grids that should be filled according to number of players, starting with self (8)
     // 8 is bottom center; cardinal directions are filled first, then ordinal
     const gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
@@ -412,8 +413,13 @@ function fillPlayerGrid(playerOrder, gameName) {
 
     // Fill in grid numbers according to 'gridsToFill', in order of 'priorityOrder'
     for (let j = 0; j < priorityOrder.length; j++) {
-        // Empty grid to make room for new player
-        document.querySelector('#game-grid-' + priorityOrder[j]).replaceChildren();
+        
+        let gridContainer = document.querySelector('#game-grid-' + priorityOrder[j]);
+
+        // Empty grid ONLY IF IT CONTAINS PLAYER to make room for new player
+        if (gridContainer.querySelector('.player-container') !== null) {
+            document.querySelector('#game-grid-' + priorityOrder[j]).replaceChildren();
+        }
 
         // Iterate through 'priorityOrder' and check if number is in 'gridsToFill'
         if (gridsToFill.includes(priorityOrder[j])) {
@@ -441,10 +447,94 @@ function fillPlayerGrid(playerOrder, gameName) {
             }
 
             // Add player container to grid
-            document.querySelector('#game-grid-' + priorityOrder[j]).appendChild(playerContainer);
+            gridContainer.appendChild(playerContainer);
         }
     }
     // Elements should now be in order with self at the bottom and other players filled in around the board
+}
+
+
+// Populating hand with no animation; called in updateHandNoAnimation()
+function populateHandStatic(playerName, hand, hand_score=0) {
+    
+    const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
+    
+    if (playerHandContainer.hasChildNodes()) {
+        // Empty old hand to get ready for new hand - replaceChildren with no args
+        playerHandContainer.replaceChildren();
+    }
+
+    // Create buttons for hand with array from server
+    for (const card of hand) {
+        const cardObject = createCardObject(card);
+
+        // Send server request on click; custom handlers per game
+        // Game is global var
+        switch (game) {
+            case 'thirty_one':
+                cardObject.addEventListener('click', handHandlerThirtyOne);
+                break;
+            case 'cribbage':
+                cardObject.addEventListener('click', handHandlerCribbage);
+                break;
+        }
+
+        // Create a card container - div that encloses a playing card
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'card-container';
+        // Configure id this way so container can be selected with the card id
+        cardContainer.id = 'card-' + card + '-container';
+        
+        // Add card object to card container
+        cardContainer.appendChild(cardObject);
+
+        // Add card container to hand container
+        playerHandContainer.appendChild(cardContainer);
+    }
+    
+    // Update hand score - ONLY FOR 31
+    if (game === 'thirty_one') {
+        document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
+    }
+}
+
+// Calls populateHandStatic() for front-facing cards; populates placeholders for back-facing cards
+function updateHandNoAnimation(playerName, playerIndex, response) {
+    // Create front-facing hand for self, clickable
+    if (username === playerName) {
+        populateHandStatic(playerName, response.hand, response.hand_score);
+    }
+
+    // Create front-facing hand for others on game end, not clickable
+    // Using `else if` here implies playerName is not the self player
+    else if (response.mode === 'end_round' || response.mode === 'end_game') {
+        populateHandStatic(playerName, response.final_hands[playerIndex], response.final_scores[playerIndex]);
+    }
+
+    // Create back-facing hand for others if not end of round / game
+    else {
+        // Remove all cards if there were any
+        document.querySelector('#' + playerName + '-hand-container').replaceChildren()
+
+        // Loop hand size to add placeholders that display backs of cards
+        for (let i = 0; i < response.hand_sizes[playerIndex]; i++) {
+
+            const dummyCard = createPlaceholderCard('unknown');
+            
+            // Add dummy card to container
+            const dummyContainer = document.createElement('div');
+            dummyContainer.className = 'card-container dummy-container';
+
+            dummyContainer.appendChild(dummyCard);
+
+            document.querySelector('#' + playerName + '-hand-container').appendChild(dummyContainer);
+        }
+        
+        // Remove hand score - ONLY FOR 31
+        if (game === 'thirty_one') {
+            document.querySelector('#' + playerName + '-hand-score').innerText = '';
+        }
+    }
 }
 
 

@@ -210,40 +210,6 @@ function createPlayerContainerThirtyOne(name, order, gridNumber) {
     return playerContainer;
 }
 
-// Populating hand with no animation; called in updateHandNoAnimation()
-function populateHandStatic(playerName, hand, hand_score) {
-    
-    const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
-    
-    if (playerHandContainer.hasChildNodes()) {
-        // Empty old hand to get ready for new hand - replaceChildren with no args
-        playerHandContainer.replaceChildren();
-    }
-
-    // Create buttons for hand with array from server
-    for (const card of hand) {
-        const cardObject = createCardObject(card);
-
-        // Send server request on click
-        cardObject.addEventListener('click', handHandlerThirtyOne);
-
-        // Create a card container - div that encloses a playing card
-        const cardContainer = document.createElement('div');
-        cardContainer.className = 'card-container';
-        // Configure id this way so container can be selected with the card id
-        cardContainer.id = 'card-' + card + '-container';
-        
-        // Add card object to card container
-        cardContainer.appendChild(cardObject);
-
-        // Add card container to hand container
-        playerHandContainer.appendChild(cardContainer);
-    }
-    
-    // Update hand score
-    document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
-}
-
 function setNewDiscard(cardStr) {
 
     let newDiscard;
@@ -477,42 +443,6 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
             document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
         }
     })
-}
-
-// Calls populateHandStatic() for front-facing cards; populates placeholders for back-facing cards
-function updateHandNoAnimation(playerName, playerIndex, response) {
-    // Create front-facing hand for self, clickable
-    if (username === playerName) {
-        populateHandStatic(playerName, response.hand, response.hand_score);
-    }
-
-    // Create front-facing hand for others on game end, not clickable
-    // Using `else if` here implies playerName is not the self player
-    else if (response.mode === 'end_round' || response.mode === 'end_game') {
-        populateHandStatic(playerName, response.final_hands[playerIndex], response.final_scores[playerIndex]);
-    }
-
-    // Create back-facing hand for others if not end of round / game
-    else {
-        // Remove all cards if there were any
-        document.querySelector('#' + playerName + '-hand-container').replaceChildren()
-
-        // Loop hand size to add placeholders that display backs of cards
-        for (let i = 0; i < response.hand_sizes[playerIndex]; i++) {
-
-            const dummyCard = createPlaceholderCard('unknown');
-            
-            // Add dummy card to container
-            const dummyContainer = document.createElement('div');
-            dummyContainer.className = 'card-container dummy-container';
-
-            dummyContainer.appendChild(dummyCard);
-
-            document.querySelector('#' + playerName + '-hand-container').appendChild(dummyContainer);
-        }
-        // Remove hand score
-        document.querySelector('#' + playerName + '-hand-score').innerText = '';
-    }
 }
 
 // Setting discard card for 31

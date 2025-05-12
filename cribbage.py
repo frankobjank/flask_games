@@ -78,6 +78,35 @@ class State:
         self.players[name] = Player(name)
 
 
+    def set_player_order(self):
+        """Sets player order to a random order."""
+        
+        # Empty player order list
+        self.player_order = []
+        # For reordered players dict
+        new_player_dict = {}
+
+        # Names to pick randomly
+        player_names = [name for name in self.players.keys()]
+
+        # Pick random player change order from 0 -> num players
+        for i in range(len(player_names)):
+            rand_player = player_names[random.randint(0, len(player_names)-1)]
+            self.players[rand_player].order = i
+            self.player_order.append(rand_player)
+            player_names.remove(rand_player)
+
+        # # Modify player order in place to match new order attribute of players
+        # self.player_order.sort(key=lambda player_name: self.players[player_name].order)
+        
+        # Reorder the players dict (dicts are ordered now?) for parity with player order
+        for player in self.player_order:
+            new_player_dict[player] = self.players[player]
+
+        # Assign old dict to new dict
+        self.players = new_player_dict
+
+
     def start_game(self) -> None:
         
         # Validations
@@ -95,9 +124,17 @@ class State:
         self.round_num = 0
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player
+            
+        # Broadcast starting message
+        print_and_log("Starting new game", self.players)
 
-        # Set player order - eventually should be random
-        self.player_order = [p_name for p_name in self.players.keys()]
+        # Set player order
+        self.set_player_order()
+        
+        # Broadcast player order
+        print_and_log("Player order:", self.players)
+        for i, player in enumerate(self.player_order):
+            print_and_log(f"{i+1}. {player}", self.players)
 
         self.in_progress = True
         
@@ -124,30 +161,37 @@ class State:
         self.dealer = self.player_order[first_player_index - 1]
         
         print_and_log(f"--- ROUND {self.round_num} ---\n", self.players)
-        print_and_log("\n--- DEALING ---", self.players)
-        print_and_log(f"Please pick {len(self.players[self.current_player].hand) - 4} card(s) to add to the crib. The dealer is {self.dealer}.", self.players)
 
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
         
+        print_and_log("\n--- DEALING ---", self.players)
         # Deal and reset player vars
         for p_name, p_object in self.players.items():
             # Empty hand
             p_object.hand = []
 
+            # Keep track of num to discard to make grammatically correct message
+            discard_str = ""
+
             # Deal
             # 2P game: each gets 6
             if len(self.players.keys()) == 2:
                 deal(p_object, self.shuffled_cards, num_cards=6)
+                discard_str = "2 cards"
             
             # 3P game: dealer gets 6, others get 5
             else:
                 if p_name == self.dealer:
                     deal(p_object, self.shuffled_cards, num_cards=6)
+                    discard_str = "2 cards"
                 else:
                     deal(p_object, self.shuffled_cards, num_cards=5)
+                    discard_str = "1 card"
 
-
+            # Add discard message to log
+            print_and_log(f"Please pick {discard_str} to add to the crib. The dealer is {self.dealer}.", self.players, p_name)
+            
             # Reset variables for the play
             p_object.played_cards = []
             p_object.unplayed_cards = []
@@ -707,7 +751,6 @@ class State:
         return {
             # Generic data
             "game": "cribbage",  # specifies game
-            "action": "update_board",  # for client to know what type of update this is
             "room": self.room_name,  # name of room
             "mode": self.mode,  # current game mode - might help restrict inputs on client side
             "in_progress": self.in_progress,  # whether game is in progress

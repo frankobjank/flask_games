@@ -160,6 +160,10 @@ function createPlayerContainerCribbage(name, order, gridNumber) {
     return playerContainer;
 }
 
+function updateCribNoAnimation(crib) {
+
+}
+
 // Set discard action for card in hand
 var handHandlerCribbage = function handOnClickCribbage(event) {
     
@@ -220,7 +224,9 @@ function updateCribbage(response) {
     // "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
     // "log": self.players[player_name].log,  # new log msgs - split up for each player
     // "action_log": custom_action_log,
-    
+
+    inProgress = response.in_progress;
+
     // Removing this from blocking updates since game needs to update to end state on game end
     if (!inProgress) {
         console.log('Received update response but game is not in progress.');
@@ -230,13 +236,33 @@ function updateCribbage(response) {
         console.log('Player order missing from response.');
         return;
     }
+
+    console.log(`\n\ninProgress === ${inProgress} \n\n`)
     
+    // Unpack for players still in the game 
+    playerOrder = response.player_order;
+
+    // Create player containers if any are missing
+    // Check if game is in progress; create player containers if they don't exist
+    if (inProgress) {
+
+        console.log('Game is in progress; check if player containers need to be created');
+        
+        // Create new player containers if there is mismatch in length between
+        // playerOrder and number of player containers - this may not be sufficient
+        // check because on new game with same number of players there could be a new
+        // order. Complete check would check all player names and see if they were in
+        // the right order.
+        if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
+            console.log('Calling fillPlayerGrid to create player containers');
+            fillPlayerGrid(playerOrder, response.game);
+        }
+    }
+
     // UPDATE CARDS FIRST so animation will be completed before rest of update
     // Run animation depending on response.action
     // The rest of the update will not wait until end of animation - must include all updates to cards 
 
-    // Unpack for players still in the game 
-    playerOrder = response.player_order;
 
     for (actionObject of response.action_log) {
 
@@ -310,13 +336,12 @@ function updateCribbage(response) {
         }
 
         // update discard outside of player loop
-        updateDiscardNoAnimation(response.discard);
+        updateCribNoAnimation(response.crib);
     }
     
 
     
     // Unpack general state
-    inProgress = response.in_progress;
     // Must put current player update here since turn may increment on server side
     // Potentially animate changing current player
     currentPlayer = response.current_player;

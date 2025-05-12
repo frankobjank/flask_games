@@ -515,7 +515,7 @@ def on_join(data):
         users_string = get_connected_users_str(rooms[data['room']].users)
 
         # List all players in room for client
-        fio.emit("chat_log", {"msg": f"Users in room: {users_string}.", "sender": "system",
+        fio.emit("chat_log", {"msg": f"Users in room {users_string}", "sender": "system",
                 "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
         
         print(f"Sending update room to {data['room']} to add {users_string}")
@@ -615,7 +615,7 @@ def on_leave(data):
                                         and not rooms[data["room"]].game.in_progress):
 
         # List all players in room for client
-        fio.emit("chat_log", {"msg": f"Users in room: {get_connected_users_str(rooms[data['room']].users)}.",
+        fio.emit("chat_log", {"msg": f"Users in room {get_connected_users_str(rooms[data['room']].users)}",
                  "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"], broadcast=True)
 
         # Remove all non-connected players
