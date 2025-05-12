@@ -12,7 +12,6 @@ import flask_socketio as fio
 # Local Python files
 from helpers import *
 import thirty_one_game
-import cribbage
 
 ##### TODO #####
 # Having temporary usernames persist outside of game room will cause issues with duplicate usernames. 
@@ -650,9 +649,6 @@ def on_move(data):
         if not rooms[data["room"]].game:
             if rooms[data["room"]].game_name == "thirty_one":
                 rooms[data["room"]].game = thirty_one_game.State(data["room"])
-            
-            elif rooms[data["room"]].game_name == "cribbage":
-                rooms[data["room"]].game = cribbage.State(data["room"])
         
         # Reject if game has already started
         if rooms[data["room"]].game.in_progress:
