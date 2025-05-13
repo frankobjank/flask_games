@@ -150,7 +150,7 @@ function createMoveButtonsThirtyOne() {
     return moveButtonsContainer;
 }
 
-function createPlayerContainerThirtyOne(name, order, gridNumber) {
+function addlPlayerContainerThirtyOne(name, playerContainer) {
     
     /* Structure:
         Name ( - knocked)?
@@ -159,36 +159,14 @@ function createPlayerContainerThirtyOne(name, order, gridNumber) {
         Hand Score
     */
     
-    const playerContainer = document.createElement('div');
-    playerContainer.className = 'player-container';
-
-    // Give container id of 'playerName-container'
-    playerContainer.id = 'player-container-' + name;
-    
-    const playerNameContainer = document.createElement('div');
-    playerNameContainer.id = 'name-container-' + name;
-
-    const currentPlayerStrong = document.createElement('strong');
-    currentPlayerStrong.id = 'current-strong-' + name;
-    playerNameContainer.appendChild(currentPlayerStrong);
-    
-    const playerNameStrong = document.createElement('strong');
-    playerNameStrong.id = 'name-strong-' + name;
-    playerNameStrong.innerText = name;
-    playerNameContainer.appendChild(playerNameStrong);
-    
+    // Add this to NAME container, not playerContainer
+    // Allows for ' - knocked' to be added next to player's name
     const knockedStrong = document.createElement('strong');
     knockedStrong.id = 'knocked-strong-' + name;
-    playerNameContainer.appendChild(knockedStrong);
     
-    playerContainer.appendChild(playerNameContainer);
+    playerContainer.querySelector('#name-container-' + name).appendChild(knockedStrong);
     
-    // Put hand in div
-    const hand = document.createElement('div');
-    hand.className = 'hand-container';
-    hand.id = 'hand-container-' + name;
-    
-    // Put lives into div
+    // Put lives and hand score into playerContainer
     const lives = document.createElement('div');
     lives.className = 'lives-container';
     lives.id = 'lives-' + name;
@@ -197,15 +175,9 @@ function createPlayerContainerThirtyOne(name, order, gridNumber) {
     const handScore = document.createElement('div');
     handScore.id = 'hand-score-' + name;
     
-    playerContainer.appendChild(hand);
-
     // Text displays beneath cards
     playerContainer.appendChild(lives);
     playerContainer.appendChild(handScore);
-
-    // Set order and grid number in dataset
-    playerContainer.dataset.order = order;
-    playerContainer.dataset.gridNumber = gridNumber;
 
     return playerContainer;
 }

@@ -47,37 +47,10 @@ function createBoardCribbage() {
     return board;
 }
 
-function createMoveButtonsCribbage() {
-    // Only need `discard` or `confirm discard` button
-        // + Continue Round and New Game buttons
+function createContinueButtonsCribbage() {
+    // Only need `discard` button, + `Continue Round` and `New Game` buttons
+    // Moving discard button to player container
     
-    // Discard can be considered temp button since it can be hidden on non-discard modes
-
-    const moveButtonsContainer = document.createElement('div');
-    moveButtonsContainer.id = 'move-button-container';
-
-    // Add discard confirm button
-    const discardConfirm = document.createElement('button');
-    discardConfirm.className = 'move-button';
-    discardConfirm.id = 'discard-confirm-button';
-    discardConfirm.innerText = 'Discard to crib';
-    
-    discardConfirm.onclick = () => {
-        // Get all cards staged for discard
-        const chosenCards = document.querySelectorAll('.staged-for-discard');
-        
-        // Loop through cards and extract rank and suit
-        let translatedCards = [];
-
-        chosenCards.forEach(card => {
-            translatedCards.push(`${card.dataset.rank}${card.dataset.suit}`)
-        })
-
-        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'cards': translatedCards});
-    }
-    
-    moveButtonsContainer.appendChild(discardConfirm);
-
     const tempButtonContainer = document.createElement('div');
     tempButtonContainer.id = 'continue-start-container';
 
@@ -121,56 +94,60 @@ function createMoveButtonsCribbage() {
     tempButtonContainer.appendChild(continueButtonContainer);
     tempButtonContainer.appendChild(newGameButtonContainer);
     
-    moveButtonsContainer.appendChild(tempButtonContainer);
-    
-    return moveButtonsContainer;
+    return tempButtonContainer;
 }
 
-function createPlayerContainerCribbage(name, order, gridNumber) {
+function addlPlayerContainerCribbage(name, playerContainer) {
     
     /* Structure:
-        Name - Dealer
-        Hand
+          Name - Dealer
+              Hand
+        [ Discard button ]
     */
     
-    const playerContainer = document.createElement('div');
-    playerContainer.className = 'player-container';
-
-    // Give container id of 'playerName-container'
-    playerContainer.id = 'player-container' + name;
-    
-    const playerNameContainer = document.createElement('div');
-    playerNameContainer.id = name + '-name-container';
-
-    const currentPlayerStrong = document.createElement('strong');
-    currentPlayerStrong.id = name + '-current-strong';
-    playerNameContainer.appendChild(currentPlayerStrong);
-    
-    const playerNameStrong = document.createElement('strong');
-    playerNameStrong.id = name + '-name-strong';
-    playerNameStrong.innerText = name;
-    playerNameContainer.appendChild(playerNameStrong);
-
+    // Add this to NAME container, not playerContainer
     // Create spot for dealer indicator to be filled in later
     const dealerStrong = document.createElement('strong');
-    dealerStrong.id = name + '-dealer-strong';
-    playerNameContainer.appendChild(dealerStrong);
-    
-    playerContainer.appendChild(playerNameContainer);
-    
-    // Put hand in div
-    const hand = document.createElement('div');
-    hand.className = 'hand-container';
-    hand.id = 'hand-container-' + name;
-    
-    playerContainer.appendChild(hand);
-    
-    // Set order and grid number in dataset
-    playerContainer.dataset.order = order;
-    playerContainer.dataset.gridNumber = gridNumber;
+    dealerStrong.id = 'dealer-strong-' + name;
+
+    playerContainer.querySelector('#name-container-' + name).appendChild(dealerStrong);
     
     // Set dealer to 0 by default; will be changed on game update
     playerContainer.dataset.dealer = '0';
+
+    // If not self, return container
+    if (name !== username) {
+        return playerContainer;
+    }
+
+    // ONLY FOR SELF: Add discard button
+    // Discard can be considered temp button since it can be hidden on non-discard modes
+    const discardContainer = document.createElement('div');
+    discardContainer.id = 'discard-button-container';
+
+    // Add discard confirm button
+    const discardConfirm = document.createElement('button');
+    discardConfirm.className = 'move-button';
+    discardConfirm.id = 'discard-confirm-button';
+    discardConfirm.innerText = 'Discard to crib';
+    
+    discardConfirm.onclick = () => {
+        // Get all cards staged for discard
+        const chosenCards = document.querySelectorAll('.staged-for-discard');
+        
+        // Loop through cards and extract rank and suit
+        let translatedCards = [];
+
+        chosenCards.forEach(card => {
+            translatedCards.push(`${card.dataset.rank}${card.dataset.suit}`)
+        })
+
+        socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'cards': translatedCards});
+    }
+    
+    discardContainer.appendChild(discardConfirm);
+
+    playerContainer.appendChild(discardContainer);
 
     return playerContainer;
 }
@@ -350,13 +327,10 @@ function updateCribbage(response) {
             updateHandNoAnimation(playerOrder[playerIndex], playerIndex, response);
         }
 
-        // update discard outside of player loop
+        // Update crib outside of player loop
         updateCribNoAnimation(response.crib);
     }
     
-
-    
-    // Unpack general state
     // Must put current player update here since turn may increment on server side
     // Potentially animate changing current player
     currentPlayer = response.current_player;
@@ -365,6 +339,8 @@ function updateCribbage(response) {
     for (const msg of response.log) {
         addToLog(msg, 'system');
     }
+
+    // Update buttons (start game, continue, discard)
     
     // Disable start button when game in progress; Enable when not in progress
     document.querySelector('#start-button').disabled = inProgress;
@@ -395,6 +371,16 @@ function updateCribbage(response) {
         document.querySelector('#continue-button').style.display = 'none';
     }
 
+    // Enable discard if player still has to discard; otherwise disable
+    if (response.mode === 'discard' && response.num_to_discard > 0) {
+        document.querySelector('#discard-confirm-button').disabled = false;
+        document.querySelector('#discard-confirm-button').style.display = '';
+    }
+    else {
+        document.querySelector('#discard-confirm-button').disabled = true;
+        document.querySelector('#discard-confirm-button').style.display = 'none';
+    }
+
 
     // Loop player order to fill containers apart from cards
     for (let i = 0; i < playerOrder.length; i++) {
@@ -414,16 +400,18 @@ function updateCribbage(response) {
             console.log(`${playerOrder[i]} hand is empty.`);
         }        
         
-        // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
+        // Mark current player only if mode is not discard, since anyone can go during discard
         // Animation idea: move current marker to new current player
-        if (currentPlayer === playerOrder[i]) {
-            playerContainer.dataset.current = '1';
-            // Add marker to current player - '\u2192' is right pointing arrow →
-            document.querySelector('#current-strong-' + playerOrder[i]).innerText = '\u2192';
-        }
-        else {
-            playerContainer.dataset.current = '0';
-            document.querySelector('#current-strong-' + playerOrder[i]).innerText = '';
+        if (response.mode !== 'discard') {
+            if (currentPlayer === playerOrder[i]) {
+                playerContainer.dataset.current = '1';
+                // Add marker to current player - '\u2192' is right pointing arrow →
+                document.querySelector('#current-strong-' + playerOrder[i]).innerText = '\u2192';
+            }
+            else {
+                playerContainer.dataset.current = '0';
+                document.querySelector('#current-strong-' + playerOrder[i]).innerText = '';
+            }
         }
         
         // Set connected status to True when creating player

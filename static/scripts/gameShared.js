@@ -219,10 +219,10 @@ function updateGameRoom(response) {
                 // Add move buttons to center of grid
                 document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
                 break;
-                
+
             case 'cribbage':
                 document.querySelector('#game-grid-5').appendChild(createBoardCribbage());
-                document.querySelector('#game-grid-5').appendChild(createMoveButtonsCribbage());
+                document.querySelector('#game-grid-5').appendChild(createContinueButtonsCribbage());
                 break;
         }
         
@@ -298,60 +298,50 @@ function updateGameRoom(response) {
     }
 }
 
-// Changing this to fillPlayerGrid where it will create player containers
-    // instead of move existing ones
-// Moving player containers around the board on game start
-function movePlayers(playerOrder) {
-    // Grids that should be filled according to number of players, starting with self (8)
-    const gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
 
-    // Order to fill in the grids if they are present so that players are always in clockwise order
-    const priorityOrder = [8, 7, 4, 1, 2, 3, 6, 9];
+// Create player for any game; customize function called below
+function createPlayerContainer(name, order, gridNumber) {
+    
+    const playerContainer = document.createElement('div');
+    playerContainer.className = 'player-container';
+    
+    // Give container id of 'playerName-container'
+    playerContainer.id = 'player-container-' + name;
 
-    // Get index for self in player order
-    const selfIndex = playerOrder.indexOf(username);
+    // Set order and grid number in dataset
+    playerContainer.dataset.order = order;
+    playerContainer.dataset.gridNumber = gridNumber;
+    
+    const playerNameContainer = document.createElement('div');
+    playerNameContainer.id = 'name-container-' + name;
 
-    // Ex: playerOrder = [P1, me, P3]
-    // Need to fill in 8: me, 2: P3, 6: P1
-
-    // Associate array linking player to order and number
-    let playerContainers = [];
-
-    // Iterate through player order starting at self index
-    for (let i = selfIndex; i < playerOrder.length + selfIndex; i++) {
+    const currentPlayerStrong = document.createElement('strong');
+    currentPlayerStrong.id = 'current-strong-' + name;
+    playerNameContainer.appendChild(currentPlayerStrong);
+    
+    const playerNameStrong = document.createElement('strong');
+    playerNameStrong.id = 'name-strong-' + name;
+    playerNameStrong.innerText = name;
+    playerNameContainer.appendChild(playerNameStrong);
         
-        // Since i will overflow length, use modulo for accessing array
-        let modIndex = selfIndex % playerOrder.length
+    playerContainer.appendChild(playerNameContainer);
+    
+    // Put hand in div
+    const hand = document.createElement('div');
+    hand.className = 'hand-container';
+    hand.id = 'hand-container-' + name;
+    
+    playerContainer.appendChild(hand);
 
-        let playerContainer = document.querySelector('#player-container-' + playerOrder[modIndex]);
-        
-        // Check if player container exists
-        if (playerContainer !== null) {
-            
-            // Remove with removeChild from parentElement (grid) so that it can be returned. 
-            playerContainers.push(playerContainer.parentElement.removeChild(playerContainer));
-        }
-
-        // Container does not exist
-        else {
-            console.log(`Cannot move ${playerOrder[modIndex]}; container does not exist.`)
-        }
+    // Add custom fields depending on game and return the container
+    switch (game) {
+        case 'thirty_one':
+            return addlPlayerContainerThirtyOne(name, playerContainer);
+        case 'cribbage':
+            return addlPlayerContainerCribbage(name, playerContainer);
     }
-
-    // Fill in grid numbers according to 'gridsToFill', in order of 'priorityOrder'
-    for (let j = 0; j < priorityOrder.length; j++) {
-        
-        // Iterate through 'priorityOrder' and check if number is in 'gridsToFill'
-        if (j in gridsToFill) {
-            
-            // Elements in playerContainers have already been ordered
-            // Add container to the grid that appeared in both priorityOrder and gridsToFill
-            // Use shift as opposite of pop - remove and return first element
-            document.querySelector('#game-grid-' + priorityOrder[j]).appendChild(playerContainers.shift());
-        }
-    }
-    // Elements should now be in order with self at the bottom and other players filled in around the board
 }
+
 
 // Determine where player containers should go in game grid
 // Fills WHOLE GRID, not specific spots
@@ -408,16 +398,9 @@ function fillPlayerGrid(playerOrder, gameName) {
             // Create player container based on game
             let playerContainer;
 
-            if (gameName === 'thirty_one') {
-                playerContainer = createPlayerContainerThirtyOne(
-                    newOrder[playerIndex], playerOrder.indexOf(newOrder[playerIndex]), priorityOrder[j]
-                );
-            }
-            else if (gameName === 'cribbage') {
-                playerContainer = createPlayerContainerCribbage(
-                    newOrder[playerIndex], playerOrder.indexOf(newOrder[playerIndex]), priorityOrder[j]
-                );
-            }
+            playerContainer = createPlayerContainer(
+                newOrder[playerIndex], playerOrder.indexOf(newOrder[playerIndex]), priorityOrder[j]
+            );
 
             // Add player container to grid
             gridContainer.appendChild(playerContainer);
