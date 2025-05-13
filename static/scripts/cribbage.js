@@ -137,7 +137,7 @@ function createPlayerContainerCribbage(name, order, gridNumber) {
     playerContainer.className = 'player-container';
 
     // Give container id of 'playerName-container'
-    playerContainer.id = name + '-container';
+    playerContainer.id = 'player-container' + name;
     
     const playerNameContainer = document.createElement('div');
     playerNameContainer.id = name + '-name-container';
