@@ -108,26 +108,10 @@ function addPlayers(players) {
         if (!(playersConnected.includes(players[i]))) {
             playersConnected.push(players[i]);
         }
-        
-        // Commented out --- Hold off on creating player container until game start
-        // // Create new player container if one does not exist
-        // if (document.querySelector('#' + players[i] + '-container') === null) { 
-        
-        //     // Add player container to first free grid spot; will move at game start
-        //     // Loop to check for empty grid spaces: check if grid has children or not
-        //     for (let j = 1; j < 10; j++) {
-                
-        //         // If grid space does not have child nodes, append new player container
-        //         if (!document.querySelector('#game-grid-' + j).hasChildNodes()) {
-        //             document.querySelector('#game-grid-' + j).appendChild(createPlayerContainer(players[i]));
-        //             break;
-        //         }
-        //     }
-        // }
 
         // Container exists; set `connected` to True
-        if (document.querySelector('#' + players[i] + '-container') !== null) {
-            document.querySelector('#' + players[i] + '-container').dataset.connected = '1';
+        if (document.querySelector('#player-container-' + players[i]) !== null) {
+            document.querySelector('#player-container-' + players[i]).dataset.connected = '1';
         }
     }   
 }
@@ -141,13 +125,7 @@ function removePlayers(players) {
         // Check if player already in list
         if ((players.includes(playersConnected[i]))) {
             
-            // Commenting out removing container --- containers will be created during game and not here
-            // const containerID = '#' + playersConnected[i] + '-container'
-
-            // // Remove player container from DOM
-            // document.querySelector(containerID).remove();
-
-            // console.log(`Found ${document.querySelector(containerID)} with id ${containerID}, removing ${playersConnected[i]} from room.`);
+            console.log(`Removing ${playersConnected[i]} from room.`);
             
             // Remove player from local list
             playersConnected.splice(i, 1);
@@ -234,23 +212,19 @@ function updateGameRoom(response) {
         // document.querySelector('#game-grid-2').appendChild(createConnectedPlayers());
 
         // Fill in game container depending on game
-        if (response.game === 'thirty_one') {
-            
-            // Create board and add to center of grid
-            document.querySelector('#game-grid-5').appendChild(createBoardThirtyOne());
-            
-            // Add move buttons to center of grid
-            document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
+        switch (response.game) {
+            case 'thirty_one':
+                // Create board and add to center of grid
+                document.querySelector('#game-grid-5').appendChild(createBoardThirtyOne());
+                // Add move buttons to center of grid
+                document.querySelector('#game-grid-5').appendChild(createMoveButtonsThirtyOne());
+                break;
+                
+            case 'cribbage':
+                document.querySelector('#game-grid-5').appendChild(createBoardCribbage());
+                document.querySelector('#game-grid-5').appendChild(createMoveButtonsCribbage());
+                break;
         }
-        
-        else if (response.game === 'cribbage') {
-            // Put deck and crib in grid-4
-            document.querySelector('#game-grid-4').appendChild(createBoardCribbage());
-            
-            // Add move buttons to grid-4? or player's grid
-            document.querySelector('#game-grid-4').appendChild(createMoveButtonsCribbage());
-        }
-
         
         /* End of game container */
         
@@ -306,7 +280,7 @@ function updateGameRoom(response) {
         for (const player of response.players) {
             
             // Check if player exists - player may not have been added yet
-            if (document.querySelector('#' + player + '-container') ===  null) {
+            if (document.querySelector('#player-container-' + player) ===  null) {
                 continue;
             }
 
@@ -314,10 +288,10 @@ function updateGameRoom(response) {
 
             // Set `connected` attribute; 1 for true and 0 for false
             if (response.connected) {
-                document.querySelector('#' + player + '-container').dataset.connected = '1';
+                document.querySelector('#player-container-' + player).dataset.connected = '1';
             }
             else {
-                document.querySelector('#' + player + '-container').dataset.connected = '0';
+                document.querySelector('#player-container-' + player).dataset.connected = '0';
             }
 
         }
@@ -349,7 +323,7 @@ function movePlayers(playerOrder) {
         // Since i will overflow length, use modulo for accessing array
         let modIndex = selfIndex % playerOrder.length
 
-        let playerContainer = document.querySelector('#' + playerOrder[modIndex] + '-container');
+        let playerContainer = document.querySelector('#player-container-' + playerOrder[modIndex]);
         
         // Check if player container exists
         if (playerContainer !== null) {
@@ -382,10 +356,9 @@ function movePlayers(playerOrder) {
 // Determine where player containers should go in game grid
 // Fills WHOLE GRID, not specific spots
 function fillPlayerGrid(playerOrder, gameName) {
-    console.log(`fillPlayerGrid called with args: playerOrder = ${playerOrder}, gameName = ${gameName}`);
     // Grids that should be filled according to number of players, starting with self (8)
     // 8 is bottom center; cardinal directions are filled first, then ordinal
-    const gridsToFill = [8, 2, 6, 4, 1, 3, 7, 9].slice(0, playerOrder.length);
+    const gridsToFill = [8, 2, 4, 6, 1, 3, 7, 9].slice(0, playerOrder.length);
 
     // Order to fill in the grids if they are present so that players are always in clockwise order
     const priorityOrder = [8, 7, 4, 1, 2, 3, 6, 9];
@@ -457,7 +430,7 @@ function fillPlayerGrid(playerOrder, gameName) {
 // Populating hand with no animation; called in updateHandNoAnimation()
 function populateHandStatic(playerName, hand, hand_score=0) {
     
-    const playerHandContainer = document.querySelector('#' + playerName + '-hand-container');
+    const playerHandContainer = document.querySelector('#hand-container-' + playerName);
     
     if (playerHandContainer.hasChildNodes()) {
         // Empty old hand to get ready for new hand - replaceChildren with no args
@@ -494,7 +467,7 @@ function populateHandStatic(playerName, hand, hand_score=0) {
     
     // Update hand score - ONLY FOR 31
     if (game === 'thirty_one') {
-        document.querySelector('#' + playerName + '-hand-score').innerText = ' Hand Score: ' + hand_score + ' ';
+        document.querySelector('#hand-score-' + playerName).innerText = ' Hand Score: ' + hand_score + ' ';
     }
 }
 
@@ -514,7 +487,7 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
     // Create back-facing hand for others if not end of round / game
     else {
         // Remove all cards if there were any
-        document.querySelector('#' + playerName + '-hand-container').replaceChildren()
+        document.querySelector('#hand-container-' + playerName).replaceChildren()
 
         // Loop hand size to add placeholders that display backs of cards
         for (let i = 0; i < response.hand_sizes[playerIndex]; i++) {
@@ -527,12 +500,12 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
 
             dummyContainer.appendChild(dummyCard);
 
-            document.querySelector('#' + playerName + '-hand-container').appendChild(dummyContainer);
+            document.querySelector('#hand-container-' + playerName).appendChild(dummyContainer);
         }
         
         // Remove hand score - ONLY FOR 31
         if (game === 'thirty_one') {
-            document.querySelector('#' + playerName + '-hand-score').innerText = '';
+            document.querySelector('#hand-score-' + playerName).innerText = '';
         }
     }
 }
@@ -579,7 +552,7 @@ function animateDraw(cardStr, player, handScore=0) {
     card.style.visibility = 'hidden';
     
     // Add card container to hand container of current player
-    document.querySelector('#' + player + '-hand-container').appendChild(cardContainer);
+    document.querySelector('#hand-container-' + player).appendChild(cardContainer);
 
     // Add handler as click listener event
     if (game === 'thirty_one') {
@@ -651,7 +624,7 @@ function animateDraw(cardStr, player, handScore=0) {
         // Update hand score if given (only for 31)
         if (game === 'thirty_one') {
             if (player === username && handScore > 0) {
-                document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+                document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
             };
         }
     });

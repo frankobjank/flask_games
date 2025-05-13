@@ -50,12 +50,11 @@ function createCardObject(cardStr) {
 
 // Create outer rotating div and card-front + card-back divs
 function createPlaceholderCard(kind) {
-    
     /* 
         Structure of a placeholder card
         
         <div class="rotate-card-container" id="discard-button">
-            <div class="playing-card card-front" ></div>
+            <div class="playing-card card-front"></div>
             <div class="playing-card card-back"></div>
         </div>
     */
@@ -63,15 +62,21 @@ function createPlaceholderCard(kind) {
     rotateContainer.className = 'rotate-card-container placeholder-card';
     
     // Set identifying features depending on `kind`: discard, deck, etc.
-    if (kind === 'discard') {
-        rotateContainer.id = 'discard-button';
-    }
-    else if (kind === 'deck') {
-        rotateContainer.id = 'deck-button';
-    }
-    else if (kind === 'unknown') {
-        // Set card to be face-down
-        rotateContainer.style.transform += `rotateY(0deg)`;
+    switch (kind) {
+        case 'discard':
+            rotateContainer.id = 'discard-button';
+            break;
+        case 'deck':
+            rotateContainer.id = 'deck-button';
+            break;
+        case 'unknown':
+            // Set card to be face-down
+            rotateContainer.style.transform += `rotateY(0deg)`;
+            break;
+        // crib for cribbage
+        case 'crib':
+            rotateContainer.id = 'crib-card';
+            break;
     }
 
     const cardFront = document.createElement('div');

@@ -23,8 +23,23 @@ function createBoardCribbage() {
 
     // Create crib container
     const cribContainer = document.createElement('div');
-    cribContainer.className = 'card-container';
+    cribContainer.className = 'crib-container';
     cribContainer.id = 'crib-container';
+
+    const cribCard = document.createElement('div');
+    cribCard.className = 'card-container';
+    cribCard.id = 'crib-card-container';
+    cribCard.appendChild(createPlaceholderCard('crib'))
+
+    cribContainer.appendChild(cribCard);
+    
+    // Count for crib - maybe put this in crib dataset
+    // Eventually want to show number of cards in stack
+    const cribCount = document.createElement('p');
+    cribCount.id = 'crib-count';
+    cribCount.innerText = 'Crib: 0 cards';
+
+    cribContainer.appendChild(cribCount);
     
     // Add crib container to board
     board.appendChild(cribContainer);
@@ -146,7 +161,7 @@ function createPlayerContainerCribbage(name, order, gridNumber) {
     // Put hand in div
     const hand = document.createElement('div');
     hand.className = 'hand-container';
-    hand.id = name + '-hand-container';
+    hand.id = 'hand-container-' + name;
     
     playerContainer.appendChild(hand);
     
@@ -294,7 +309,7 @@ function updateCribbage(response) {
                 console.log(`Dealing for: ${playerOrder[playerIndex]}`);
                 
                 // Empty old hand to get ready for new hand
-                document.querySelector('#' + playerOrder[playerIndex] + '-hand-container').replaceChildren();
+                document.querySelector('#hand-container-' + playerOrder[playerIndex]).replaceChildren();
             
                 // Keep drawing until hand reaches hand size
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
@@ -387,7 +402,7 @@ function updateCribbage(response) {
         console.log(`filling in player info: ${playerOrder[i]}`)
 
         // Once player array is populated, add to player panel display or dataset
-        const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
+        const playerContainer = document.querySelector('#player-container-' + playerOrder[i]);
 
         // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
@@ -395,7 +410,7 @@ function updateCribbage(response) {
             populateHandStatic(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
         }
 
-        if (!document.querySelector('#' + playerOrder[i] + '-hand-container').hasChildNodes()){
+        if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
             console.log(`${playerOrder[i]} hand is empty.`);
         }        
         
@@ -404,11 +419,11 @@ function updateCribbage(response) {
         if (currentPlayer === playerOrder[i]) {
             playerContainer.dataset.current = '1';
             // Add marker to current player - '\u2192' is right pointing arrow →
-            document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '\u2192';
+            document.querySelector('#current-strong-' + playerOrder[i]).innerText = '\u2192';
         }
         else {
             playerContainer.dataset.current = '0';
-            document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '';
+            document.querySelector('#current-strong-' + playerOrder[i]).innerText = '';
         }
         
         // Set connected status to True when creating player
@@ -417,11 +432,11 @@ function updateCribbage(response) {
         // Add dealer indicator and update player container dataset
         if (response.dealer === playerOrder[i]) {
             playerContainer.dataset.dealer = '1';
-            document.querySelector('#' + playerOrder[i] + '-dealer-strong').innerText = ' - Dealer'
+            document.querySelector('#dealer-strong-' + playerOrder[i]).innerText = ' - Dealer'
         }
         else {
             playerContainer.dataset.dealer = '0';
-            document.querySelector('#' + playerOrder[i] + '-dealer-strong').innerText = ''
+            document.querySelector('#dealer-strong-' + playerOrder[i]).innerText = ''
         }
     }
 }

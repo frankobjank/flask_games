@@ -163,22 +163,22 @@ function createPlayerContainerThirtyOne(name, order, gridNumber) {
     playerContainer.className = 'player-container';
 
     // Give container id of 'playerName-container'
-    playerContainer.id = name + '-container';
+    playerContainer.id = 'player-container-' + name;
     
     const playerNameContainer = document.createElement('div');
-    playerNameContainer.id = name + '-name-container';
+    playerNameContainer.id = 'name-container-' + name;
 
     const currentPlayerStrong = document.createElement('strong');
-    currentPlayerStrong.id = name + '-current-strong';
+    currentPlayerStrong.id = 'current-strong-' + name;
     playerNameContainer.appendChild(currentPlayerStrong);
     
     const playerNameStrong = document.createElement('strong');
-    playerNameStrong.id = name + '-name-strong';
+    playerNameStrong.id = 'name-strong-' + name;
     playerNameStrong.innerText = name;
     playerNameContainer.appendChild(playerNameStrong);
     
     const knockedStrong = document.createElement('strong');
-    knockedStrong.id = name + '-knocked-strong';
+    knockedStrong.id = 'knocked-strong-' + name;
     playerNameContainer.appendChild(knockedStrong);
     
     playerContainer.appendChild(playerNameContainer);
@@ -186,16 +186,16 @@ function createPlayerContainerThirtyOne(name, order, gridNumber) {
     // Put hand in div
     const hand = document.createElement('div');
     hand.className = 'hand-container';
-    hand.id = name + '-hand-container';
+    hand.id = 'hand-container-' + name;
     
     // Put lives into div
     const lives = document.createElement('div');
     lives.className = 'lives-container';
-    lives.id = name + '-lives';
+    lives.id = 'lives-' + name;
     
     // Put hand score into div
     const handScore = document.createElement('div');
-    handScore.id = name + '-hand-score';
+    handScore.id = 'hand-score-' + name;
     
     playerContainer.appendChild(hand);
 
@@ -252,7 +252,7 @@ function animateToDiscard(player, cardStr, handScore) {
     // If player is not self, pop random card from `player`'s hand
     else {
         // Out of hand container, get random card container
-        const handContainer = document.querySelector('#' + player + '-hand-container');
+        const handContainer = document.querySelector('#hand-container-' + player);
         let allCardContainers = handContainer.querySelectorAll('.card-container');
         cardContainer = allCardContainers[getRandomInt(allCardContainers.length)];
         // Once random card container is chosen, there is only one card that can be selected
@@ -318,7 +318,7 @@ function animateToDiscard(player, cardStr, handScore) {
         
         // Update hand score if given
         if (player === username) {
-            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+            document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
         }
     });
 }
@@ -366,7 +366,7 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
     cardContainer.appendChild(pickupCard);
 
     // Add card container to hand container
-    document.querySelector('#' + player + '-hand-container').appendChild(cardContainer);
+    document.querySelector('#hand-container-' + player).appendChild(cardContainer);
 
     // Get animation start and end points by comparing discard and new card container
 
@@ -440,7 +440,7 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
 
         // Update hand score if self
         if (player === username) {
-            document.querySelector('#' + player + '-hand-score').innerText = ' Hand Score: ' + handScore + ' ';
+            document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
         }
     })
 }
@@ -600,7 +600,7 @@ function updateThirtyOne(response) {
                 console.log(`Dealing for: ${playerOrder[playerIndex]}`);
                 
                 // Empty old hand to get ready for new hand - replaceChildren with no args
-                document.querySelector('#' + playerOrder[playerIndex] + '-hand-container').replaceChildren();
+                document.querySelector('#hand-container-' + playerOrder[playerIndex]).replaceChildren();
             
                 // Keep drawing until hand reaches hand size
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
@@ -709,18 +709,18 @@ function updateThirtyOne(response) {
     for (const player of playersConnected) {
         if (!response.player_order.includes(player)) {
             // Replace lives with 'knocked out'
-            document.querySelector('#' + player + '-lives').innerText = 'Knocked out';
+            document.querySelector('#lives-' + player).innerText = 'Knocked out';
             // Remove all cards
-            document.querySelector('#' + player + '-hand-container').replaceChildren();
+            document.querySelector('#hand-container-' + player).replaceChildren();
             // Remove hand score
-            document.querySelector('#' + player + '-hand-score').innerText = '';
+            document.querySelector('#hand-score-' + player).innerText = '';
             
             // Reset `current` status
-            document.querySelector('#' + player + '-current-strong').innerText = '';
-            document.querySelector('#' + player + '-container').dataset.current = '0';
+            document.querySelector('#current-strong-' + player).innerText = '';
+            document.querySelector('#player-container-' + player).dataset.current = '0';
             // Reset `knocked`
-            document.querySelector('#' + player + '-knocked-strong').innerText = '';
-            document.querySelector('#' + player + '-container').dataset.knocked = '0';
+            document.querySelector('#knocked-strong-' + player).innerText = '';
+            document.querySelector('#player-container-' + player).dataset.knocked = '0';
         }
     }
 
@@ -730,14 +730,14 @@ function updateThirtyOne(response) {
         console.log(`filling in player info: ${playerOrder[i]}`)
 
         // Once player array is populated, add to player panel display or dataset
-        const playerContainer = document.querySelector('#' + playerOrder[i] + '-container');
+        const playerContainer = document.querySelector('#player-container-' + playerOrder[i]);
 
         // Update order --- commenting out as this should be set when container is created in createPlayerContainerThirtyOne
         // playerContainer.dataset.order = i;
         
         // Update lives
         // If not knocked out, set number of extra lives
-        document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Extra Lives: ';
+        document.querySelector('#lives-' + playerOrder[i]).innerText = 'Extra Lives: ';
         playerContainer.dataset.lives = response.lives[i];
         
         // Use NUMBERS for comparisons, not strings!
@@ -749,22 +749,22 @@ function updateThirtyOne(response) {
             for (let life = 0; life < response.lives[i]; life++) {
                 lifeStarsContainer.innerText += '\u2605 ';
             } 
-            document.querySelector('#' + playerOrder[i] + '-lives').appendChild(lifeStarsContainer);
+            document.querySelector('#lives-' + playerOrder[i]).appendChild(lifeStarsContainer);
         }
 
         // If 0 lives, add 'on the bike'
         else if (response.lives[i] === 0) {
             
             // Remove any stars remaining
-            document.querySelector('#' + playerOrder[i] + '-lives').replaceChildren()
+            document.querySelector('#lives-' + playerOrder[i]).replaceChildren()
             
             // Add text
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText += 'on the bike';
+            document.querySelector('#lives-' + playerOrder[i]).innerText += 'on the bike';
         }
                     
         // Server will set lives to -1 if knocked out
         else if (response.lives[i] === -1) {
-            document.querySelector('#' + playerOrder[i] + '-lives').innerText = 'Knocked out';
+            document.querySelector('#lives-' + playerOrder[i]).innerText = 'Knocked out';
         }
 
         // Create front-facing hand for others on game end, not clickable
@@ -773,7 +773,7 @@ function updateThirtyOne(response) {
             populateHandStatic(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
         }
 
-        if (!document.querySelector('#' + playerOrder[i] + '-hand-container').hasChildNodes()){
+        if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
             console.log(`${playerOrder[i]} hand is empty.`);
         }        
         
@@ -782,11 +782,11 @@ function updateThirtyOne(response) {
         if (currentPlayer === playerOrder[i]) {
             playerContainer.dataset.current = '1';
             // Add marker to current player - '\u2192' is right pointing arrow →
-            document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '\u2192';
+            document.querySelector('#current-strong-' + playerOrder[i]).innerText = '\u2192';
         }
         else {
             playerContainer.dataset.current = '0';
-            document.querySelector('#' + playerOrder[i] + '-current-strong').innerText = '';
+            document.querySelector('#current-strong-' + playerOrder[i]).innerText = '';
         }
         
         // Set connected status to True when creating player
@@ -795,11 +795,11 @@ function updateThirtyOne(response) {
         // Set knocked status - add text to name container
         if (response.knocked === playerOrder[i]) {
             playerContainer.dataset.knocked = '1';
-            document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = ' - knocked';
+            document.querySelector('#knocked-strong-' + playerOrder[i]).innerText = ' - knocked';
         }
         else {
             playerContainer.dataset.knocked = '0';
-            document.querySelector('#' + playerOrder[i] + '-knocked-strong').innerText = '';
+            document.querySelector('#knocked-strong-' + playerOrder[i]).innerText = '';
         }
     }
 }
