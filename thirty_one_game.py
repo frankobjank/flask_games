@@ -202,16 +202,11 @@ class State:
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player
 
-        # Broadcast starting message
-        print_and_log("Starting new game", self.players)
 
         # Set player order
         self.set_player_order()
         
-        # Broadcast player order
-        print_and_log("Player order:", self.players)
-        for i, player in enumerate(self.player_order):
-            print_and_log(f"{i+1} - {player}", self.players)
+        broadcast_start_message(self.player_order, self.players)
 
         self.in_progress = True
 
@@ -245,7 +240,7 @@ class State:
         self.dealer = self.player_order[first_player_index - 1]
         self.blitzed_players = []
         
-        print_and_log(f"\n--- ROUND {self.round_num} ---", self.players)
+        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
         print_and_log("\n--- DEALING ---\n\n", self.players)
         
         # Shuffle cards
@@ -442,8 +437,9 @@ class State:
         if self.in_progress and self.mode != "end_round" and packet["username"] != self.current_player:    
             print(f"Not accepting move from non-current player ({packet['username']}) while game is in progress.")
             print(f"Current player is {self.current_player}.")
-            response_dict["response"] = "reject"
+
             response_dict["msg"] = "You can only move on your turn."
+            response_dict["response"] = "reject"
             return response_dict
         
         if not self.in_progress:
@@ -486,8 +482,9 @@ class State:
             # Reject discard here because it is `main` phase and not `discard` phase
             # Let player know they need 4 cards to discard
             elif packet["action"] == "discard":
-                response_dict["response"] = "reject"
+
                 response_dict["msg"] = "Must have 4 cards to discard."
+                response_dict["response"] = "reject"
                 return response_dict
             
             # Catch all other moves with `else`; Hitting continue on main phase was breaking game

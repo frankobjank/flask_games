@@ -125,16 +125,11 @@ class State:
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player
             
-        # Broadcast starting message
-        print_and_log("Starting new game", self.players)
 
         # Set player order
         self.set_player_order()
         
-        # Broadcast player order
-        print_and_log("Player order:", self.players)
-        for i, player in enumerate(self.player_order):
-            print_and_log(f"{i+1}. {player}", self.players)
+        broadcast_start_message(self.player_order, self.players)
 
         self.in_progress = True
         
@@ -160,12 +155,12 @@ class State:
         self.current_player = self.player_order[first_player_index]
         self.dealer = self.player_order[first_player_index - 1]
         
-        print_and_log(f"--- ROUND {self.round_num} ---\n", self.players)
+        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
 
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
         
-        print_and_log("\n--- DEALING ---", self.players)
+        print_and_log("\n--- DEALING ---\n", self.players)
         # Deal and reset player vars
         for p_name, p_object in self.players.items():
             # Empty hand
@@ -190,7 +185,7 @@ class State:
                     discard_str = "1 card"
 
             # Add discard message to log
-            print_and_log(f"Please pick {discard_str} to add to the crib. The dealer is {self.dealer}.", self.players, p_name)
+            print_and_log(f"\n{self.dealer} is the dealer.\nPlease pick {discard_str} to add to the crib.", self.players, p_name)
             
             # Reset variables for the play
             p_object.played_cards = []
@@ -553,19 +548,22 @@ class State:
             self.has_played_show.add(self.current_player)
 
 
-    def update(self, packet: dict):
-        # {"name": "", "action": "", "card": "", "cards": ["", ""], "go": bool}
+    def update(self, packet: dict) -> dict[str,str]:
+        # {"username": "", "action": "", "card": "", "cards": ["", ""], "go": bool}
         # actions: start, discard, play, continue, new_game
 
-        # Packet must include player name because must accept input from all players during discard
-        
+        # Change response to accept or reject
+        # Use msg as response to specific player on a reject
+        response_dict = {"response": "", "msg": ""}
+
         assert len(packet) > 0, "empty packet"
         
         # I think this covers when self.mode == "end_game"
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
-                return "accept"
+                response_dict["response"] = "accept"
+                return response_dict
             
         # Pause game before next round starts
         if self.mode == "end_round":
@@ -573,17 +571,23 @@ class State:
                 # Start a new round
                 self.new_round()
             else:
-                return "reject"
+                response_dict["response"] = "reject"
+                return response_dict
         
         # Turn modes: "discard", "play", "show"
         elif self.mode == "discard" and packet["action"] == "discard":
             # Cards to discard can be sent as packet["cards"]
             
+            target_num = len(self.players[packet["username"]].hand) - 4
             # Validate number of cards
-            if len(packet["cards"]) != len(self.players[packet["username"]].hand) - 4:
-
-                print_and_log(f"You must choose {len(self.players[packet["username"]].hand) - 4} card(s) to add to the crib.", self.players, packet["username"])
-                return "reject"
+            if len(packet["cards"]) != target_num:
+                # Split for correct grammar
+                if target_num == 1:
+                    response_dict["msg"] = f"You must choose {target_num} card to add to the crib."
+                else:
+                    response_dict["msg"] = f"You must choose {target_num} cards to add to the crib."
+                response_dict["response"] = "reject"
+                return response_dict
             
             # Discard move accepted; add to action log and adjust player hand / crib
             # Pass in actual cards and hide if sending to non-self player -- hidden during package_state()
@@ -614,8 +618,11 @@ class State:
         elif self.mode == "play" and packet["action"] == "play":
 
             if packet["username"] != self.current_player:
-                print(f"Rejecting play move from {packet['name']}; not their turn.")
-                return "reject"
+                print(f"Not accepting move from non-current player ({packet['username']}) during the play.")
+                print(f"Current player is {self.current_player}.")
+                response_dict["msg"] = "You can only play a card on your turn."
+                response_dict["response"] = "reject"
+                return response_dict
 
             played_card = unzip_card(packet["card"])
 
@@ -623,8 +630,9 @@ class State:
             
             # Validate input
             if current_count + played_card.value > 31:
-                print_and_log("You cannot exceed 31. Please choose another card.", self.players, packet["username"])
-                return "reject"
+                response_dict["msg"] = "You cannot exceed 31. Please choose another card."
+                response_dict["response"] = "reject"
+                return response_dict
             
             # Action log to play a card
             self.action_log.append({"action": "play_card", "player": packet["username"], "cards": [played_card]})
@@ -659,7 +667,8 @@ class State:
                 self.end_turn()
 
         # If not returned early, move was accepted
-        return "accept"
+        response_dict["response"] = "accept"
+        return response_dict
 
 
     def add_score_log(self, player: str, points: int, reason: str, cards: list[str]):

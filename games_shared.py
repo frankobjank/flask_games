@@ -1,6 +1,6 @@
 ### Functions shared by all games
 
-def print_and_log(msg, players_dict, player="all") -> None:
+def print_and_log(msg:str, players_dict:dict, player:str="all") -> None:
     """Print to terminal and add to players' logs"""
 
     print(msg)
@@ -14,6 +14,18 @@ def print_and_log(msg, players_dict, player="all") -> None:
     # Send to one specific client
     else:
         players_dict[player].log.append(msg)
+
+
+def broadcast_start_message(player_order:list[str], players_dict:dict):
+    """Broadcast starting message - standardized between games."""
+
+    # Start message
+    print_and_log("\n--- Starting new game ---\n", players_dict)
+
+    # Player order
+    print_and_log("\nPlayer order:", players_dict)
+    for i, player in enumerate(player_order):
+        print_and_log(f"{i+1}: {player}", players_dict)
 
 
 # TODO fill in this function so action log works similarly to text log
