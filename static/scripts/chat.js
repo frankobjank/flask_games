@@ -61,7 +61,6 @@ function createChatLogPanel(username) {
     // chatLogHeader.innerText = username + ' - ' + currentRoom;
     // Need to decide what looks good in the header - just Chat for now
     chatLogHeader.innerText = 'Chat';
-    
 
     const chatLogMessages = document.createElement('div');
     chatLogMessages.className = 'chat log messages';

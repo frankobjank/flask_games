@@ -245,8 +245,8 @@ class State:
         self.dealer = self.player_order[first_player_index - 1]
         self.blitzed_players = []
         
-        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
-        print_and_log("\n--- DEALING ---", self.players)
+        print_and_log(f"\n--- ROUND {self.round_num} ---", self.players)
+        print_and_log("\n--- DEALING ---\n\n", self.players)
         
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
@@ -295,7 +295,7 @@ class State:
             for p_name in self.blitzed_players:
                 print_and_log(f"{p_name} BLITZED!!!", self.players)
 
-        print_and_log(f"--- END OF ROUND {self.round_num} ---\n", self.players)
+        print_and_log(f"--- END OF ROUND {self.round_num} ---\n\n", self.players)
         print_and_log("---     SCORES     ---\n", self.players)
         
         # Calc all hand scores for display and round end calculations
@@ -430,14 +430,27 @@ class State:
             self.start_turn()
 
 
-    def update(self, packet: dict):
+    def update(self, packet: dict) -> dict[str,str]:
         # actions: start, add_player, draw, pickup, knock, discard, quit
-        # Assuming packet is coming from current player; validate before this is called
 
+        # Change response to accept or reject
+        # Use msg as response to specific player on a reject
+        response_dict = {"response": "", "msg": ""}
+
+        # Reject request if coming from current player EXCEPT during round end
+            # Allow input from all players to click continue 
+        if self.in_progress and self.mode != "end_round" and packet["username"] != self.current_player:    
+            print(f"Not accepting move from non-current player ({packet['username']}) while game is in progress.")
+            print(f"Current player is {self.current_player}.")
+            response_dict["response"] = "reject"
+            response_dict["msg"] = "You can only move on your turn."
+            return response_dict
+        
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
-                return "accept"
+                response_dict["response"] = "accept"
+                return response_dict
             
         # Pause game before next round starts
         if self.mode == "end_round":
@@ -445,7 +458,8 @@ class State:
                 # Start a new round after confirmation to continue
                 self.new_round()
             else:
-                return "reject"
+                response_dict["response"] = "reject"
+                return response_dict
 
         elif self.mode == "main_phase":
             taken_card = None
@@ -458,7 +472,9 @@ class State:
                 self.knocked = self.current_player
                 print_and_log(f"{self.current_player} knocked.", self.players)
                 self.end_turn()
-                return "accept"
+                
+                response_dict["response"] = "accept"
+                return response_dict
 
             elif packet["action"] == "pickup":
 
@@ -468,20 +484,23 @@ class State:
                 taken_card = draw_card(self.shuffled_cards)
             
             # Reject discard here because it is `main` phase and not `discard` phase
+            # Let player know they need 4 cards to discard
             elif packet["action"] == "discard":
-                # This will not actually reach players because "reject" is returned
-                print_and_log("Must have 4 cards to discard.", self.players, player=self.current_player)
-                return "reject"
+                response_dict["response"] = "reject"
+                response_dict["msg"] = "Must have 4 cards to discard."
+                return response_dict
             
             # Catch all other moves with `else`; Hitting continue on main phase was breaking game
             else:
                 print_and_log(f"Move {packet['action']} is not allowed during the main phase.", self.players, player=self.current_player)
-                return "reject"
+                response_dict["response"] = "reject"
+                return response_dict
             
             # If taken card has not been set at this point, will raise exception
             if not taken_card:
                 print("taken_card not set in server update() function")
-                return "reject"
+                response_dict["response"] = "reject"
+                return response_dict
             
             # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
@@ -512,7 +531,8 @@ class State:
             self.end_turn()
         
         # If not returned early, move was accepted
-        return "accept"
+        response_dict["response"] = "accept"
+        return response_dict
         
 
     # Packages state for each player individually. Includes sid for socketio

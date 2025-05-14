@@ -695,24 +695,34 @@ def on_move(data):
         fio.emit("debug_msg", {"msg":f"Server rejected move request; Unable to find user in room"},
                  to=fl.request.sid)
         return
+    # Pass input to game state to update; can either reject or accept input
+    game_update = game.update(data)
 
-    # If game has started, check that username is current player
-    # Only allow input from all players to click continue during round ending (for 31)
-    if game.in_progress and game.mode != "end_round" and player.name != game.current_player:
-        
-        print("Not accepting move from non-current player while game is in progress.")
-        fio.emit("debug_msg", {"msg":f"Server rejected move request; {player.name} not current player."},
-                 to=fl.request.sid)
-        
-        return
+    ### ISSUE ###
+    ## Log messages are not appearing on server reject because player log is only
+    ## Updated on a successful move. Can instead send a custom message directly to
+    ## the chat log. How to get the message from the game update function - return
+    ## as a dict or tuple
+        ## i.e. {"response": "reject", "msg": msg}
+    ## For parity should change the accept return value into a tuple or dict as well
+        ## i.e. {"response": "accept"} - the rest of the response is packaged with
+        ## package state. This is good because usually response is sent to all players,
+        ## not just client who made the initial request
 
-    # Update based on data.action, data.card
-    if game.update(data) == "reject":
+    # Game will either reject or accept action. Prepare response to client.
+    if game_update["response"] == "reject":
         
         # Send on server reject
         msg = f"Server rejected move event `{data['action']}`"
         print(msg)
         fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
+
+        # If msg returned, send message for client chat log
+        if len(game_update["msg"]) > 0:
+            fio.emit("chat_log", {"msg": game_update["msg"], "sender": "system",
+                     "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
+        
+        # Return early on reject, anything after server has accepted
         return
 
     # Send on server accept; Tailored response to each player
