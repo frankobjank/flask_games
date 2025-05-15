@@ -624,9 +624,6 @@ function updateThirtyOne(response) {
         updateDiscardNoAnimation(response.discard);
     }
     
-
-    
-    // Unpack general state
     // Must put current player update here since turn may increment on server side
     // Potentially animate changing current player
     currentPlayer = response.current_player;

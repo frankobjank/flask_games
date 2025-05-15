@@ -229,8 +229,6 @@ function updateCribbage(response) {
         return;
     }
 
-    console.log(`\n\ninProgress === ${inProgress} \n\n`)
-    
     // Unpack for players still in the game 
     playerOrder = response.player_order;
 
@@ -316,7 +314,6 @@ function updateCribbage(response) {
 
     }
 
-    // NEED TO REVIEW - COPIED FROM THIRTYONE
     // No action; cards will be updated but no animation will happen
         // Ex: Reloading page in middle of game
     if (response.action_log.length === 0) {

@@ -9,22 +9,6 @@ Play = namedtuple("Play", ["player", "card"])
 
 # Idea for front-end - when scoring, highlight cards used in the score to show which cards are being used
 
-class Player:
-    def __init__(self, name="") -> None:
-        self.name = name
-        self.order = 0
-        self.hand = []
-        self.score = 0
-        self.unplayed_cards = []  # For the play
-        self.played_cards = []  # For the play
-        self.log = []
-        self.action_log = []
-    
-
-    def __repr__(self) -> str:
-        return f"Player({self.name})"
-
-
 class State:
     def __init__(self, room_name: str) -> None:
 
@@ -76,35 +60,10 @@ class State:
         """Initializes a player and adds to players dict."""
 
         self.players[name] = Player(name)
-
-
-    def set_player_order(self):
-        """Sets player order to a random order."""
-        
-        # Empty player order list
-        self.player_order = []
-        # For reordered players dict
-        new_player_dict = {}
-
-        # Names to pick randomly
-        player_names = [name for name in self.players.keys()]
-
-        # Pick random player change order from 0 -> num players
-        for i in range(len(player_names)):
-            rand_player = player_names[random.randint(0, len(player_names)-1)]
-            self.players[rand_player].order = i
-            self.player_order.append(rand_player)
-            player_names.remove(rand_player)
-
-        # # Modify player order in place to match new order attribute of players
-        # self.player_order.sort(key=lambda player_name: self.players[player_name].order)
-        
-        # Reorder the players dict (dicts are ordered now?) for parity with player order
-        for player in self.player_order:
-            new_player_dict[player] = self.players[player]
-
-        # Assign old dict to new dict
-        self.players = new_player_dict
+        # Add cribbage specific attributes to Player object
+        self.players[name].score = 0
+        self.players[name].unplayed_cards = []  # For the play
+        self.players[name].played_cards = []  # For the play
 
 
     def start_game(self) -> None:
@@ -127,7 +86,7 @@ class State:
             
 
         # Set player order
-        self.set_player_order()
+        set_player_order(self.players, self.player_order)
         
         broadcast_start_message(self.player_order, self.players)
 
@@ -414,7 +373,7 @@ class State:
             self.add_score_log(self.current_player, 12, "four of a kind", cards=[play.card.portable for play in self.current_plays[-4:]])
         
         # Check for runs (min 3)
-        for i in range(len(play_ranks)-2):
+        for i in range(len(play_ranks) - 2):
             if is_run(play_ranks[i:]):
                 # Pass in `i` to end of current plays in cards
                 self.add_score_log(self.current_player, len(play_ranks[i:]), "run", cards=[play.card.portable for play in self.current_plays[i:]])
@@ -435,6 +394,9 @@ class State:
 
         # Action log to reveal show cards to all players
         self.action_log.append({"action": "start_show", "player": self.current_player, "cards": [card.portable for card in four_card_hand]})
+
+        # Assertion so pylance knows starter is a Card
+        assert self.starter is not None, "starter is None at score_show"
 
         # Hand plus starter used for scoring the show
         show_hand = four_card_hand + [self.starter]
@@ -484,7 +446,7 @@ class State:
         # Look for run in combinations of 3 cards
         for i in range(3, len(show_hand) + 1):
             for pot_run in combinations(show_hand, i):
-                if is_run(card.rank for card in pot_run):
+                if is_run([card.rank for card in pot_run]):
                     runs.append(pot_run)
 
         # If run(s) was found, find the longest
@@ -540,17 +502,20 @@ class State:
             # Print total score for crib
             # Split for correct grammar
             if score == 1:
-                print_and_log(f"{self.current_player} scored a total of {score} point for the crib.")
+                print_and_log(f"{self.current_player} scored a total of {score} point for the crib.", self.players)
             else:
-                print_and_log(f"{self.current_player} scored a total of {score} points for the crib.")
+                print_and_log(f"{self.current_player} scored a total of {score} points for the crib.", self.players)
         
             # Player must be dealer; mark as finished with the show
             self.has_played_show.add(self.current_player)
 
 
     def update(self, packet: dict) -> dict[str,str]:
+        """Accept client's input and update game state or reject client's input."""
+
+        # Packet received by client contains these keys/values:
         # {"username": "", "action": "", "card": "", "cards": ["", ""], "go": bool}
-        # actions: start, discard, play, continue, new_game
+        # action requests: start, discard, play, continue, new_game
 
         # Change response to accept or reject
         # Use msg as response to specific player on a reject
@@ -786,6 +751,8 @@ class State:
 
 # Other helper functions
 def is_run(potential_run: list[str]):
+    """Check if all ranks provided are within 1 rank of each other. Run may be out of order."""
+
     # Convert card ranks to sorted list of indices of this list of card ranks
     indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(rank) for rank in potential_run])
 

@@ -9,20 +9,6 @@ from games_shared import *
 RANK_TO_VALUE["A"] = 11
 
 
-class Player:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.order = 0
-        self.hand = []
-        self.lives = 3  # debug = score starts at 1  # Score starts at 3
-        self.log = []  # Individual logs per player
-        self.action_log = []  # list of dicts
-
-    
-    def __repr__(self) -> str:
-        return f"Player({self.name})"
-
-
 class State:
     def __init__(self, room_name: str) -> None:
         
@@ -150,39 +136,13 @@ class State:
         
 
     # This is currently only called from app.py
-    def add_player(self, name) -> None:
+    def add_player(self, name:str) -> None:
         """Initializes a player and adds to players dict."""
 
         self.players[name] = Player(name)
-
-
-    def set_player_order(self):
-        """Sets player order to a random order."""
         
-        # Empty player order list
-        self.player_order = []
-        # For reordered players dict
-        new_player_dict = {}
-
-        # Names to pick randomly
-        player_names = [name for name in self.players.keys()]
-
-        # Pick random player change order from 0 -> num players
-        for i in range(len(player_names)):
-            rand_player = player_names[random.randint(0, len(player_names)-1)]
-            self.players[rand_player].order = i
-            self.player_order.append(rand_player)
-            player_names.remove(rand_player)
-
-        # # Modify player order in place to match new order attribute of players
-        # self.player_order.sort(key=lambda player_name: self.players[player_name].order)
-        
-        # Reorder the players dict (dicts are ordered now?) for parity with player order
-        for player in self.player_order:
-            new_player_dict[player] = self.players[player]
-
-        # Assign old dict to new dict
-        self.players = new_player_dict
+        # Thirty one specific attributes for Player
+        self.players[name].lives = 3  # Score starts at 3
 
 
     def start_game(self) -> None:
@@ -203,8 +163,8 @@ class State:
             p_object.log = []  # Start log as empty list for each player
 
 
-        # Set player order
-        self.set_player_order()
+        # Set random player order. Alter players dict and player_order list
+        set_player_order(self.players, self.player_order)
         
         broadcast_start_message(self.player_order, self.players)
 
