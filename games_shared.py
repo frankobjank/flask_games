@@ -42,15 +42,26 @@ def broadcast_start_message(player_order:list[str], players_dict:dict):
         print_and_log(f"{i+1}: {player}", players_dict)
 
 
+# For a long time I had a list of player orders because I thought dictionaries were unordered
+# Turns out they are ordered so I'm replacing all instances of player_order with players.keys()
 def set_player_order(players:dict[str,Player], player_order:list[str]) -> None:
     """Sets player order to a random order and alters players dict and player_order list."""
     
     # Empty player order list
-    player_order = []
+    new_player_order = []
 
     # Names to pick randomly
     player_names = [name for name in players.keys()]
 
+    # Pick random player change order from 0 -> num players
+    for i in range(len(player_names)):
+        rand_player = player_names[random.randint(0, len(player_names)-1)]
+        players[rand_player].order = i
+        player_order.append(rand_player)
+        player_names.remove(rand_player)
+
+
+def reorder_player
     # Pick random player change order from 0 -> num players
     for i in range(len(player_names)):
         rand_player = player_names[random.randint(0, len(player_names)-1)]

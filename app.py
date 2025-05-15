@@ -18,14 +18,18 @@ import cribbage
 # Having temporary usernames persist outside of game room will cause issues with duplicate usernames. 
 # Should make usernames link on re-joining a room, but NOT re-joining lobby
 
-# Configure application
+# Type checker is having issue w some parameters used for flask socketio
+    # * Some of these issues can probably be fixed by using `broadcast` instead of the `room` parameter
+    # * Not sure if `room` is acceptable and not documented, or if it's being ignored and broadcasted
+    #   by default
+    # * Type checker also does not like fl.request.sid - even though it seems to work
 
+# Configure application
 def create_app():
     app = fl.Flask(__name__)
     app.config.from_mapping(
         SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev_key'
-    )
-    
+    )  
     return app
 
 app = create_app()
@@ -43,7 +47,7 @@ Session(app)
 socketio = fio.SocketIO(app, logger=True, engineio_logger=True)
 
 # Without logs
-# socketio = fio.SocketIO(app) #, logger=True, engineio_logger=True)
+# socketio = fio.SocketIO(app)
 
 users = {}
 
@@ -695,8 +699,9 @@ def on_move(data):
         fio.emit("debug_msg", {"msg":f"Server rejected move request; Unable to find user in room"},
                  to=fl.request.sid)
         return
+    
     # Pass input to game state to update; can either reject or accept input
-    game_update = game.update(data)
+    game_response = game.update(data)
 
     ### ISSUE ###
     ## Log messages are not appearing on server reject because player log is only
@@ -710,7 +715,7 @@ def on_move(data):
         ## not just client who made the initial request
 
     # Game will either reject or accept action. Prepare response to client.
-    if game_update["response"] == "reject":
+    if not game_response["accepted"]:
         
         # Send on server reject
         msg = f"Server rejected move event `{data['action']}`"
@@ -718,8 +723,8 @@ def on_move(data):
         fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
 
         # If msg returned, send message for client chat log
-        if len(game_update["msg"]) > 0:
-            fio.emit("chat_log", {"msg": game_update["msg"], "sender": "system",
+        if len(game_response["msg"]) > 0:
+            fio.emit("chat_log", {"msg": game_response["msg"], "sender": "system",
                      "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
         
         # Return early on reject, anything after server has accepted

@@ -93,6 +93,8 @@ class State:
                 if len(card_list) == 1:
                     discard_card = card_list[0]
         
+        assert discard_card is not None, "discard is None at the end of find_discard_on_blitz"
+        
         return discard_card
 
 
@@ -386,11 +388,13 @@ class State:
 
 
     def update(self, packet: dict) -> dict[str,str]:
-        # actions: start, add_player, draw, pickup, knock, discard, quit
+        """Accept client's input and update game state or reject client's input."""
+
+        # potential action requests: start, add_player, draw, pickup, knock, discard, quit
 
         # Change response to accept or reject
         # Use msg as response to specific player on a reject
-        response_dict = {"response": "", "msg": ""}
+        response = {"accepted": False, "msg": ""}
 
         # Reject request if coming from current player EXCEPT during round end
             # Allow input from all players to click continue 
@@ -398,15 +402,15 @@ class State:
             print(f"Not accepting move from non-current player ({packet['username']}) while game is in progress.")
             print(f"Current player is {self.current_player}.")
 
-            response_dict["msg"] = "You can only move on your turn."
-            response_dict["response"] = "reject"
-            return response_dict
+            response["msg"] = "You can only move on your turn."
+            response["accepted"] = False
+            return response
         
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
-                response_dict["response"] = "accept"
-                return response_dict
+                response["accepted"] = True
+                return response
             
         # Pause game before next round starts
         if self.mode == "end_round":
@@ -414,23 +418,25 @@ class State:
                 # Start a new round after confirmation to continue
                 self.new_round()
             else:
-                response_dict["response"] = "reject"
-                return response_dict
+                response["accepted"] = False
+                return response
 
         elif self.mode == "main_phase":
             taken_card = None
             if packet["action"] == "knock":
+                # Reject if someone has already knocked
                 if len(self.knocked) > 0:
-                    print_and_log(f"{self.knocked} has already knocked. You must pick a different move.", self.players, player=self.current_player)
-                    # returns "accept" here only so that the log message gets returned to client.
-                    # Could separate these mechanisms a little since the move is actually rejected.
-                    return "accept"
+                    response["msg"] = f"{self.knocked} has already knocked. You must pick a different move."
+                    response["accepted"] = False
+                    return response
+                
+                # Allow if no one has knocked yet
                 self.knocked = self.current_player
                 print_and_log(f"{self.current_player} knocked.", self.players)
                 self.end_turn()
                 
-                response_dict["response"] = "accept"
-                return response_dict
+                response["accepted"] = True
+                return response
 
             elif packet["action"] == "pickup":
 
@@ -443,21 +449,21 @@ class State:
             # Let player know they need 4 cards to discard
             elif packet["action"] == "discard":
 
-                response_dict["msg"] = "Must have 4 cards to discard."
-                response_dict["response"] = "reject"
-                return response_dict
+                response["msg"] = "Must have 4 cards to discard."
+                response["accepted"] = False
+                return response
             
             # Catch all other moves with `else`; Hitting continue on main phase was breaking game
             else:
                 print_and_log(f"Move {packet['action']} is not allowed during the main phase.", self.players, player=self.current_player)
-                response_dict["response"] = "reject"
-                return response_dict
+                response["accepted"] = False
+                return response
             
             # If taken card has not been set at this point, will raise exception
             if not taken_card:
                 print("taken_card not set in server update() function")
-                response_dict["response"] = "reject"
-                return response_dict
+                response["accepted"] = False
+                return response
             
             # Add card to hand
             self.players[self.current_player].hand.append(taken_card)
@@ -488,8 +494,8 @@ class State:
             self.end_turn()
         
         # If not returned early, move was accepted
-        response_dict["response"] = "accept"
-        return response_dict
+        response["accepted"] = True
+        return response
         
 
     # Packages state for each player individually. Includes sid for socketio

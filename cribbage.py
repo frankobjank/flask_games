@@ -482,9 +482,9 @@ class State:
             # Print total score for show
             # Split for correct grammar
             if score == 1:
-                print_and_log(f"{self.current_player} scored a total of {score} point for the show.")
+                print_and_log(f"{self.current_player} scored a total of {score} point for the show.", self.players)
             else:
-                print_and_log(f"{self.current_player} scored a total of {score} points for the show.")
+                print_and_log(f"{self.current_player} scored a total of {score} points for the show.", self.players)
                 
             # If player is not dealer, add them to the played show set
             # If dealer, handled below under crib
@@ -519,7 +519,7 @@ class State:
 
         # Change response to accept or reject
         # Use msg as response to specific player on a reject
-        response_dict = {"response": "", "msg": ""}
+        response = {"accepted": False, "msg": ""}
 
         assert len(packet) > 0, "empty packet"
         
@@ -527,8 +527,8 @@ class State:
         if not self.in_progress:
             if packet["action"] == "start":
                 self.start_game()
-                response_dict["response"] = "accept"
-                return response_dict
+                response["accepted"] = True
+                return response
             
         # Pause game before next round starts
         if self.mode == "end_round":
@@ -536,8 +536,8 @@ class State:
                 # Start a new round
                 self.new_round()
             else:
-                response_dict["response"] = "reject"
-                return response_dict
+                response["accepted"] = False
+                return response
         
         # Turn modes: "discard", "play", "show"
         elif self.mode == "discard" and packet["action"] == "discard":
@@ -548,11 +548,11 @@ class State:
             if len(packet["cards"]) != target_num:
                 # Split for correct grammar
                 if target_num == 1:
-                    response_dict["msg"] = f"You must choose {target_num} card to add to the crib."
+                    response["msg"] = f"You must choose {target_num} card to add to the crib."
                 else:
-                    response_dict["msg"] = f"You must choose {target_num} cards to add to the crib."
-                response_dict["response"] = "reject"
-                return response_dict
+                    response["msg"] = f"You must choose {target_num} cards to add to the crib."
+                response["accepted"] = False
+                return response
             
             # Discard move accepted; add to action log and adjust player hand / crib
             # Pass in actual cards and hide if sending to non-self player -- hidden during package_state()
@@ -585,9 +585,9 @@ class State:
             if packet["username"] != self.current_player:
                 print(f"Not accepting move from non-current player ({packet['username']}) during the play.")
                 print(f"Current player is {self.current_player}.")
-                response_dict["msg"] = "You can only play a card on your turn."
-                response_dict["response"] = "reject"
-                return response_dict
+                response["msg"] = "You can only play a card on your turn."
+                response["accepted"] = False
+                return response
 
             played_card = unzip_card(packet["card"])
 
@@ -595,9 +595,9 @@ class State:
             
             # Validate input
             if current_count + played_card.value > 31:
-                response_dict["msg"] = "You cannot exceed 31. Please choose another card."
-                response_dict["response"] = "reject"
-                return response_dict
+                response["msg"] = "You cannot exceed 31. Please choose another card."
+                response["accepted"] = False
+                return response
             
             # Action log to play a card
             self.action_log.append({"action": "play_card", "player": packet["username"], "cards": [played_card]})
@@ -632,8 +632,8 @@ class State:
                 self.end_turn()
 
         # If not returned early, move was accepted
-        response_dict["response"] = "accept"
-        return response_dict
+        response["accepted"] = True
+        return response
 
 
     def add_score_log(self, player: str, points: int, reason: str, cards: list[str]):
@@ -687,7 +687,7 @@ class State:
 
             elif self.mode == "play":
                 # Hand size in play can be taken from unplayed_cards
-                hand_sizes.append(len(self.players[p_name]).unplayed_cards)
+                hand_sizes.append(len(self.players[p_name].unplayed_cards))
 
             # Send all hands if show
             if self.mode == "show":
