@@ -9,6 +9,11 @@ from games_shared import *
 RANK_TO_VALUE["A"] = 11
 
 
+class PlayerCribbage(Player):
+    def __init__(self):
+        
+
+
 class State:
     def __init__(self, room_name: str) -> None:
         
@@ -142,6 +147,7 @@ class State:
         """Initializes a player and adds to players dict."""
 
         self.players[name] = Player(name)
+        self.player_order.append(name)
         
         # Thirty one specific attributes for Player
         self.players[name].lives = 3  # Score starts at 3
@@ -165,8 +171,12 @@ class State:
             p_object.log = []  # Start log as empty list for each player
 
 
-        # Set random player order. Alter players dict and player_order list
-        set_player_order(self.players, self.player_order)
+        # Set random player order. Alter and return updated player_order list and players dict
+        print(f"player order = {self.player_order}, players = {self.players}")
+        self.player_order = set_player_order(self.player_order)
+        print(f"AFTER SET PLAYER ORDER player order = {self.player_order}, players = {self.players}")
+        self.players = reorder_players(self.player_order, self.players)
+        print(f"AFTER REORDER PLAAYERS player order = {self.player_order}, players = {self.players}")
         
         broadcast_start_message(self.player_order, self.players)
 

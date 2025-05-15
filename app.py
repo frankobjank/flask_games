@@ -10,7 +10,7 @@ from flask_session import Session
 import flask_socketio as fio
 
 # Local Python files
-from helpers import *
+from app_helpers import *
 import thirty_one_game
 import cribbage
 

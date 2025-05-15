@@ -28,7 +28,7 @@ class User:
 class Room:
     def __init__(self, name: str, roompw: str, game_name: str, capacity: int, date_created: int, creator: str):
         self.name = name
-        self.roompw = roompw  # STORED AS HASH or empty string "" if no pw
+        self.roompw = roompw  # Stored as hash or empty string if no pw
         self.game_name = game_name
         self.capacity = capacity
         self.date_created = date_created
@@ -129,7 +129,7 @@ def get_all_clients(rooms: dict[str, Room]) -> set:
     return all_clients
 
 
-def get_connected_users_str(users: list[str]) -> str:
+def get_connected_users_str(users: list[User]) -> str:
     """List of users connected to a room in string format."""
     
     # Get all names of users connected
@@ -144,7 +144,7 @@ def get_connected_users_str(users: list[str]) -> str:
             
 
 
-def validate_name_input(name: str, max_len: str) -> dict[str, str|bool]:
+def validate_name_input(name: str, max_len: int) -> dict[str, str|bool]:
     response = {"name": name,
                 "accepted": False,
                 "msg": ""}

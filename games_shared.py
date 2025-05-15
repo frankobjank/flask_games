@@ -42,41 +42,35 @@ def broadcast_start_message(player_order:list[str], players_dict:dict):
         print_and_log(f"{i+1}: {player}", players_dict)
 
 
-# For a long time I had a list of player orders because I thought dictionaries were unordered
-# Turns out they are ordered so I'm replacing all instances of player_order with players.keys()
-def set_player_order(players:dict[str,Player], player_order:list[str]) -> None:
-    """Sets player order to a random order and alters players dict and player_order list."""
+# Separated this and reorder_players for typing reasons. Needed one to return
+# a list and one to return a dict so I made two functions
+def set_player_order(player_order: list[str]) -> list[str]:
+    """Sets player order to a random order. Returns the updated list."""
     
     # Empty player order list
     new_player_order = []
 
-    # Names to pick randomly
-    player_names = [name for name in players.keys()]
+    # Pick random player change order from 0 -> num players
+    for i in range(len(player_order)):
+        rand_player = player_order[random.randint(0, len(player_order)-1)]
+        new_player_order.append(rand_player)
+        player_order.remove(rand_player)
+    
+    return new_player_order
+
+
+def reorder_players(player_order: list[str], players: dict[str,Player]) -> dict[str,Player]:
+    """Updates order attribute of player object."""
+    new_players = {}
 
     # Pick random player change order from 0 -> num players
-    for i in range(len(player_names)):
-        rand_player = player_names[random.randint(0, len(player_names)-1)]
-        players[rand_player].order = i
-        player_order.append(rand_player)
-        player_names.remove(rand_player)
+    for i, player in enumerate(player_order):
+        # Add player object to new dict
+        new_players[player] = players[player]
+        # Set new order on player object
+        new_players[player].order = i
 
-
-def reorder_player
-    # Pick random player change order from 0 -> num players
-    for i in range(len(player_names)):
-        rand_player = player_names[random.randint(0, len(player_names)-1)]
-        players[rand_player].order = i
-        player_order.append(rand_player)
-        player_names.remove(rand_player)
-
-    # Reorder players dict
-    new_player_dict = {}
-    # Reorder the players dict (dicts are ordered now?) for parity with player order
-    for player in player_order:
-        new_player_dict[player] = players[player]
-
-    # Assign old dict to new dict
-    players = new_player_dict
+    return new_players
 
 
 # TODO fill in this function so action log works similarly to text log
