@@ -11,6 +11,7 @@ Play = namedtuple("Play", ["player", "card"])
 class PlayerCribbage(Player):
     def __init__(self, name: str) -> None:
         super().__init__(name)
+
         # Add cribbage specific attributes to Player object
         self.score = 0
         self.unplayed_cards = []  # For the play
@@ -18,9 +19,7 @@ class PlayerCribbage(Player):
 
 class StateCribbage(BaseState):
     def __init__(self, room_name: str) -> None:
-
-        # Room
-        self.room_name = room_name
+        super().__init__(room_name)
         
         # Room constants
         self.MAX_PLAYERS = 3
@@ -29,12 +28,7 @@ class StateCribbage(BaseState):
         # Game pieces
         self.deck = Deck()
         self.shuffled_cards = []
-        self.players = {}  # Static; {player name: player object}
-        self.player_order = []  # Dynamic; adjusted during the play
 
-        self.mode = "start"
-        self.in_progress = False
-        
         # Rounds
         self.round_num = 0
         self.turn_num = 0
