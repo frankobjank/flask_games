@@ -1,6 +1,5 @@
 import random
 
-from cards_shared import *
 from games_shared import *
 
 # TODO - what happens when deck runs out of cards?
@@ -9,20 +8,27 @@ from games_shared import *
 RANK_TO_VALUE["A"] = 11
 
 
-class PlayerCribbage(Player):
-    def __init__(self):
-        
+class PlayerThirtyOne(Player):
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+        self.lives = 3  # Score starts at 3
 
 
-class State:
+class State(BaseState):
     def __init__(self, room_name: str) -> None:
-        
+        super().__init__(room_name)
+        # Imported from games_shared
+        # self.room_name = room_name
+        # self.players = {}  # Static; {player name: player object}
+        # self.player_order = []  # Dynamic; adjusted when player gets knocked out
+        # self.mode = "start"
+        # self.in_progress = False
+        # self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
+            # Should move action log to player object for parity with text log
+
         # modes : start, main_phase, discard
             # end_round - requires user input
             # end_game - do not require user input
-
-        # Room
-        self.room_name = room_name
         
         # Room constants
         self.MAX_PLAYERS = 7
@@ -32,19 +38,11 @@ class State:
         self.deck = Deck()
         self.shuffled_cards = []
         self.hand_size = 3
-        self.players = {}  # Static; {player name: player object}
-        self.player_order = []  # Dynamic; adjusted when player gets knocked out
-
-        # Gameplay
-        self.mode = "start"
-        self.in_progress = False
-        # Should track this under player object just as other log is tracked
-        self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
 
         # Rounds
         self.round_num = 0
         self.turn_num = 0
-        self.first_player = ""  # player name
+        self.first_player_of_round = ""  # player name; changes every round
         self.current_player = ""  # player name
         self.dealer = ""  # player name
         self.knocked = ""  # player name
@@ -146,12 +144,25 @@ class State:
     def add_player(self, name:str) -> None:
         """Initializes a player and adds to players dict."""
 
-        self.players[name] = Player(name)
+        self.players[name] = PlayerThirtyOne(name)
         self.player_order.append(name)
-        
-        # Thirty one specific attributes for Player
-        self.players[name].lives = 3  # Score starts at 3
 
+
+    # This will be used by every game but must be in specific game files because
+    # it returns a specific Player class, i.e. PlayerCribbage, PlayerThirtyOne
+    def reorder_players(self) -> dict[str,PlayerThirtyOne]:
+        """Updates the `order` attribute of player objects. Returns updated players dict with proper typing."""
+        new_players = {}
+
+        # Pick random player change order from 0 -> num players
+        for i, player in enumerate(self.player_order):
+            # Add player object to new dict
+            new_players[player] = self.players[player]
+            # Set new order on player object
+            new_players[player].order = i
+
+        return new_players
+    
 
     def start_game(self) -> None:
 
@@ -170,15 +181,11 @@ class State:
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player
 
-
-        # Set random player order. Alter and return updated player_order list and players dict
-        print(f"player order = {self.player_order}, players = {self.players}")
-        self.player_order = set_player_order(self.player_order)
-        print(f"AFTER SET PLAYER ORDER player order = {self.player_order}, players = {self.players}")
-        self.players = reorder_players(self.player_order, self.players)
-        print(f"AFTER REORDER PLAAYERS player order = {self.player_order}, players = {self.players}")
+        # Set random player order. Update player_order list and players dict
+        self.player_order = self.set_player_order()
+        self.players = self.reorder_players()
         
-        broadcast_start_message(self.player_order, self.players)
+        self.broadcast_start_message()
 
         self.in_progress = True
 
@@ -207,13 +214,13 @@ class State:
         first_player_index = ((self.round_num) - 1) % len(self.player_order)
         
         # Set dealer, first player, current player, blitzed players
-        self.first_player = self.player_order[first_player_index]
+        self.first_player_of_round = self.player_order[first_player_index]
         self.current_player = self.player_order[first_player_index]
         self.dealer = self.player_order[first_player_index - 1]
         self.blitzed_players = []
         
-        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
-        print_and_log("\n--- DEALING ---\n\n", self.players)
+        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
+        self.print_and_log("\n--- DEALING ---\n\n")
         
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
@@ -260,10 +267,10 @@ class State:
 
         if len(self.blitzed_players) > 0:
             for p_name in self.blitzed_players:
-                print_and_log(f"{p_name} BLITZED!!!", self.players)
+                self.print_and_log(f"{p_name} BLITZED!!!")
 
-        print_and_log(f"--- END OF ROUND {self.round_num} ---\n\n", self.players)
-        print_and_log("---     SCORES     ---\n", self.players)
+        self.print_and_log(f"--- END OF ROUND {self.round_num} ---\n\n")
+        self.print_and_log("---     SCORES     ---\n")
         
         # Calc all hand scores for display and round end calculations
         hand_scores = {}  # {score: player name}
@@ -286,14 +293,14 @@ class State:
         for ordered_score in scores_ordered:
             # Multiple players can have same score - need to use 2nd loop below
             for p_name in hand_scores[ordered_score]:
-                print_and_log(f"{p_name}'s hand was worth {ordered_score}.", self.players)
+                self.print_and_log(f"{p_name}'s hand was worth {ordered_score}.")
 
         # List contains all names of players who blitzed
         if len(self.blitzed_players) > 0:
             for p_name in self.player_order:
                 # If multiple blitzed players, everyone except blitzed players lose a life
                 if p_name not in self.blitzed_players:
-                    print_and_log(f"{p_name} loses 1 life.", self.players)
+                    self.print_and_log(f"{p_name} loses 1 life.")
                     self.players[p_name].lives -= 1
         
         # Else, no blitz. Find lowest scorer and subtract lives, or handle tie scenario
@@ -302,14 +309,14 @@ class State:
             
             # All players tied when hand scores length = 1
             if len(hand_scores) == 1:
-                print_and_log("Tie for last place, no change in score.", self.players)
+                self.print_and_log("Tie for last place, no change in score.")
 
             # Players tied for last but some scored higher; All tying for last lose one life
             elif len(hand_scores[scores_ordered[-1]]) > 1:
         
                 # Lowest hand = hand_scores[scores_ordered[-1]]
                 for p_name in hand_scores[scores_ordered[-1]]:
-                    print_and_log(f"{p_name} loses 1 life.", self.players)
+                    self.print_and_log(f"{p_name} loses 1 life.")
                     self.players[p_name].lives -= 1
 
             # Only one player scored the lowest; Subtract one life, or 2 lives if they knocked
@@ -320,13 +327,13 @@ class State:
                 
                 # If didn't knock, lose 1 life
                 if lowest_player != self.knocked:
-                    print_and_log(f"{lowest_player} loses 1 life.", self.players)
+                    self.print_and_log(f"{lowest_player} loses 1 life.")
                     self.players[lowest_player].lives -= 1
 
                 # If knocked, lose 2 lives
                 else:
-                    print_and_log(f"{lowest_player} knocked but had the lowest score.", self.players)
-                    print_and_log(f"{lowest_player} loses 2 lives.", self.players)
+                    self.print_and_log(f"{lowest_player} knocked but had the lowest score.")
+                    self.print_and_log(f"{lowest_player} loses 2 lives.")
                     self.players[lowest_player].lives -= 2
         
         # List of any players that were brought down to negative lives
@@ -335,7 +342,7 @@ class State:
         # Announce knock outs here; wait until start of next round to remove player for
         # game real-ness; i.e. so players can view their hand and hand score at end of round
         for p_name in knocked_out:
-            print_and_log(f"{p_name} has been knocked out.", self.players)
+            self.print_and_log(f"{p_name} has been knocked out.")
             
             # `-1` can represent a knockout to client
             self.players[p_name].lives = -1
@@ -343,14 +350,14 @@ class State:
         players_remaining = len(self.player_order) - len(knocked_out)
 
         if players_remaining == 1:
-            print_and_log(f"\n{self.player_order[0]} wins!", self.players)
+            self.print_and_log(f"\n{self.player_order[0]} wins!")
             # mode `end_game` gives clients time to view the scores, leave/join rooms
             self.mode = "end_game"
             self.in_progress = False
 
         else:
             # More than 1 player remaining; continuing game
-            print_and_log("\nRemaining Players' Extra Lives:", self.players)
+            self.print_and_log("\nRemaining Players' Extra Lives:")
             for p_name in self.player_order:
                 
                 # Skip knocked out player
@@ -369,7 +376,7 @@ class State:
                 else:
                     msg = f"{p_name} - {self.players[p_name].lives} lives"
                 
-                print_and_log(msg, self.players)
+                self.print_and_log(msg)
 
 
     def start_turn(self):
@@ -442,7 +449,7 @@ class State:
                 
                 # Allow if no one has knocked yet
                 self.knocked = self.current_player
-                print_and_log(f"{self.current_player} knocked.", self.players)
+                self.print_and_log(f"{self.current_player} knocked.")
                 self.end_turn()
                 
                 response["accepted"] = True
@@ -459,13 +466,13 @@ class State:
             # Let player know they need 4 cards to discard
             elif packet["action"] == "discard":
 
-                response["msg"] = "Must have 4 cards to discard."
+                response["msg"] = "You must draw or pick up a card before discarding."
                 response["accepted"] = False
                 return response
             
             # Catch all other moves with `else`; Hitting continue on main phase was breaking game
             else:
-                print_and_log(f"Move {packet['action']} is not allowed during the main phase.", self.players, player=self.current_player)
+                self.print_and_log(f"Move {packet['action']} is not allowed during the main phase.", player=self.current_player)
                 response["accepted"] = False
                 return response
             

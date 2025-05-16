@@ -458,7 +458,7 @@ def on_join(data):
 
             # Assign to `user` for using below
             user = room_user
-
+    
     # REDUNDANT WITH PREJOIN
     # Check if username is set (would not be set for a non-registered user)
     if not user:
@@ -915,7 +915,7 @@ def register():
         if not fl.request.form.get("username"):
             return apology("Must provide a username.", 400)
         
-        validation = validate_name_input(name=fl.request.form.get("username"), max_len=12)
+        validation = validate_name_input(name=fl.request.form.get("username", ""), max_len=12)
         
         if not validation["accepted"]:
             print(validation["msg"])

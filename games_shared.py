@@ -1,4 +1,8 @@
+# native library
 import random
+
+# helper files
+from cards_shared import *
 
 ### Functions and classes shared by all games
 class Player:
@@ -6,7 +10,7 @@ class Player:
         self.name = name
         self.order = 0
         self.hand = []
-        self.log = []  # Individual logs per player
+        self.log = []  # Individual log messages per player
         self.action_log = []  # List of dicts
 
     
@@ -14,76 +18,82 @@ class Player:
         return f"Player({self.name})"
 
 
-def print_and_log(msg:str, players:dict[str,Player], player:str="all") -> None:
-    """Print to terminal and add to players' logs"""
+# Parent state class that the games are built upon
+class BaseState:
+    def __init__(self, room_name: str) -> None:
 
-    print(msg)
+        # Room
+        self.room_name = room_name
+        
+        self.players = {}  # Static; {player name: player object}
+        self.player_order = []  # Dynamic; adjusted when player gets knocked out
 
-    # Send to all clients
-    if player == "all":
-        # Use all players so players receive msg even after knockout
-        for p_object in players.values():
-            p_object.log.append(msg)
-
-    # Send to one specific client
-    else:
-        players[player].log.append(msg)
-
-
-def broadcast_start_message(player_order:list[str], players_dict:dict):
-    """Broadcast starting message - standardized between games."""
-
-    # Start message
-    print_and_log("\n--- Starting new game ---\n", players_dict)
-
-    # Player order
-    print_and_log("\nPlayer order:", players_dict)
-    for i, player in enumerate(player_order):
-        print_and_log(f"{i+1}: {player}", players_dict)
+        # Gameplay
+        self.mode = "start"
+        self.in_progress = False
+        
+        # Should move action log to player object for parity with text log
+        self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
 
 
-# Separated this and reorder_players for typing reasons. Needed one to return
-# a list and one to return a dict so I made two functions
-def set_player_order(player_order: list[str]) -> list[str]:
-    """Sets player order to a random order. Returns the updated list."""
-    
-    # Empty player order list
-    new_player_order = []
+    def print_and_log(self, msg:str, player:str="all") -> None:
+        """Print to terminal and add to players' logs"""
 
-    # Pick random player change order from 0 -> num players
-    for i in range(len(player_order)):
-        rand_player = player_order[random.randint(0, len(player_order)-1)]
-        new_player_order.append(rand_player)
-        player_order.remove(rand_player)
-    
-    return new_player_order
+        print(msg)
 
+        # Send to all clients
+        if player == "all":
+            # Use all players so players receive msg even after knockout
+            for p_object in self.players.values():
+                p_object.log.append(msg)
 
-def reorder_players(player_order: list[str], players: dict[str,Player]) -> dict[str,Player]:
-    """Updates order attribute of player object."""
-    new_players = {}
-
-    # Pick random player change order from 0 -> num players
-    for i, player in enumerate(player_order):
-        # Add player object to new dict
-        new_players[player] = players[player]
-        # Set new order on player object
-        new_players[player].order = i
-
-    return new_players
+        # Send to one specific client
+        else:
+            self.players[player].log.append(msg)
 
 
-# TODO fill in this function so action log works similarly to text log
-# def add_to_action_log(action, target_object, players_dict, recipient="all") -> None:
-    
-#      {"action": "", "player": "", "card": ""}
+    def broadcast_start_message(self):
+        """Broadcast starting message - standardized between games."""
 
-#     # Send to all clients
-#     if recipient == "all":
-#         # Use all players so players receive msg even after knockout
-#         for p_object in players_dict.values():
-#             p_object.log.append(msg)
+        # Start message
+        self.print_and_log("\n--- Starting new game ---\n")
 
-#     # Send to one specific client
-#     else:
-#         players_dict[player].log.append(msg)
+        # Player order
+        self.print_and_log("\nPlayer order:")
+        for i, player in enumerate(self.player_order):
+            self.print_and_log(f"{i+1}: {player}")
+
+
+    # Separated this and reorder_players for typing reasons. Needed one to return
+    # a list and one to return a dict so I made two functions. Also reorder_players
+    # must be in specific State rather than general because it specifies specific
+    # player types, i.e. PlayerThirtyOne or PlayerCribbage
+    def set_player_order(self) -> list[str]:
+        """Sets the player order list to a random order. Returns the updated list."""
+        
+        # Empty player order list
+        new_player_order = []
+
+        # Pick random player change order from 0 -> num players
+        for i in range(len(self.player_order)):
+            rand_player = self.player_order[random.randint(0, len(self.player_order)-1)]
+            new_player_order.append(rand_player)
+            self.player_order.remove(rand_player)
+        
+        return new_player_order
+
+
+    # TODO fill in this function so action log works similarly to text log
+    # def add_to_action_log(action, target_object, players_dict, recipient="all") -> None:
+        
+    #      {"action": "", "player": "", "card": ""}
+
+    #     # Send to all clients
+    #     if recipient == "all":
+    #         # Use all players so players receive msg even after knockout
+    #         for p_object in players_dict.values():
+    #             p_object.log.append(msg)
+
+    #     # Send to one specific client
+    #     else:
+    #         players_dict[player].log.append(msg)

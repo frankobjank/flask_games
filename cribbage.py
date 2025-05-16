@@ -1,7 +1,6 @@
 from collections import namedtuple
 from itertools import combinations
 
-from cards_shared import *
 from games_shared import *
 
 # Custom namedtuple for cribbage
@@ -9,7 +8,15 @@ Play = namedtuple("Play", ["player", "card"])
 
 # Idea for front-end - when scoring, highlight cards used in the score to show which cards are being used
 
-class State:
+class PlayerCribbage(Player):
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+        # Add cribbage specific attributes to Player object
+        self.score = 0
+        self.unplayed_cards = []  # For the play
+        self.played_cards = []  # For the play
+
+class StateCribbage(BaseState):
     def __init__(self, room_name: str) -> None:
 
         # Room
@@ -59,11 +66,24 @@ class State:
     def add_player(self, name) -> None:
         """Initializes a player and adds to players dict."""
 
-        self.players[name] = Player(name)
-        # Add cribbage specific attributes to Player object
-        self.players[name].score = 0
-        self.players[name].unplayed_cards = []  # For the play
-        self.players[name].played_cards = []  # For the play
+        self.players[name] = PlayerCribbage(name)
+        self.player_order.append(name)
+
+
+    # This will be used by every game but must be in specific game files because
+    # it returns a specific Player class, i.e. PlayerCribbage, PlayerThirtyOne
+    def reorder_players(self) -> dict[str,PlayerCribbage]:
+        """Updates order attribute of player objects. Returns updated players dict with proper typing."""
+        new_players = {}
+
+        # Pick random player change order from 0 -> num players
+        for i, player in enumerate(self.player_order):
+            # Add player object to new dict
+            new_players[player] = self.players[player]
+            # Set new order on player object
+            new_players[player].order = i
+
+        return new_players
 
 
     def start_game(self) -> None:
@@ -83,12 +103,12 @@ class State:
         self.round_num = 0
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player
-            
 
         # Set player order
-        set_player_order(self.players, self.player_order)
+        self.player_order = self.set_player_order()
+        self.players = self.reorder_players()
         
-        broadcast_start_message(self.player_order, self.players)
+        self.broadcast_start_message()
 
         self.in_progress = True
         
@@ -114,12 +134,12 @@ class State:
         self.current_player = self.player_order[first_player_index]
         self.dealer = self.player_order[first_player_index - 1]
         
-        print_and_log(f"\n--- ROUND {self.round_num} ---\n", self.players)
+        self.print_and_log(f"\n--- ROUND {self.round_num} ---\n")
 
         # Shuffle cards
         self.shuffled_cards = shuffle_deck(self.deck)
         
-        print_and_log("\n--- DEALING ---\n", self.players)
+        self.print_and_log("\n--- DEALING ---\n")
         # Deal and reset player vars
         for p_name, p_object in self.players.items():
             # Empty hand
@@ -144,7 +164,7 @@ class State:
                     discard_str = "1 card"
 
             # Add discard message to log
-            print_and_log(f"\n{self.dealer} is the dealer.\nPlease pick {discard_str} to add to the crib.", self.players, p_name)
+            self.print_and_log(f"\n{self.dealer} is the dealer.\nPlease pick {discard_str} to add to the crib.", p_name)
             
             # Reset variables for the play
             p_object.played_cards = []
@@ -161,13 +181,13 @@ class State:
 
     def end_round(self):
 
-        print_and_log(f"\n--- END OF ROUND {self.round_num} ---\n", self.players)
+        self.print_and_log(f"\n--- END OF ROUND {self.round_num} ---\n")
 
         # Start string that will capture total hand scores
-        print_and_log("---     SCORES     ---\n", self.players)
+        self.print_and_log("---     SCORES     ---\n")
 
         for player in self.player_order:
-            print_and_log(f"{player}: {self.players[player].score}", self.players)
+            self.print_and_log(f"{player}: {self.players[player].score}")
     
         # Check if any player has scored enough to win
         if any(p_object.score == 121 for p_object in self.players.values()):
@@ -202,11 +222,11 @@ class State:
                 self.starter = draw_card(self.shuffled_cards)
                 # Replace text log msg with action log
                 self.action_log.append({"action": "starter", "player": "all", "cards": [self.starter.portable]})
-                # print_and_log(f"The starter is {self.starter}.", self.players)
+                # self.print_and_log(f"The starter is {self.starter}.")
 
                 if self.starter.rank == "J":
                     # This is redundant
-                    # print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.", self.players)
+                    # self.print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.")
                     self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
 
 
@@ -220,7 +240,7 @@ class State:
                 # Everyone else has said go; round should end
                 if len(self.player_order) - len(self.go) == 1:
                     # I think this message is covered within score_go
-                    # print_and_log(f"All other players have said 'Go'. You cannot play any more cards and must say go.", self.players)
+                    # self.print_and_log(f"All other players have said 'Go'. You cannot play any more cards and must say go.")
                     self.score_go()
 
                     ### Copied from update() -- how to get this in without creating control flow issues?
@@ -235,7 +255,7 @@ class State:
 
                 # Say go but proceed as there are still other players to check for go
                 else:
-                    print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.", self.players)
+                    self.print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.")
             ### Taken from get_user_input
 
 
@@ -249,7 +269,7 @@ class State:
                 # if all players in round have said go and go has been scored
             if sum([play.card.value for play in self.current_plays]) == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
                 self.new_play()
-                print_and_log(f"Round ending, {self.current_player} will start the next round.", self.players)
+                self.print_and_log(f"Round ending, {self.current_player} will start the next round.")
             # 3 total players, 1 is out of cards starting the round - they will actually need to say go and be counted in self.go so this will have the same result
 
         elif self.mode == "show":
@@ -295,7 +315,7 @@ class State:
         """Determines if player is last to say go and should score a point."""
 
         self.go.append(self.current_player)
-        print_and_log(f"{self.current_player} has said 'Go'.", self.players)
+        self.print_and_log(f"{self.current_player} has said 'Go'.")
 
         # Check if there is only 1 player left after the go
         if len(set(self.player_order) - set(self.go)) == 1:
@@ -333,7 +353,7 @@ class State:
         self.current_plays.append(play)
 
         # Notify users about play
-        print_and_log(f"{play.player} played: {play.card}.", self.players)
+        self.print_and_log(f"{play.player} played: {play.card}.")
 
         # Check count for 15, 31
         if sum([play.card.value for play in self.current_plays]) == 15:
@@ -379,7 +399,7 @@ class State:
                 self.add_score_log(self.current_player, len(play_ranks[i:]), "run", cards=[play.card.portable for play in self.current_plays[i:]])
 
                 # Print and log and print the run in order
-                print_and_log(f"Run: {sorted(play_ranks[i:])}", self.players)
+                self.print_and_log(f"Run: {sorted(play_ranks[i:])}")
                 
                 # Can break at first run found because starting search from outside-in
                 break
@@ -438,7 +458,7 @@ class State:
                 # match_jack is more descriptive
                 self.add_score_log(self.current_player, 1, "match_jack", cards=[card.portable])
                 # self.add_score_log(self.current_player, 1, "knobs", cards=[card])
-                # print_and_log(f"1 point for his knobs ({card} matches the suit of the starter).", self.players)
+                # self.print_and_log(f"1 point for his knobs ({card} matches the suit of the starter).")
                 score += 1
         
         # Find runs
@@ -459,7 +479,7 @@ class State:
             for run in longest_runs:
                 self.add_score_log(self.current_player, len(run), "run", cards=[card.portable for card in run])
                 # The below log is a little redundant but does show the sorted run so may be useful
-                print_and_log(f"{len(run)} points for a run: {sorted(run, key=lambda x: x.value)}.", self.players)
+                self.print_and_log(f"{len(run)} points for a run: {sorted(run, key=lambda x: x.value)}.")
                 score += len(run)
 
         # Find flush; process end of show
@@ -474,7 +494,7 @@ class State:
             # Check 4 card flush - elif implies no 5 card flush
             elif len(set(card.suit for card in four_card_hand)) == 1:
                 self.add_score_log(self.current_player, 4, "flush", cards=[card.portable for card in four_card_hand])
-                print_and_log("4 points for a flush.", self.players)
+                self.print_and_log("4 points for a flush.")
                 score += 4
 
             # END OF SHOW FOR NON-CRIB
@@ -482,9 +502,9 @@ class State:
             # Print total score for show
             # Split for correct grammar
             if score == 1:
-                print_and_log(f"{self.current_player} scored a total of {score} point for the show.", self.players)
+                self.print_and_log(f"{self.current_player} scored a total of {score} point for the show.")
             else:
-                print_and_log(f"{self.current_player} scored a total of {score} points for the show.", self.players)
+                self.print_and_log(f"{self.current_player} scored a total of {score} points for the show.")
                 
             # If player is not dealer, add them to the played show set
             # If dealer, handled below under crib
@@ -494,7 +514,7 @@ class State:
         if crib:
             if len(set(card.suit for card in show_hand)) == 1:
                 self.add_score_log(self.current_player, 5, "flush", cards=[card.portable for card in show_hand])
-                print_and_log(f"5 points for a flush.", self.players)
+                self.print_and_log(f"5 points for a flush.")
                 score += 5
 
             # END OF SHOW FOR CRIB
@@ -502,9 +522,9 @@ class State:
             # Print total score for crib
             # Split for correct grammar
             if score == 1:
-                print_and_log(f"{self.current_player} scored a total of {score} point for the crib.", self.players)
+                self.print_and_log(f"{self.current_player} scored a total of {score} point for the crib.")
             else:
-                print_and_log(f"{self.current_player} scored a total of {score} points for the crib.", self.players)
+                self.print_and_log(f"{self.current_player} scored a total of {score} points for the crib.")
         
             # Player must be dealer; mark as finished with the show
             self.has_played_show.add(self.current_player)
@@ -649,7 +669,7 @@ class State:
             score_text = f"a {reason}"
 
         # Add to text log - this may be redundant with action log
-        print_and_log(f"{player} scored {points} for {score_text}.", self.players)
+        self.print_and_log(f"{player} scored {points} for {score_text}.")
 
         # Add to action log with cards so client can animate each score
         # Maybe replace adding to log with action log so message can go in log at the same time as animation takes place
