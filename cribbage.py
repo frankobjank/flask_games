@@ -576,19 +576,18 @@ class StateCribbage(BaseState):
             
             # Discard move accepted; add to action log and adjust player hand / crib
             # Pass in actual cards and hide if sending to non-self player -- hidden during package_state()
-            # Don't nede to unzip packet["cards"] because it is already in portable format
+            # Don't need to unzip packet["cards"] because it is already in portable format
             self.action_log.append({"action": "discard", "player": packet["username"], "cards": [card for card in packet["cards"]], "num_to_discard": len(packet["cards"])})
             
-            # Iterate through cards to remove from hand and add to crib
+            # Iterate through cards in hand to find the discard card - remove from hand and add to crib
             for discard_card in packet["cards"]:
-                unzipped_card = unzip_card(discard_card)
                 
                 # Iterate through cards in hand
                 for card in self.players[packet["username"]].hand:
                     
-                    # Check for match in hand
-                    if card.suit == unzipped_card.suit and card.rank == unzipped_card.rank:
-                        
+                    # Check for match in hand. Compare to portable string of existing card
+                    if card.portable == discard_card:
+                        print(f"Comparing {card.portable} to {discard_card}")
                         # Remove from hand and add to crib on match
                         self.crib.append(card)
                         self.players[self.current_player].hand.remove(card)

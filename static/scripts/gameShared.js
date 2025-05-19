@@ -3,7 +3,9 @@
 // For animating card movement and flipping over
 const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
 const ANIMATION_DURATION = 1;
-const ANIMATION_TIMING = { durationMS: ANIMATION_DURATION * 1000, iterations: 1 };
+// Do not change names of ANIMATION_TIMING parameters - can break animation
+// Also using a variable in duration broke animation in Firefox, but not Chrome 
+const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
 
 // Game state
 let inProgress = false;
@@ -511,7 +513,6 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
     // If self, use card object && end face-up
     // If other, use placeholder && end face-down
 function animateDraw(cardStr, player, handScore=0) {
-
     let card;
     let cardContainer;
 
@@ -546,17 +547,9 @@ function animateDraw(cardStr, player, handScore=0) {
     // Add card container to hand container of current player
     document.querySelector('#hand-container-' + player).appendChild(cardContainer);
 
-    // Add handler as click listener event
-    if (game === 'thirty_one') {
-        card.addEventListener('click', handHandlerThirtyOne);
-    }
-    else if (game === 'cribbage') {
-        card.addEventListener('click', handHandlerCribbage);
-    }
-
     // Get end positions by comparing deck and new card container
-
     // Card will start at deck and move to hand
+    
     // Starting position
     const deckRect = document.querySelector('#deck-container').getBoundingClientRect();
 
@@ -613,11 +606,20 @@ function animateDraw(cardStr, player, handScore=0) {
         // Remove clone card
         clone.remove();
 
-        // Update hand score if given (only for 31)
-        if (game === 'thirty_one') {
-            if (player === username && handScore > 0) {
-                document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
-            };
+        // Send server request on click; custom handlers per game
+        // Game is global var
+        switch (game) {
+            case 'thirty_one':
+                card.addEventListener('click', handHandlerThirtyOne);
+                // Update hand score if given (only for 31)
+                if (player === username && handScore > 0) {
+                    document.querySelector('#hand-score-' + player)
+                        .innerText = ' Hand Score: ' + handScore + ' ';
+                };
+                break;
+            case 'cribbage':
+                card.addEventListener('click', handHandlerCribbage);
+                break;
         }
     });
 }

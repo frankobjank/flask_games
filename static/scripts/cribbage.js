@@ -312,15 +312,6 @@ function updateCribbage(response) {
                     }
                     animateDraw(cardToDraw, playerOrder[playerIndex]);
                     
-                    // Ideally there would be a slight delay bxetween cards dealt instead of all at the same time.
-                    // This does not work, getting closer though??
-                    // setTimeout(
-                    //     function (card, player) {
-                    //         return animateDraw(card, player);
-                    //     } (cardToDraw, playerOrder[playerIndex]), 
-                    //     ((ANIMATION_DURATION * 1000) / 4)
-                    // );
-                    
                 }
             }
         }
