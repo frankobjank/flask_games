@@ -4,6 +4,7 @@
     --bs-nav-link-color: white;
     --card-width: 2.5rem;
     --card-height: 3.5rem;
+    --card-border-radius: 0.3rem;
 }
 
 /* Home & Header and Footer */
@@ -147,11 +148,6 @@ footer {
     justify-content: space-between; /* Adjust spacing between panels */
     align-items: center; /* Align panels vertically in the middle */
 }
-
-/* Removed this from DOM */
-/* #username-input { */
-    /* display: inline-flex; */
-/* } */
 
 /* For hover on lobby room table */
 .room-table .room-tbody .room-tr:hover .room-td {
@@ -322,6 +318,10 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     margin: 1rem;
 }
 
+.name-container {
+    margin: 1rem;
+}
+
 .hand-container {
     display: inline-flex;
 }
@@ -329,7 +329,6 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 /* Put margin into card container rather than card itself */
 .card-container {
     margin: 0.25rem;
-    /* New */
     position: relative;
     transform-style: preserve-3d;
     transition: transform 2s ease-in;
@@ -338,19 +337,25 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 
 /* Container in between card-container and playing-card that facilitates animation */
 .rotate-card-container {
-    /* New */
     position: relative;
     width: var(--card-width);
     height: var(--card-height);
-    /* width: 2.5rem;
-    height: 3.5rem; */
     outline-color: #000;
     outline-width: medium;
-    border-radius: 0.3rem;
+    border-radius: var(--card-border-radius);
     /* Animation */
     transform-style: preserve-3d;
     transition: transform 2s ease-in;
     transform: rotateY(180deg);
+}
+
+/* Highlight card container on hover, if selectable */
+.rotate-card-container.selectable:hover {
+    /* Kinda ugly right now, ideally would have animation of border radiating outward */
+    outline-color: #ac1430;
+    outline-width: thick;
+    outline-style: solid;
+    border-radius: var(--card-border-radius);
 }
 
 /* Playing card (as opposed to Bootstrap card) */
@@ -358,7 +363,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     /* Had to remove padding so `10` would appear centered in middle of card */
     padding: unset;
     /* New */
-    border-radius: 0.3rem;
+    border-radius: var(--card-border-radius);
     position: absolute;
     height: 100%;
     width: 100%;
@@ -419,7 +424,18 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 
 /* Cribbage */
 .staged-for-discard {
-    transform: translateY(-20%);
+    /* For some reason card is flipping. May have to specify rotate state */
+    transform: translateY(-20%) rotateY(180deg);
+}
+
+/* Staged-for-discard was going too slow, specifying transition speed below */
+.rotate-card-container.selectable {
+    transition-timing-function: linear;
+    transition-duration: 250ms;
+}
+
+#discard-confirm-button {
+    margin: 0.5rem;
 }
 
 /* Visual marker for current player */

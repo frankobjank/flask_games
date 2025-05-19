@@ -11,7 +11,7 @@ class Player:
         self.order = 0
         self.hand = []
         self.log = []  # Individual log messages per player
-        self.action_log = []  # List of dicts
+        self.action_log = []  # List of dicts TODO implement this
 
     
     def __repr__(self) -> str:

@@ -2,8 +2,8 @@
 
 // For animating card movement and flipping over
 const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
-const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
 const ANIMATION_DURATION = 1;
+const ANIMATION_TIMING = { durationMS: ANIMATION_DURATION * 1000, iterations: 1 };
 
 // Game state
 let inProgress = false;
@@ -312,9 +312,15 @@ function createPlayerContainer(name, order, gridNumber) {
     playerContainer.dataset.order = order;
     playerContainer.dataset.gridNumber = gridNumber;
     
+    // Put hand in div
+    const hand = document.createElement('div');
+    hand.className = 'hand-container';
+    hand.id = 'hand-container-' + name;
+    
     const playerNameContainer = document.createElement('div');
+    playerNameContainer.className = 'name-container';
     playerNameContainer.id = 'name-container-' + name;
-
+    
     const currentPlayerStrong = document.createElement('strong');
     currentPlayerStrong.id = 'current-strong-' + name;
     playerNameContainer.appendChild(currentPlayerStrong);
@@ -323,15 +329,18 @@ function createPlayerContainer(name, order, gridNumber) {
     playerNameStrong.id = 'name-strong-' + name;
     playerNameStrong.innerText = name;
     playerNameContainer.appendChild(playerNameStrong);
-        
-    playerContainer.appendChild(playerNameContainer);
     
-    // Put hand in div
-    const hand = document.createElement('div');
-    hand.className = 'hand-container';
-    hand.id = 'hand-container-' + name;
-    
-    playerContainer.appendChild(hand);
+    // If on top row of grid (or middle for now), put name above hand
+    if ([1, 2, 3, 4, 6].includes(gridNumber)) {
+        playerContainer.appendChild(playerNameContainer);
+        playerContainer.appendChild(hand);
+    }
+
+    // If on bottom row, put name below hand
+    else if ([7, 8, 9].includes(gridNumber)) {
+        playerContainer.appendChild(hand);
+        playerContainer.appendChild(playerNameContainer);
+    }
 
     // Add custom fields depending on game and return the container
     switch (game) {

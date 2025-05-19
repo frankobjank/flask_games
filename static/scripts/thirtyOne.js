@@ -245,9 +245,7 @@ function animateToDiscard(player, cardStr, handScore) {
     const deltaY = discardRect.top - cardRect.top
 
     // Create a clone to animate 
-    // this prevents having to actually move the original card
-    // function `cloneNode()` creates a copy of an object.
-    // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
+        // arg `true` in cloneNode means copy is a deep copy, i.e. it includes all node's descendants as well
     // Clone should be of newDiscard so it has display of known card
     const clone = newDiscard.cloneNode(true);
     clone.classList.add('clone');

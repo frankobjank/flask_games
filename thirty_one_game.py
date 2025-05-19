@@ -14,12 +14,12 @@ class PlayerThirtyOne(Player):
         self.lives = 3  # Score starts at 3
 
 
-class State(BaseState):
+class StateThirtyOne(BaseState):
     def __init__(self, room_name: str) -> None:
         super().__init__(room_name)
         # Imported from games_shared
         # self.room_name = room_name
-        # self.players = {}  # Static; {player name: player object}
+        # self.players = {}  # Static; dict of player name to object
         # self.player_order = []  # Dynamic; adjusted when player gets knocked out
         # self.mode = "start"
         # self.in_progress = False
@@ -37,7 +37,6 @@ class State(BaseState):
         # Game pieces
         self.deck = Deck()
         self.shuffled_cards = []
-        self.hand_size = 3
 
         # Rounds
         self.round_num = 0

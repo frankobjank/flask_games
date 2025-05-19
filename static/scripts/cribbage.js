@@ -65,7 +65,7 @@ function createContinueButtonsCribbage() {
     // New session, start game. round end, continue; game end, new game 
     continueButton.id = 'continue-button';
     continueButton.className = 'move-button';
-    continueButton.innerText = 'Continue to Next Round';
+    continueButton.innerText = 'Deal next round';
     continueButton.disabled = true;
     // Start with button hidden
     continueButton.style.display = 'none';
@@ -140,7 +140,7 @@ function addlPlayerContainerCribbage(name, playerContainer) {
 
         chosenCards.forEach(card => {
             translatedCards.push(`${card.dataset.rank}${card.dataset.suit}`)
-        })
+        });
 
         socket.emit('move', {'action': 'discard', 'room': currentRoom, 'username': username, 'cards': translatedCards});
     }
@@ -158,7 +158,6 @@ function updateCribNoAnimation(crib) {
 
 // Set discard action for card in hand
 var handHandlerCribbage = function handOnClickCribbage(event) {
-    
     // Disable input for card if end of round or non-self player
     if (mode === 'end_round' || mode === 'end_game' || mode === 'show') {
         return;
@@ -167,7 +166,7 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
     // Cards should be toggle-able to be staged for discard
     if (mode === 'discard') {
         // Get size of player hand by getting grandparent element and counting card containers
-        const handSize = this.parentElement.parentElement.querySelectorAll('.card-container').length
+        const handSize = this.parentElement.parentElement.querySelectorAll('.card-container').length;
         
         // Check that player's hand is over 4 to prevent staging after discarding
         if (handSize === 4) {
@@ -175,14 +174,27 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
             return;
         }
 
-        // Actual discard event is tied to discard confirm button
-        console.log(`Staging ${this} for discard`);
+        console.log(`Card ${this.id} clicked during discard mode`);
+        
+        // If card is unstaged: check if can be staged
+        // Check if player has already staged enough cards and should not stage any more
+        if (
+            !this.classList.contains('staged-for-discard') && 
+            handSize - document.querySelectorAll('.staged-for-discard').length <= 4
+        ) {
+            console.log('Already staged enough cards; cannot stage any more.');
+            return;
+        }
+
+        // At this point an unstaged card is allowed to be staged, or a staged card could be unstaged
         this.classList.toggle('staged-for-discard');
+
+        // This is only for staging, actual discard event is tied to discard confirm button
     }
 
     // Cards should be selectable if in play
     if (mode === 'play') {
-
+        console.log('TODO hand onclick during play');
     }
 }
 
@@ -264,7 +276,7 @@ function updateCribbage(response) {
         // Action keys for play; show
             // "action", "player", "points", "reason", "cards", "mode"
         
-        // Possible actions:
+        // Possible actions from cribbage.py
         // self.action_log.append({"action": "deal", "player": "all", "cards": []})        
         // self.action_log.append({"action": "discard", "player": packet["name"], "cards": [card for card in packet["cards"]], "num_to_discard": len(packet["cards"])})
         // self.action_log.append({"action": "starter", "player": "all", "cards": [self.starter.portable]})
@@ -289,14 +301,26 @@ function updateCribbage(response) {
                 // Keep drawing until hand reaches hand size
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
                     
+                    let cardToDraw;
                     // For self player, use response.hand
                     if (playerOrder[playerIndex] === username) {
-                        animateDraw(response.hand[cardIndex], playerOrder[playerIndex]);
+                        cardToDraw = response.hand[cardIndex];
                     }
                     // For non-self player, use unknown card
                     else {
-                        animateDraw('unknown', playerOrder[playerIndex]);
+                        cardToDraw = 'unknown';
                     }
+                    animateDraw(cardToDraw, playerOrder[playerIndex]);
+                    
+                    // Ideally there would be a slight delay bxetween cards dealt instead of all at the same time.
+                    // This does not work, getting closer though??
+                    // setTimeout(
+                    //     function (card, player) {
+                    //         return animateDraw(card, player);
+                    //     } (cardToDraw, playerOrder[playerIndex]), 
+                    //     ((ANIMATION_DURATION * 1000) / 4)
+                    // );
+                    
                 }
             }
         }
@@ -311,7 +335,6 @@ function updateCribbage(response) {
         else if (actionObject.action === 'starter') {
             animateFlip(actionObject.card, player='');
         }
-
     }
 
     // No action; cards will be updated but no animation will happen
@@ -331,6 +354,8 @@ function updateCribbage(response) {
     // Must put current player update here since turn may increment on server side
     // Potentially animate changing current player
     currentPlayer = response.current_player;
+    // Update global mode var
+    mode = response.mode;
 
     // Fill log
     for (const msg of response.log) {
@@ -355,10 +380,6 @@ function updateCribbage(response) {
         document.querySelector('#continue-button').disabled = false;
         // Unhide button when active
         document.querySelector('#continue-button').style.display = '';
-        
-        // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
-        // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
-        // Or can go by specific log messages but that seems more fragile
     }
     
     // Disable continue button on every other mode
@@ -389,13 +410,38 @@ function updateCribbage(response) {
 
         // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
-        if ((username !== playerOrder[i]) && (response.mode === 'end_round' || response.mode === 'end_game')) {
-            populateHandStatic(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
+        // Adapted from thirty one, might have to adjust final hands, or make sure to use final hands for show hands
+        if ((username !== playerOrder[i]) && (response.mode === 'show')) {
+            populateHandStatic(playerOrder[i], response.final_hands[i])
         }
 
         if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
             console.log(`${playerOrder[i]} hand is empty.`);
-        }        
+        }
+
+        // Make cards selectable for self depending on mode
+            // Discard - only if they have not discarded already
+            // On play - only if they can play the card - will have to get from server, 
+                // like a 'can_play' flag that can translate to selectable
+        if (username === playerOrder[i]) {
+            cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).querySelectorAll('.rotate-card-container');
+            if (mode === 'discard') {
+                // Select all cards and make selectable
+                cardsInHand.forEach(card => {
+                    card.classList.add('selectable');
+                });
+            }
+            else if (mode === 'play') {
+
+            }
+            // If no conditions are met, make sure selectable class is not on the card
+            else {
+                cardsInHand.forEach(card => {
+                    card.classList.remove('selectable');
+                });
+            }
+        }
+
         
         // Mark current player only if mode is not discard, since anyone can go during discard
         // Animation idea: move current marker to new current player

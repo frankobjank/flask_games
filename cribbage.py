@@ -20,7 +20,15 @@ class PlayerCribbage(Player):
 class StateCribbage(BaseState):
     def __init__(self, room_name: str) -> None:
         super().__init__(room_name)
-        
+        # Imported from games_shared
+        # self.room_name = room_name
+        # self.players = {}  # dict of player name to object
+        # self.player_order = []  # list of player names
+        # self.mode = "start"
+        # self.in_progress = False
+        # self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
+            # Should move action log to player object for parity with text log
+
         # Room constants
         self.MAX_PLAYERS = 3
         self.MIN_PLAYERS = 2
@@ -42,7 +50,6 @@ class StateCribbage(BaseState):
         self.current_plays = []  # list of Plays for a single play
         self.all_plays = []  # list of Plays for all plays of round
         self.has_played_show = set() # names of players
-        self.action_log = []  # list of dicts - {"action": ... , "player": ..., "cards": ...}
     
 
     def new_play(self):
@@ -93,7 +100,6 @@ class StateCribbage(BaseState):
             return
         
         # Reset game vars
-        self.player_order = []
         self.round_num = 0
         for p_object in self.players.values():
             p_object.log = []  # Start log as empty list for each player

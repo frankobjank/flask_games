@@ -651,12 +651,13 @@ def on_move(data):
                      "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
             return
         
-        if not rooms[data["room"]].game:
+        # Create new game object if it one doesn't exist
+        if rooms[data["room"]].game is None:
             if rooms[data["room"]].game_name == "thirty_one":
-                rooms[data["room"]].game = thirty_one_game.State(data["room"])
+                rooms[data["room"]].game = thirty_one_game.StateThirtyOne(data["room"])
             
             elif rooms[data["room"]].game_name == "cribbage":
-                rooms[data["room"]].game = cribbage.State(data["room"])
+                rooms[data["room"]].game = cribbage.StateCribbage(data["room"])
         
         # Reject if game has already started
         if rooms[data["room"]].game.in_progress:
@@ -664,7 +665,7 @@ def on_move(data):
                      to=fl.request.sid)
             print("Game is already in progress.")
         
-        # Add all players to game state since there are the correct number
+        # Add all users who are connected to game state since there are the correct number
         for user in rooms[data["room"]].users:
             if user.connected:
                 fio.emit("debug_msg", {"msg": f"Adding {user} to game."}, to=fl.request.sid)
