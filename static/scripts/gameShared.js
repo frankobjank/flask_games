@@ -528,8 +528,9 @@ function animateDraw(cardStr, player, handScore=0) {
     // Known card for self player
     else {
         card = createCardObject(cardStr);
-        // Set card to face-up orientation
-        card.style.transform += `rotateY(180deg)`
+        // Set card to face-up orientation - this may be unnecessary
+        // Removing so other transform can be used for cribbage stage-for-discard class
+        // card.style.transform += `rotateY(180deg)`;
 
         // Create new card container
         cardContainer = document.createElement('div');

@@ -331,7 +331,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     margin: 0.25rem;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 2s ease-in;
+    transition: transform 0.5s ease-in;
     transform: rotateY(180deg);
 }
 
@@ -345,14 +345,14 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     border-radius: var(--card-border-radius);
     /* Animation */
     transform-style: preserve-3d;
-    transition: transform 2s ease-in;
+    transition: transform 0.5s ease-in;
     transform: rotateY(180deg);
 }
 
 /* Highlight card container on hover, if selectable */
 .rotate-card-container.selectable:hover {
     /* Kinda ugly right now, ideally would have animation of border radiating outward */
-    outline-color: #ac1430;
+    outline-color: black;
     outline-width: thick;
     outline-style: solid;
     border-radius: var(--card-border-radius);
@@ -426,12 +426,14 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
 .staged-for-discard {
     /* For some reason card is flipping. May have to specify rotate state */
     transform: translateY(-20%) rotateY(180deg);
+    outline-width: medium;
+    outline-style: double;
 }
 
 /* Staged-for-discard was going too slow, specifying transition speed below */
 .rotate-card-container.selectable {
-    transition-timing-function: linear;
-    transition-duration: 250ms;
+    /* transition-timing-function: linear;
+    transition-duration: 250ms; */
 }
 
 #discard-confirm-button {
