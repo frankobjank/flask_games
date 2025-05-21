@@ -430,6 +430,7 @@ function updateCribbage(response) {
         }
 
         // Update crib outside of player loop
+        // Currently empty function - may need in future
         updateCribNoAnimation(response.crib);
     }
     
@@ -441,6 +442,9 @@ function updateCribbage(response) {
     
     // Update crib size (number of cards)
     console.log(`Updating crib: crib size = ${response.crib_size}`);
+    // Update text of crib count p
+    document.querySelector('#crib-count').innerText = `Crib: ${response.crib_size} cards`;
+    // Update crib container dataset
     document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
     
     // Fill log
@@ -468,7 +472,7 @@ function updateCribbage(response) {
         document.querySelector('#continue-button').style.display = '';
     }
     
-    // Disable continue button on every other mode
+    // Disable continue button on when mode != end_round
     else {
         document.querySelector('#continue-button').disabled = true;
         // HIDE button when not active

@@ -704,16 +704,8 @@ def on_move(data):
     # Pass input to game state to update; can either reject or accept input
     game_response = game.update(data)
 
-    ### ISSUE ###
-    ## Log messages are not appearing on server reject because player log is only
-    ## Updated on a successful move. Can instead send a custom message directly to
-    ## the chat log. How to get the message from the game update function - return
-    ## as a dict or tuple
-        ## i.e. {"response": "reject", "msg": msg}
-    ## For parity should change the accept return value into a tuple or dict as well
-        ## i.e. {"response": "accept"} - the rest of the response is packaged with
-        ## package state. This is good because usually response is sent to all players,
-        ## not just client who made the initial request
+    # Template for response returned by .update() method
+    # response = {"accepted": False, "msg": ""}
 
     # Game will either reject or accept action. Prepare response to client.
     if not game_response["accepted"]:

@@ -105,8 +105,14 @@ class StateCribbage(BaseState):
             p_object.log = []  # Start log as empty list for each player
 
         # Set player order
+        # Debug print - catch issue with client and server player mismatch
+        print(f"player order before set_player_order(): {self.player_order}")
         self.player_order = self.set_player_order()
+        print(f"player order after set_player_order(): {self.player_order}")
+
+        print(f"players before reorder_players(): {self.players}")
         self.players = self.reorder_players()
+        print(f"players after reorder_players(): {self.players}")
         
         self.broadcast_start_message()
 
@@ -530,7 +536,7 @@ class StateCribbage(BaseState):
             self.has_played_show.add(self.current_player)
 
 
-    def update(self, packet: dict) -> dict[str,str]:
+    def update(self, packet: dict) -> dict[str,str|bool]:
         """Accept client's input and update game state or reject client's input."""
 
         # Packet received by client contains these keys/values:

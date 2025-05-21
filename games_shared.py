@@ -83,7 +83,8 @@ class BaseState:
         return new_player_order
 
 
-    # TODO fill in this function so action log works similarly to text log
+    # TODO - low priority - may not be necessary; maybe can send on non-board updates
+    # fill in this function so action log works similarly to text log
     # def add_to_action_log(action, target_object, players_dict, recipient="all") -> None:
         
     #      {"action": "", "player": "", "card": ""}
