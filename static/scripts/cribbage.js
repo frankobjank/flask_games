@@ -25,6 +25,7 @@ function createBoardCribbage() {
     const cribContainer = document.createElement('div');
     cribContainer.className = 'crib-container';
     cribContainer.id = 'crib-container';
+    cribContainer.dataset.cribSize = 0;
 
     const cribCard = document.createElement('div');
     cribCard.className = 'card-container';
@@ -37,7 +38,8 @@ function createBoardCribbage() {
     // Eventually want to show number of cards in stack
     const cribCount = document.createElement('p');
     cribCount.id = 'crib-count';
-    cribCount.innerText = 'Crib: 0 cards';
+    // Not sure if this will update when dataset is updated
+    cribCount.innerText = `Crib: ${cribContainer.dataset.cribSize} cards`;
 
     cribContainer.appendChild(cribCount);
     
@@ -150,6 +152,95 @@ function addlPlayerContainerCribbage(name, playerContainer) {
     playerContainer.appendChild(discardContainer);
 
     return playerContainer;
+}
+
+// Can try to loop by numToDiscard to stagger discards - if it works, can use for deal/draw
+function animateToCrib(player, cardStrs, numToDiscard) {
+    // cardStrs is arr of card strings
+    // Copied from animateToDiscard - edit to fit
+    const crib = document.querySelector('#crib-card');
+
+    // Array to keep track of multiple discards
+    let cards = [];
+    
+    for (let i = 0; i < cardStrs.length; i++) {
+        // Define card depending on self / non-self player
+        let card;
+        
+        // If player is self, card is known
+        if (player === username) {
+            card = document.querySelector(`#card-${cardStrs[i]}`);
+            cardContainer = card.parentElement;
+        }
+        // If player is not self, pop random card from `player`'s hand
+        else {
+            // Out of hand container, get random card container
+            const handContainer = document.querySelector('#hand-container-' + player);
+            let allCardContainers = handContainer.querySelectorAll('.card-container');
+            cardContainer = allCardContainers[getRandomInt(allCardContainers.length)];
+            // Once random card container is chosen, there is only one card that can be selected
+            card = cardContainer.querySelector('.rotate-card-container');
+        }
+        cards.push(card);
+    }
+
+    // Get starting position of card
+    const cardRect = card.getBoundingClientRect();
+
+    // Get discard position
+    const discardRect = discard.getBoundingClientRect();
+
+    // Calc movement distances - compare left and top
+    const deltaX = discardRect.left - cardRect.left
+    const deltaY = discardRect.top - cardRect.top
+
+    // Create a clone to animate 
+        // arg `true` in cloneNode means copy is a deep copy, i.e. it includes all node's descendants as well
+    // Clone should be of newDiscard so it has display of known card
+    const clone = newDiscard.cloneNode(true);
+    clone.classList.add('clone');
+    // change id of clone so no duplicate ids
+    clone.id = 'clone-' + clone.id;
+
+    document.body.appendChild(clone);
+    
+    // Start clone at card's dimensions - cloneNode doesn't copy these values
+    clone.style.left = `${cardRect.left}px`;
+    clone.style.top = `${cardRect.top}px`;
+    clone.style.width = `${cardRect.width}px`;
+    clone.style.height = `${cardRect.height}px`;
+    clone.style.position = 'fixed';
+    
+    // Hide original card
+    card.style.visibility = 'hidden';
+
+    // set animation object to add event listener
+    let animObject;
+    
+    if (player === username) {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'up'), ANIMATION_TIMING);
+    }
+    // Flip up for other
+    else {
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'up'), ANIMATION_TIMING);
+    }
+
+    // Add event listener to `finish`
+    animObject.addEventListener('finish', () => {
+        // Replace old discard with new discard
+        document.querySelector('#discard-container').replaceChildren(newDiscard);
+        
+        // Remove clone card
+        clone.remove();
+        
+        // Remove original card container (and card) from hand
+        cardContainer.remove();
+        
+        // Update hand score if given
+        if (player === username) {
+            document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
+        }
+    }); 
 }
 
 function updateCribNoAnimation(crib) {
@@ -347,6 +438,9 @@ function updateCribbage(response) {
     currentPlayer = response.current_player;
     // Update global mode var
     mode = response.mode;
+    
+    // Update crib size (number of cards)
+    document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
 
     // Fill log
     for (const msg of response.log) {
@@ -394,16 +488,19 @@ function updateCribbage(response) {
     // Loop player order to fill containers apart from cards
     for (let i = 0; i < playerOrder.length; i++) {
         
-        console.log(`filling in player info: ${playerOrder[i]}`)
+        console.log(`filling in player info: ${playerOrder[i]}`);
 
         // Once player array is populated, add to player panel display or dataset
         const playerContainer = document.querySelector('#player-container-' + playerOrder[i]);
+
+        // Update score
+        playerContainer.dataset.score = response.total_scores[i];
 
         // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
         // Adapted from thirty one, might have to adjust final hands, or make sure to use final hands for show hands
         if ((username !== playerOrder[i]) && (response.mode === 'show')) {
-            populateHandStatic(playerOrder[i], response.final_hands[i])
+            populateHandStatic(playerOrder[i], response.final_hands[i]);
         }
 
         if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
@@ -458,7 +555,7 @@ function updateCribbage(response) {
         }
         else {
             playerContainer.dataset.dealer = '0';
-            document.querySelector('#dealer-strong-' + playerOrder[i]).innerText = ''
+            document.querySelector('#dealer-strong-' + playerOrder[i]).innerText = '';
         }
     }
 }
