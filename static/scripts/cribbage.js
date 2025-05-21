@@ -440,8 +440,9 @@ function updateCribbage(response) {
     mode = response.mode;
     
     // Update crib size (number of cards)
+    console.log(`Updating crib: crib size = ${response.crib_size}`);
     document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
-
+    
     // Fill log
     for (const msg of response.log) {
         addToLog(msg, 'system');
@@ -513,7 +514,7 @@ function updateCribbage(response) {
                 // like a 'can_play' flag that can translate to selectable
         if (username === playerOrder[i]) {
             cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).querySelectorAll('.rotate-card-container');
-            if (mode === 'discard') {
+            if (mode === 'discard' && response.num_to_discard > 0) {
                 // Select all cards and make selectable
                 cardsInHand.forEach(card => {
                     card.classList.add('selectable');
@@ -529,7 +530,6 @@ function updateCribbage(response) {
                 });
             }
         }
-
         
         // Mark current player only if mode is not discard, since anyone can go during discard
         // Animation idea: move current marker to new current player

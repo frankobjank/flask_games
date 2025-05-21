@@ -590,6 +590,8 @@ class StateCribbage(BaseState):
                         print(f"Comparing {card.portable} to {discard_card}")
                         # Remove from hand and add to crib on match
                         self.crib.append(card)
+                        print(f"Attempting to remove card {card} from hand")
+                        print(f"Current hand: {self.players[self.current_player].hand}")
                         self.players[self.current_player].hand.remove(card)
                         
                         # Break inner loop once card is found
@@ -609,7 +611,6 @@ class StateCribbage(BaseState):
                 return response
 
             played_card = unzip_card(packet["card"])
-
             current_count = sum([play.card.value for play in self.current_plays])
             
             # Validate input

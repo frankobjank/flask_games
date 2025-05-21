@@ -427,7 +427,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     /* For some reason card is flipping. May have to specify rotate state */
     transform: translateY(-20%) rotateY(180deg);
     outline-width: medium;
-    outline-style: double;
+    outline-style: solid;
 }
 
 /* Staged-for-discard was going too slow, specifying transition speed below */
