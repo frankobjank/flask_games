@@ -503,8 +503,6 @@ class StateCribbage(BaseState):
                 self.print_and_log("4 points for a flush.")
                 score += 4
 
-            # END OF SHOW FOR NON-CRIB
-
             # Print total score for show
             # Split for correct grammar
             if score == 1:
@@ -516,14 +514,14 @@ class StateCribbage(BaseState):
             # If dealer, handled below under crib
             if self.current_player != self.dealer:
                 self.has_played_show.add(self.current_player)
+            
+            # END OF SHOW FOR NON-CRIB
 
         if crib:
             if len(set(card.suit for card in show_hand)) == 1:
                 self.add_score_log(self.current_player, 5, "flush", cards=[card.portable for card in show_hand])
-                self.print_and_log(f"5 points for a flush.")
+                self.print_and_log("5 points for a flush.")
                 score += 5
-
-            # END OF SHOW FOR CRIB
 
             # Print total score for crib
             # Split for correct grammar
@@ -531,6 +529,8 @@ class StateCribbage(BaseState):
                 self.print_and_log(f"{self.current_player} scored a total of {score} point for the crib.")
             else:
                 self.print_and_log(f"{self.current_player} scored a total of {score} points for the crib.")
+            
+            # END OF SHOW FOR CRIB
         
             # Player must be dealer; mark as finished with the show
             self.has_played_show.add(self.current_player)

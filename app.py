@@ -729,6 +729,8 @@ def on_move(data):
     in_progress_before_update = game.in_progress
     
     for username in game.players.keys():
+
+        print(f"\nUpdating for player {username}\n")
         
         # All game data packaged into a dict for specific user
         response = game.package_state(username)
@@ -738,19 +740,14 @@ def on_move(data):
         for user in rooms[data["room"]].users:
             if user.connected and user.name == response["recipient"]:
                 recipient_sid = user.sid
+                print(f"\nUpdating player {user.name}; sid = {user.sid}\n")
                 break
         
-        print(f"Sending response: \n{response} \non {data['action']}")
-        
-        # Add action to response for client animation
-        # Will need to test if setting action here is sufficient 
-            # If accepted it must be broadcast and not only sent 
-            # to the user who requested the action
-        # response["action"] = data.get("action", "")
 
         # Return response using update_board event
         fio.emit("update_board", response, to=recipient_sid, room=data["room"])
         
+        # When debug is on, all debug_msg emits are also printed to terminal. No need to print them again.
         fio.emit("debug_msg", {"msg": 
                 f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
                 to=recipient_sid)

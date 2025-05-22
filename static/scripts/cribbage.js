@@ -116,7 +116,8 @@ function addlPlayerContainerCribbage(name, playerContainer) {
     
     // Set dealer to 0 by default; will be changed on game update
     playerContainer.dataset.dealer = '0';
-
+    
+    
     // If not self, return container
     if (name !== username) {
         return playerContainer;
@@ -249,43 +250,20 @@ function updateCribNoAnimation(crib) {
 
 // Set discard action for card in hand
 var handHandlerCribbage = function handOnClickCribbage(event) {
-        // Make cards selectable for self depending on mode
-            // Discard - only if they have not discarded already
-            // On play - only if they can play the card - will have to get from server, 
-                // like a 'can_play' flag that can translate to selectable
-        // if (username === playerOrder[i]) {
-        //     const cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).
-        //         querySelectorAll('.rotate-card-container');
-        //     if (mode === 'discard' && response.num_to_discard > 0 
-        //         || document.querySelectorAll('.staged-for-discard').length ) {
-        //         // Select all cards and make selectable
-        //         cardsInHand.forEach(card => {
-        //             card.classList.add('selectable');
-        //         });
-        //     }
-        //     else if (mode === 'play') {
-
-        //     }
-        //     // If no conditions are met, make sure selectable class is not on the card
-        //     else {
-        //         cardsInHand.forEach(card => {
-        //             card.classList.remove('selectable');
-        //         });
-        //     }
-        // }
-
     // Disable input for card if end of round or non-self player
     if (mode === 'end_round' || mode === 'end_game' || mode === 'show') {
         return;
     }
     
-    // Cards should be toggle-able to be staged for discard
+    // Discard - cards should be selectable to be staged-for-discard only if player has not already discarded
+        // Only cards staged for discard should be selectable if player has staged the max number of cards to discard
+    // Using numToDiscard data from hand for these conditionals
     if (mode === 'discard') {
         // Get size of player hand by getting grandparent element and counting card containers
-        const handSize = this.parentElement.parentElement.querySelectorAll('.card-container').length;
+        const hand = this.parentElement.parentElement;
         
         // Check that player's hand is over 4 to prevent staging after discarding
-        if (handSize === 4) {
+        if (hand.querySelectorAll('.card-container').length === 4) {
             console.log('Hand already has 4 cards; cannot discard any more.');
             return;
         }
@@ -295,9 +273,10 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         // If card is unstaged: check if can be staged
         // Check if player has already staged enough cards and should not stage any more
         if (
-            !this.classList.contains('staged-for-discard') && 
-            handSize - document.querySelectorAll('.staged-for-discard').length <= 4
-        ) {
+            (!this.classList.contains('staged-for-discard')) && 
+                (hand.querySelectorAll('.card-container').length - 
+                document.querySelectorAll('.staged-for-discard').length <= 4)
+        ){
             console.log('Already staged enough cards; cannot stage any more.');
             return;
         }
@@ -375,10 +354,6 @@ function updateCribbage(response) {
             console.log('Calling fillPlayerGrid to create player containers');
             fillPlayerGrid(playerOrder, response.game);
         }
-
-        // Once player grids are created, add num_to_discard to self hand container dataset
-        // Stashing num_to_discard here since it's needed in hand onclick function
-        document.querySelector('#hand-container' + username).dataset.numToDiscard = response.num_to_discard;
     }
 
     // UPDATE CARDS FIRST so animation will be completed before rest of update
@@ -541,31 +516,30 @@ function updateCribbage(response) {
             console.log(`${playerOrder[i]} hand is empty.`);
         }
 
-        // MOVING THIS `SELECTABLE` BLOCK TO HAND HANDLER
         // Make cards selectable for self depending on mode
             // Discard - only if they have not discarded already
             // On play - only if they can play the card - will have to get from server, 
                 // like a 'can_play' flag that can translate to selectable
-        // if (username === playerOrder[i]) {
-        //     const cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).
-        //         querySelectorAll('.rotate-card-container');
-        //     if (mode === 'discard' && response.num_to_discard > 0 
-        //         || document.querySelectorAll('.staged-for-discard').length ) {
-        //         // Select all cards and make selectable
-        //         cardsInHand.forEach(card => {
-        //             card.classList.add('selectable');
-        //         });
-        //     }
-        //     else if (mode === 'play') {
+        if (username === playerOrder[i]) {
+            const cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).
+                querySelectorAll('.rotate-card-container');
+            if (mode === 'discard' && response.num_to_discard > 0 
+                || document.querySelectorAll('.staged-for-discard').length ) {
+                // Select all cards and make selectable
+                cardsInHand.forEach(card => {
+                    card.classList.add('selectable');
+                });
+            }
+            else if (mode === 'play') {
 
-        //     }
-        //     // If no conditions are met, make sure selectable class is not on the card
-        //     else {
-        //         cardsInHand.forEach(card => {
-        //             card.classList.remove('selectable');
-        //         });
-        //     }
-        // }
+            }
+            // If no conditions are met, make sure selectable class is not on the card
+            else {
+                cardsInHand.forEach(card => {
+                    card.classList.remove('selectable');
+                });
+            }
+        }
         
         // Mark current player only if mode is not discard, since anyone can go during discard
         // Animation idea: move current marker to new current player
