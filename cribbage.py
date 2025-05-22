@@ -696,6 +696,7 @@ class StateCribbage(BaseState):
         final_hands = []  # For the show
         final_scores = []  # Currently unused - may be useful for animating show score
         play_count = 0  # count for each play
+        crib = []  # Only send crib if show
 
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
@@ -732,6 +733,9 @@ class StateCribbage(BaseState):
 
                 # Count play
                 play_count += play.card.value
+        
+        elif self.mode == "show":
+            crib = self.crib
 
         custom_action_log = []
 
@@ -758,6 +762,7 @@ class StateCribbage(BaseState):
             "current_player": self.current_player,  # current player's name
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
             "total_scores": total_scores,  # overall score of game (0-121)
+            "crib": crib,  # only send on show
             "crib_size": len(self.crib),  # show size of crib as players discard
             "dealer": self.dealer,  # dealer of round
             "played_cards": played_cards,  # list of dicts {"player": ..., "card": ...}

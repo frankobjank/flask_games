@@ -189,11 +189,11 @@ function animateToCrib(player, cardStrs, numToDiscard) {
     const cardRect = card.getBoundingClientRect();
 
     // Get discard position
-    const discardRect = discard.getBoundingClientRect();
+    const cribRect = crib.getBoundingClientRect();
 
     // Calc movement distances - compare left and top
-    const deltaX = discardRect.left - cardRect.left
-    const deltaY = discardRect.top - cardRect.top
+    const deltaX = cribRect.left - cardRect.left
+    const deltaY = cribRect.top - cardRect.top
 
     // Create a clone to animate 
         // arg `true` in cloneNode means copy is a deep copy, i.e. it includes all node's descendants as well
@@ -218,19 +218,27 @@ function animateToCrib(player, cardStrs, numToDiscard) {
     // set animation object to add event listener
     let animObject;
     
+    // Flip down for self
     if (player === username) {
-        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'up'), ANIMATION_TIMING);
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'down'), ANIMATION_TIMING);
     }
-    // Flip up for other
+    // Stay down for other
     else {
-        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'up'), ANIMATION_TIMING);
+        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
     }
 
     // Add event listener to `finish`
     animObject.addEventListener('finish', () => {
         // Replace old discard with new discard
-        document.querySelector('#discard-container').replaceChildren(newDiscard);
+        document.querySelector('#crib-container').;
         
+        // Update crib size (number of cards)
+        console.log(`Updating crib: crib size = ${response.crib_size}`);
+        // Update text of crib count p
+        document.querySelector('#crib-count').innerText = `Crib: ${response.crib_size} cards`;
+        // Update crib container dataset
+        document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
+
         // Remove clone card
         clone.remove();
         
@@ -244,7 +252,18 @@ function animateToCrib(player, cardStrs, numToDiscard) {
     }); 
 }
 
-function updateCribNoAnimation(crib) {
+function updateCribNoAnimation(cribSize, crib) {
+    // Update crib size (number of cards)
+    console.log(`Updating crib: crib size = ${cribSize}`);
+    // Update text of crib count p
+    document.querySelector('#crib-count').innerText = `Crib: ${cribSize} cards`;
+    // Update crib container dataset
+    document.querySelector('#crib-container').dataset.cribSize = cribSize;
+
+    // Display crib if mode is show and all other hands have been shown
+    if (mode === 'show') {
+
+    }
 
 }
 
@@ -272,17 +291,22 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         
         // If card is unstaged: check if can be staged
         // Check if player has already staged enough cards and should not stage any more
-        if (
-            (!this.classList.contains('staged-for-discard')) && 
-                (hand.querySelectorAll('.card-container').length - 
-                document.querySelectorAll('.staged-for-discard').length <= 4)
-        ){
+        if ((!this.classList.contains('staged-for-discard')) && 
+            (hand.querySelectorAll('.card-container').length - 
+            document.querySelectorAll('.staged-for-discard').length <= 4)) {
+                
             console.log('Already staged enough cards; cannot stage any more.');
             return;
         }
 
         // At this point an unstaged card is allowed to be staged, or a staged card could be unstaged
         this.classList.toggle('staged-for-discard');
+
+        // Check to see if staged-for-discard limit has been reached; make non-staged cards unselectable 
+        if (hand.querySelectorAll('.card-container').length - 
+            document.querySelectorAll('.staged-for-discard').length <= 4) {
+                toggleHandSelectability(toggleOn=false, excludedClasses=['staged-for-discard'], excludedIds=[]);
+            }
 
         // This is only for staging, actual discard event is tied to discard confirm button
     }
@@ -291,6 +315,34 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
     if (mode === 'play') {
         console.log('TODO hand onclick during play');
     }
+}
+
+// The add or remove selectable class for all cards in self hand; can exclude with class or id
+function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
+    
+    const cardsInHand = document.querySelector('#hand-container-' + username).
+        querySelectorAll('.card-container');
+
+    // forEach uses a function instance each loop so use return instead of break to exit early
+    cardsInHand.forEach(card => {
+        // Check excluded ids
+        if (excludedIds.includes(card.id)) {
+            return;
+        }
+        // Check excluded classes
+        for (exClass of excludedClasses) {
+            if (card.classList.contains(exClass)) {
+                return;
+            }
+        }
+
+        if (toggleOn) {
+            card.classList.add('selectable');
+        }
+        else if (!toggleOn) {
+            card.classList.remove('selectable');
+        }   
+    });
 }
 
 function updateCribbage(response) {
@@ -311,6 +363,7 @@ function updateCribbage(response) {
     // "current_player": self.current_player,  # current player's name
     // "hand_sizes": hand_sizes,  # number of cards in each players' hands
     // "total_scores": total_scores,  # overall score of game (0-121)
+    // "crib": crib,  # only send on show
     // "crib_size": len(self.crib),  # show size of crib as players discard
     // "dealer": self.dealer,  # dealer of round
     // "played_cards": played_cards,  # list of dicts {"player": ..., "card": ...}
@@ -435,7 +488,7 @@ function updateCribbage(response) {
 
         // Update crib outside of player loop
         // Currently empty function - may need in future
-        updateCribNoAnimation(response.crib);
+        updateCribNoAnimation(response.crib_size, response.crib);
     }
     
     // Must put current player update here since turn may increment on server side
@@ -443,14 +496,7 @@ function updateCribbage(response) {
     currentPlayer = response.current_player;
     // Update global mode var
     mode = response.mode;
-    
-    // Update crib size (number of cards)
-    console.log(`Updating crib: crib size = ${response.crib_size}`);
-    // Update text of crib count p
-    document.querySelector('#crib-count').innerText = `Crib: ${response.crib_size} cards`;
-    // Update crib container dataset
-    document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
-    
+        
     // Fill log
     for (const msg of response.log) {
         addToLog(msg, 'system');
@@ -521,23 +567,23 @@ function updateCribbage(response) {
             // On play - only if they can play the card - will have to get from server, 
                 // like a 'can_play' flag that can translate to selectable
         if (username === playerOrder[i]) {
-            const cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).
-                querySelectorAll('.rotate-card-container');
-            if (mode === 'discard' && response.num_to_discard > 0 
-                || document.querySelectorAll('.staged-for-discard').length ) {
-                // Select all cards and make selectable
-                cardsInHand.forEach(card => {
-                    card.classList.add('selectable');
-                });
+            // const cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).
+            //     querySelectorAll('.card-container');
+            
+            // On discard, check if number player needs to discard is up to the number staged for discard
+            // This is not much different from original statement response.num_to_discard > 0 
+            // because staging for discard happens on client side. May have to include this in the hand
+            // onclick function
+            if (mode === 'discard' && response.num_to_discard > document.querySelectorAll('.staged-for-discard').length) {
+                // Make all cards in hand selectable
+                toggleHandSelectability(toggleOn=true);
             }
             else if (mode === 'play') {
 
             }
             // If no conditions are met, make sure selectable class is not on the card
             else {
-                cardsInHand.forEach(card => {
-                    card.classList.remove('selectable');
-                });
+                toggleHandSelectability(toggleOn=false);
             }
         }
         
