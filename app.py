@@ -732,8 +732,6 @@ def on_move(data):
     
     for username in game.players.keys():
 
-        print(f"\nUpdating for player {username}\n")
-        
         # All game data packaged into a dict for specific user
         response = game.package_state(username)
 
@@ -742,7 +740,6 @@ def on_move(data):
         for user in rooms[data["room"]].users:
             if user.connected and user.name == response["recipient"]:
                 recipient_sid = user.sid
-                print(f"\nUpdating player {user.name}; sid = {user.sid}\n")
                 break
         
 

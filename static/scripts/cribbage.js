@@ -156,7 +156,7 @@ function addlPlayerContainerCribbage(name, playerContainer) {
 }
 
 // Can try to loop by numToDiscard to stagger discards - if it works, can use for deal/draw
-function animateToCrib(player, cardStrs, numToDiscard) {
+function animateToCrib(player, cardStrs, cribSize) {
     // cardStrs is arr of card strings
     // Copied from animateToDiscard - edit to fit
     const crib = document.querySelector('#crib-card');
@@ -232,11 +232,10 @@ function animateToCrib(player, cardStrs, numToDiscard) {
             // document.querySelector('#crib-container');
             
             // Update crib size (number of cards)
-            console.log(`Updating crib: crib size = ${response.crib_size}`);
-            // Update text of crib count p
-            document.querySelector('#crib-count').innerText = `Crib: ${response.crib_size} cards`;
+            // Use iteration number to update crib size
+            document.querySelector('#crib-count').innerText = `Crib: ${cribSize} cards`;
             // Update crib container dataset
-            document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
+            document.querySelector('#crib-container').dataset.cribSize = cribSize;
     
             // Remove clone card
             clone.remove();
@@ -446,6 +445,7 @@ function updateCribbage(response) {
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
                     
                     let cardToDraw;
+
                     // For self player, use response.hand
                     if (playerOrder[playerIndex] === username) {
                         cardToDraw = response.hand[cardIndex];
@@ -455,7 +455,6 @@ function updateCribbage(response) {
                         cardToDraw = 'unknown';
                     }
                     animateDraw(cardToDraw, playerOrder[playerIndex]);
-                    
                 }
             }
         }
@@ -463,7 +462,7 @@ function updateCribbage(response) {
         // Create animateToCrib - turns all cards face-down and put in crib container
         else if (actionObject.action === 'discard') {
             // REMEMBER TO UNSTAGE ALL CARDS AFTER CARDS ARE DISCARDED, disallow staging cards, and hide discard button
-            animateToCrib(actionObject.player, actionObject.cards, actionObject.num_to_discard);
+            animateToCrib(actionObject.player, actionObject.cards, response.crib_size);
         }
 
         // Create animateFlip - flip up a card in place
