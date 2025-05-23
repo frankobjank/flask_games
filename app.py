@@ -1,7 +1,7 @@
 # Python official modules
-import logging
 import os
 import sqlite3
+# TODO replace localtime with time and convert to local time on client side
 from time import time, localtime, strftime
 import werkzeug.security as ws
 
@@ -14,6 +14,7 @@ import flask_socketio as fio
 from app_helpers import *
 import thirty_one_game
 import cribbage
+from short_logger import short_logger
 
 ##### TODO #####
 # Having temporary usernames persist outside of game room will cause issues with duplicate usernames. 
@@ -49,15 +50,6 @@ socketio = fio.SocketIO(app, logger=True, engineio_logger=True)
 
 # Without logs
 # socketio = fio.SocketIO(app)
-
-# Configure my own logging for specific issues
-short_logger = logging.getLogger("short_logger")
-# Append logs to file short.log
-file_handler = logging.FileHandler("short.log")
-file_handler.setFormatter(logging.Formatter("[%(asctime)s] - %(message)s"))
-short_logger.setLevel(logging.DEBUG)
-short_logger.addHandler(file_handler)
-# End of short logger configuration
 
 users = {}
 
@@ -508,8 +500,6 @@ def on_join(data):
     # Log msg that player has joined
     fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "system",
              "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
-    
-
     
     # Send updated player count to anyone remaining in lobby
     fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",

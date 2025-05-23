@@ -1,8 +1,8 @@
 from collections import namedtuple
 from itertools import combinations
 
-from app import short_logger
 from games_shared import *
+from short_logger import short_logger
 
 # Custom namedtuple for cribbage
 Play = namedtuple("Play", ["player", "card"])
