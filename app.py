@@ -1,4 +1,5 @@
 # Python official modules
+import logging
 import os
 import sqlite3
 from time import time, localtime, strftime
@@ -48,6 +49,15 @@ socketio = fio.SocketIO(app, logger=True, engineio_logger=True)
 
 # Without logs
 # socketio = fio.SocketIO(app)
+
+# Configure my own logging for specific issues
+short_logger = logging.getLogger("short_logger")
+# Append logs to file short.log
+file_handler = logging.FileHandler("short.log")
+file_handler.setFormatter(logging.Formatter("[%(asctime)s] - %(message)s"))
+short_logger.setLevel(logging.DEBUG)
+short_logger.addHandler(file_handler)
+# End of short logger configuration
 
 users = {}
 
@@ -449,7 +459,7 @@ def on_join(data):
         if room_user.session_cookie == fl.session["session_cookie"]:
 
             print(f"User {room_user.name} was found in room {data['room']}. Updating sid from {room_user.sid} TO {fl.request.sid}")
-            
+
             # Copy new sid to room_user object
             room_user.sid = fl.request.sid
 
@@ -488,8 +498,6 @@ def on_join(data):
     fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"], "username": user.name,
                                  "game": rooms[data["room"]].game_name}, to=fl.request.sid)
     
-    print(f"Users on join: {rooms[data['room']].users} after processing.")
-
     # Join the room
     fio.join_room(data["room"])
     
@@ -536,12 +544,16 @@ def on_join(data):
         print(f"Sending update room to {data['room']} to add {list(game.players.keys())}")
 
         # Send updated list of players to others in room
-        fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-                 "game": rooms[data["room"]].game_name, "players": list(game.players.keys())},
-                 room=data["room"], broadcast=True)
-        
+        fio.emit("update_gameroom", 
+                    {"action": "add_players", 
+                     "room": data["room"], 
+                     "game": rooms[data["room"]].game_name,
+                     "players": list(game.players.keys())},
+                room=data["room"],
+                broadcast=True)
+
         game_update = game.package_state(user.name)
-                    
+        
         # Send game data if game in progress
         print(f"Sending game state to {user.name} on join: \n{game_update}")    
         fio.emit("update_board", game_update, to=fl.request.sid, room=data["room"])

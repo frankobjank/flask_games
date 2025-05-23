@@ -167,6 +167,7 @@ function animateToCrib(player, cardStrs, numToDiscard) {
     for (let i = 0; i < cardStrs.length; i++) {
         // Define card depending on self / non-self player
         let card;
+        let cardContainer;
         
         // If player is self, card is known
         if (player === username) {
@@ -183,73 +184,68 @@ function animateToCrib(player, cardStrs, numToDiscard) {
             card = cardContainer.querySelector('.rotate-card-container');
         }
         cards.push(card);
-    }
 
-    // Get starting position of card
-    const cardRect = card.getBoundingClientRect();
-
-    // Get discard position
-    const cribRect = crib.getBoundingClientRect();
-
-    // Calc movement distances - compare left and top
-    const deltaX = cribRect.left - cardRect.left
-    const deltaY = cribRect.top - cardRect.top
-
-    // Create a clone to animate 
-        // arg `true` in cloneNode means copy is a deep copy, i.e. it includes all node's descendants as well
-    // Clone should be of newDiscard so it has display of known card
-    const clone = newDiscard.cloneNode(true);
-    clone.classList.add('clone');
-    // change id of clone so no duplicate ids
-    clone.id = 'clone-' + clone.id;
-
-    document.body.appendChild(clone);
+        // Get starting position of card
+        const cardRect = card.getBoundingClientRect();
     
-    // Start clone at card's dimensions - cloneNode doesn't copy these values
-    clone.style.left = `${cardRect.left}px`;
-    clone.style.top = `${cardRect.top}px`;
-    clone.style.width = `${cardRect.width}px`;
-    clone.style.height = `${cardRect.height}px`;
-    clone.style.position = 'fixed';
+        // Get discard position
+        const cribRect = crib.getBoundingClientRect();
     
-    // Hide original card
-    card.style.visibility = 'hidden';
-
-    // set animation object to add event listener
-    let animObject;
+        // Calc movement distances - compare left and top
+        const deltaX = cribRect.left - cardRect.left
+        const deltaY = cribRect.top - cardRect.top
     
-    // Flip down for self
-    if (player === username) {
-        animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'down'), ANIMATION_TIMING);
-    }
-    // Stay down for other
-    else {
-        animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
-    }
-
-    // Add event listener to `finish`
-    animObject.addEventListener('finish', () => {
-        // Replace old discard with new discard
-        document.querySelector('#crib-container').;
+        // Create a clone to animate 
+            // arg `true` in cloneNode means copy is a deep copy, i.e. it includes all node's descendants as well
+        const clone = card.cloneNode(true);
+        clone.classList.add('clone');
+        // change id of clone so no duplicate ids
+        clone.id = 'clone-' + clone.id;
+    
+        document.body.appendChild(clone);
         
-        // Update crib size (number of cards)
-        console.log(`Updating crib: crib size = ${response.crib_size}`);
-        // Update text of crib count p
-        document.querySelector('#crib-count').innerText = `Crib: ${response.crib_size} cards`;
-        // Update crib container dataset
-        document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
-
-        // Remove clone card
-        clone.remove();
+        // Start clone at card's dimensions - cloneNode doesn't copy these values
+        clone.style.left = `${cardRect.left}px`;
+        clone.style.top = `${cardRect.top}px`;
+        clone.style.width = `${cardRect.width}px`;
+        clone.style.height = `${cardRect.height}px`;
+        clone.style.position = 'fixed';
         
-        // Remove original card container (and card) from hand
-        cardContainer.remove();
+        // Hide original card
+        card.style.visibility = 'hidden';
+    
+        // set animation object to add event listener
+        let animObject;
         
-        // Update hand score if given
+        // Flip down for self
         if (player === username) {
-            document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
+            animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'down'), ANIMATION_TIMING);
         }
-    }); 
+        // Stay down for other
+        else {
+            animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
+        }
+    
+        // Add event listener to `finish`
+        animObject.addEventListener('finish', () => {
+            // Might need make sure back of card is shown in crib container
+            // document.querySelector('#crib-container');
+            
+            // Update crib size (number of cards)
+            console.log(`Updating crib: crib size = ${response.crib_size}`);
+            // Update text of crib count p
+            document.querySelector('#crib-count').innerText = `Crib: ${response.crib_size} cards`;
+            // Update crib container dataset
+            document.querySelector('#crib-container').dataset.cribSize = response.crib_size;
+    
+            // Remove clone card
+            clone.remove();
+            
+            // Remove original card container (and card) from hand
+            cardContainer.remove();
+        }); 
+    }
+
 }
 
 function updateCribNoAnimation(cribSize, crib) {
@@ -323,7 +319,7 @@ function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
     const cardsInHand = document.querySelector('#hand-container-' + username).
         querySelectorAll('.card-container');
 
-    // forEach uses a function instance each loop so use return instead of break to exit early
+    // forEach uses a function instance each loop so can use return to exit early from an iteration
     cardsInHand.forEach(card => {
         // Check excluded ids
         if (excludedIds.includes(card.id)) {
@@ -341,7 +337,7 @@ function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
         }
         else if (!toggleOn) {
             card.classList.remove('selectable');
-        }   
+        }
     });
 }
 

@@ -1,6 +1,7 @@
 from collections import namedtuple
 from itertools import combinations
 
+from app import short_logger
 from games_shared import *
 
 # Custom namedtuple for cribbage
@@ -16,6 +17,7 @@ class PlayerCribbage(Player):
         self.score = 0
         self.unplayed_cards = []  # For the play
         self.played_cards = []  # For the play
+
 
 class StateCribbage(BaseState):
     def __init__(self, room_name: str) -> None:
@@ -105,14 +107,8 @@ class StateCribbage(BaseState):
             p_object.log = []  # Start log as empty list for each player
 
         # Set player order
-        # Debug print - catch issue with client and server player mismatch
-        print(f"player order before set_player_order(): {self.player_order}")
         self.player_order = self.set_player_order()
-        print(f"player order after set_player_order(): {self.player_order}")
-
-        print(f"players before reorder_players(): {self.players}")
         self.players = self.reorder_players()
-        print(f"players after reorder_players(): {self.players}")
         
         self.broadcast_start_message()
 
@@ -171,7 +167,7 @@ class StateCribbage(BaseState):
 
             # Add discard message to log
             self.print_and_log(f"\n{self.dealer} is the dealer.\nPlease pick {discard_str} to add to the crib.", p_name)
-            
+
             # Reset variables for the play
             p_object.played_cards = []
             p_object.unplayed_cards = []
@@ -567,8 +563,8 @@ class StateCribbage(BaseState):
         
         # Turn modes: "discard", "play", "show"
         elif self.mode == "discard" and packet["action"] == "discard":
+
             # Cards to discard can be sent as packet["cards"]
-            
             target_num = len(self.players[packet["username"]].hand) - 4
             # Validate number of cards
             if len(packet["cards"]) != target_num:
@@ -597,8 +593,8 @@ class StateCribbage(BaseState):
                         # Remove from hand and add to crib on match
                         self.crib.append(card)
                         print(f"Attempting to remove card {card} from hand")
-                        print(f"Current hand: {self.players[self.current_player].hand}")
-                        self.players[self.current_player].hand.remove(card)
+                        print(f"Current hand: {self.players[packet["username"]].hand}")
+                        self.players[packet["username"]].hand.remove(card)
                         
                         # Break inner loop once card is found
                         break
