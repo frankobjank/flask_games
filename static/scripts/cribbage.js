@@ -297,11 +297,14 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         // At this point an unstaged card is allowed to be staged, or a staged card could be unstaged
         this.classList.toggle('staged-for-discard');
 
-        // Check to see if staged-for-discard limit has been reached; make non-staged cards unselectable 
-        if (hand.querySelectorAll('.card-container').length - 
-            document.querySelectorAll('.staged-for-discard').length <= 4) {
-                toggleHandSelectability(toggleOn=false, excludedClasses=['staged-for-discard'], excludedIds=[]);
-            }
+        // Check to see if staged-for-discard limit has been reached
+        if (hand.querySelectorAll('.card-container').length - document.querySelectorAll('.staged-for-discard').length <= 4) {
+            // Make non-staged cards unselectable 
+            toggleHandSelectability(toggleOn=false, excludedClasses=['staged-for-discard'], excludedIds=[]);
+        } else {
+            // Discard limit not reached; set all cards selectable
+            toggleHandSelectability(toggleOn=true);
+        }
 
         // This is only for staging, actual discard event is tied to discard confirm button
     }
@@ -316,25 +319,21 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
 function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
     
     const cardsInHand = document.querySelector('#hand-container-' + username).
-        querySelectorAll('.card-container');
+        querySelectorAll('.rotate-card-container');
 
     // forEach uses a function instance each loop so can use return to exit early from an iteration
     cardsInHand.forEach(card => {
         // Check excluded ids
-        if (excludedIds.includes(card.id)) {
-            return;
-        }
+        if (excludedIds.includes(card.id)) { return; }
+        
         // Check excluded classes
         for (exClass of excludedClasses) {
-            if (card.classList.contains(exClass)) {
-                return;
-            }
+            if (card.classList.contains(exClass)) { return; }
         }
 
         if (toggleOn) {
             card.classList.add('selectable');
-        }
-        else if (!toggleOn) {
+        } else if (!toggleOn) {
             card.classList.remove('selectable');
         }
     });

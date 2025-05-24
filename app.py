@@ -341,10 +341,12 @@ def on_prejoin(data):
             # Else, not registered check username if provided
             if len(data.get("req_username", "")) > 0:
 
+                stripped_username = data["req_username"].strip()
+
                 # Username accepted, allow client to join
-                if check_username_request(req_username=data["req_username"],
+                if check_username_request(req_username=stripped_username,
                                           cookie_to_compare=fl.session["session_cookie"], rooms=rooms):
-                    response["username"] = data["req_username"]
+                    response["username"] = stripped_username
                     response["can_join"] = True
                 
                 else:
@@ -411,8 +413,15 @@ def on_join(data):
     if data["room"] == "lobby":
 
         # Initial setup - room infrastructure
-        fio.emit("update_lobby", {"action": "setup_room", "room": data["room"],
-                 "username": data.get("username", "")}, to=fl.request.sid)
+        fio.emit(
+            "update_lobby",
+            {
+                "action": "setup_room",
+                "room": data["room"],
+                "username": data.get("username", "")
+            },
+            to=fl.request.sid
+        )
         
         # Join the room
         fio.join_room(data["room"])
@@ -421,11 +430,17 @@ def on_join(data):
         
         # Add rooms to lobby (rows in table)
         # Only include rooms pertaining to chosen game
-        fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
-                 "username": data.get("username", ""), 
-                 "rooms": [room.package_self() for room in rooms.values()
-                           if room.name != "lobby" and room.game_name == fl.session["game"]]}, 
-                           to=fl.request.sid)
+        fio.emit(
+            "update_lobby",
+            {
+                "action": "add_rooms",
+                "room": data["room"],
+                "username": data.get("username", ""),
+                "rooms": [room.package_self() for room in rooms.values() 
+                          if room.name != "lobby" and room.game_name == fl.session["game"]]
+            }, 
+            to=fl.request.sid
+        )
         
         # Exit early
         return "Server callback: lobby join completed."
@@ -487,8 +502,16 @@ def on_join(data):
     # For game room
     # Set up client's username on their end
     # THIS MUST HAPPEN BEFORE <add_players> SO USERNAME IS SET
-    fio.emit("update_gameroom", {"action": "setup_room", "room": data["room"], "username": user.name,
-                                 "game": rooms[data["room"]].game_name}, to=fl.request.sid)
+    fio.emit(
+        "update_gameroom",
+        {
+            "action": "setup_room",
+            "room": data["room"],
+            "username": user.name,
+            "game": rooms[data["room"]].game_name
+        },
+        to=fl.request.sid
+    )
     
     # Join the room
     fio.join_room(data["room"])
@@ -498,13 +521,27 @@ def on_join(data):
     # Joining game room - NOT lobby
 
     # Log msg that player has joined
-    fio.emit("chat_log", {"msg": f"{user.name} has joined {data['room']}.", "sender": "system",
-             "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+    fio.emit(
+        "chat_log",
+        {
+            "msg": f"{user.name} has joined {data['room']}.",
+            "sender": "system",
+            "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+        },
+        room=data["room"]
+    )
     
     # Send updated player count to anyone remaining in lobby
-    fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",
-             "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"}, 
-             to="lobby")
+    fio.emit(
+        "update_lobby",
+        {
+            "action": "update_lobby_table",
+            "row": data["room"],
+            "col": "players",
+            "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"
+        }, 
+        to="lobby"
+    )
     
     # Check if game exists; different rules for game vs not game
     game = rooms[data["room"]].game
@@ -517,15 +554,30 @@ def on_join(data):
         users_string = get_connected_users_str(rooms[data['room']].users)
 
         # List all players in room for client
-        fio.emit("chat_log", {"msg": f"Users in room {users_string}", "sender": "system",
-                "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+        fio.emit(
+            "chat_log",
+            {
+                "msg": f"Users in room {users_string}",
+                "sender": "system",
+                "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+            },
+            room=data["room"]
+        )
         
         print(f"Sending update room to {data['room']} to add {users_string}")
 
         # Send updated list of players to others in room
-        fio.emit("update_gameroom", {"action": "add_players", "room": data["room"],
-                 "game": rooms[data["room"]].game_name, "players": connected_users},
-                 room=data["room"], broadcast=True)
+        fio.emit(
+            "update_gameroom",
+            {
+                "action": "add_players",
+                "room": data["room"],
+                "game": rooms[data["room"]].game_name,
+                "players": connected_users
+            },
+            room=data["room"],
+            broadcast=True
+        )
     
     # If game does exist, add ALL players in game on reconnect
     # Use all players list to send updates to players who are knocked out
@@ -534,13 +586,17 @@ def on_join(data):
         print(f"Sending update room to {data['room']} to add {list(game.players.keys())}")
 
         # Send updated list of players to others in room
-        fio.emit("update_gameroom", 
-                    {"action": "add_players", 
-                     "room": data["room"], 
-                     "game": rooms[data["room"]].game_name,
-                     "players": list(game.players.keys())},
-                room=data["room"],
-                broadcast=True)
+        fio.emit(
+            "update_gameroom", 
+            {
+                "action": "add_players", 
+                "room": data["room"], 
+                "game": rooms[data["room"]].game_name,
+                "players": list(game.players.keys())
+            },
+            room=data["room"],
+            broadcast=True
+        )
 
         game_update = game.package_state(user.name)
         
@@ -550,8 +606,17 @@ def on_join(data):
         fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
         
         # If player is rejoining, update connection status for all other clients in room
-        fio.emit("update_gameroom", {"action": "conn_status", "room": data["room"], 
-                 "players": [user.name], "connected": True}, room=data["room"], broadcast=True)
+        fio.emit(
+            "update_gameroom", 
+            {
+                "action": "conn_status",
+                "room": data["room"],
+                "players": [user.name],
+                "connected": True
+            },
+            room=data["room"],
+            broadcast=True
+        )
 
         # Empty log for player after update is sent
         game.players[user.name].log = []
@@ -597,21 +662,43 @@ def on_leave(data):
     # For leaving game room
 
     # Send updated player count to anyone remaining in lobby
-    fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], "col": "players",
-             "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"}, to="lobby")
+    fio.emit(
+        "update_lobby",
+        {
+            "action": "update_lobby_table",
+            "row": data["room"],
+            "col": "players",
+            "new_value": f"{rooms[data['room']].get_num_connected()} / {rooms[data['room']].capacity}"
+        },
+        to="lobby"
+    )
 
     # Teardown game room for user leaving
     fio.emit("update_gameroom", {"action": "teardown_room", "room": data["room"]}, to=fl.request.sid)
 
     # Notify the rest of clients in the room that user has left
-    fio.emit("chat_log", {"msg": f"{data['username']} has left.", "sender": "system",
-                          "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, 
-                          to=data["room"])
+    fio.emit(
+        "chat_log",
+        {
+            "msg": f"{data['username']} has left.",
+            "sender": "system",
+            "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+        },
+        to=data["room"]
+    )
     
     # Update leaving player's connection status to False for all others in game room
-    fio.emit("update_gameroom", {"action": "conn_status", "room": data["room"],
-                                 "players": [data["username"]], "connected": False}, to=data["room"],
-                                 broadcast=True)
+    fio.emit(
+        "update_gameroom",
+        {
+            "action": "conn_status",
+            "room": data["room"],
+            "players": [data["username"]],
+            "connected": False
+        },
+        to=data["room"],
+        broadcast=True
+    )
 
     # Can leave freely if:
         # Not game OR if game AND game is not in progress:
@@ -621,14 +708,29 @@ def on_leave(data):
                                         and not rooms[data["room"]].game.in_progress):
 
         # List all players in room for client
-        fio.emit("chat_log", {"msg": f"Users in room {get_connected_users_str(rooms[data['room']].users)}",
-                 "sender": "system", "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"], broadcast=True)
+        fio.emit(
+            "chat_log", 
+            {
+                "msg": f"Users in room {get_connected_users_str(rooms[data['room']].users)}",
+                "sender": "system",
+                "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+            },
+            room=data["room"],
+            broadcast=True
+        )
 
         # Remove all non-connected players
         # Broadbast = True since notification should go to all other players in room
-        fio.emit("update_gameroom", {"action": "remove_players", "room": data["room"],
-                 "players": list(user.name for user in rooms[data["room"]].users 
-                 if not user.connected)}, room=data["room"], broadcast=True)
+        fio.emit(
+            "update_gameroom",
+            {
+                "action": "remove_players",
+                "room": data["room"],
+                "players": list(user.name for user in rooms[data["room"]].users if not user.connected)
+            },
+            room=data["room"],
+            broadcast=True
+        )
     
     # Return statement serves as callback
     return "Server callback: successful leave."
@@ -663,8 +765,7 @@ def on_move(data):
         
         # Reject if game has already started
         if rooms[data["room"]].game.in_progress:
-            fio.emit("debug_msg", {"msg": "Game is already in progress; Cannot start game."}, 
-                     to=fl.request.sid)
+            fio.emit("debug_msg", {"msg": "Game is already in progress; Cannot start game."}, to=fl.request.sid)
             print("Game is already in progress.")
         
         # Add all users who are connected to game state since there are the correct number
@@ -680,8 +781,15 @@ def on_move(data):
     if not game:
         msg = "The game has not started yet."
         fio.emit("debug_msg", {"msg": msg}, to=fl.request.sid)
-        fio.emit("chat_log", {"msg": msg, "sender": "system", 
-                 "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
+        fio.emit(
+            "chat_log",
+            {
+                "msg": msg,
+                "sender": "system",
+                "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+            },
+            to=fl.request.sid
+        )
         return
     
     # Loop through room's users to find player name
@@ -719,8 +827,15 @@ def on_move(data):
 
         # If msg returned, send message for client chat log
         if len(game_response["msg"]) > 0:
-            fio.emit("chat_log", {"msg": game_response["msg"], "sender": "system",
-                     "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, to=fl.request.sid)
+            fio.emit(
+                "chat_log",
+                {
+                    "msg": game_response["msg"],
+                    "sender": "system",
+                    "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+                },
+                to=fl.request.sid
+            )
         
         # Return early on reject, anything after server has accepted
         return
@@ -757,11 +872,18 @@ def on_move(data):
     # Reset action dict after all players updated 
     game.action_log = []
 
-
     # If in_progress var has changed (game starts or ends), send update to lobby. 
     if in_progress_before_update != game.in_progress:
-        fio.emit("update_lobby", {"action": "update_lobby_table", "row": data["room"], 
-                    "col": "in_progress", "new_value": game.in_progress}, to="lobby")
+        fio.emit(
+            "update_lobby",
+            {
+                "action": "update_lobby_table",
+                "row": data["room"], 
+                "col": "in_progress",
+                "new_value": game.in_progress
+            },
+            to="lobby"
+        )
     
 
 @socketio.on("message")
@@ -769,8 +891,15 @@ def message(data):
     
     print(f"Received chat msg {data['msg']} from {data['username']}")
     
-    fio.emit("chat_log", {"msg": data["msg"], "sender": data["username"],
-             "time_stamp": strftime("%b-%d %I:%M%p", localtime())}, room=data["room"])
+    fio.emit(
+        "chat_log",
+        {
+            "msg": data["msg"],
+            "sender": data["username"],
+            "time_stamp": strftime("%b-%d %I:%M%p", localtime())
+        },
+        room=data["room"]
+    )
 
 
 @socketio.on("connect")
@@ -804,8 +933,17 @@ def on_disconnect():
                 if not room_object.game:
 
                     print(f"No game exists; Sending update to room {room_name} to remove `{user.name}`")
-                    fio.emit("update_gameroom", {"action": "remove_players", "room": room_name, 
-                             "players": [user.name]}, room=room_name, broadcast=True)
+
+                    fio.emit(
+                        "update_gameroom",
+                        {
+                            "action": "remove_players",
+                            "room": room_name,
+                            "players": [user.name]
+                        },
+                        room=room_name,
+                        broadcast=True
+                    )
 
                 # If game, check if game is in progress
                 elif room_object.game:
@@ -816,8 +954,16 @@ def on_disconnect():
                         print("Game exists but is not in progress; removing player.")
 
                         # Broadcast = True; i.e. player who is leaving does not need the remove players event
-                        fio.emit("update_gameroom", {"action": "remove_players", "room": room_name,
-                                 "players": [user.name]}, room=room_name, broadcast=True)
+                        fio.emit(
+                            "update_gameroom",
+                            {
+                                "action": "remove_players",
+                                "room": room_name,
+                                "players": [user.name]
+                            },
+                            room=room_name,
+                            broadcast=True
+                        )
 
                         print(f"Sending update to room {room_name} to remove `{user.name}`")
                     
@@ -825,9 +971,18 @@ def on_disconnect():
                     else:
                         print("Game exists and is in progress; sending disconnect notice to other clients.")
 
-                        fio.emit("update_gameroom", {"action": "conn_status", "room": room_name,
-                                 "players": [user.name], "connected": False}, room=room_name,
-                                 broadcast=True)
+                        fio.emit(
+                            "update_gameroom",
+                            {
+                                "action": "conn_status",
+                                "room": room_name,
+                                "players": [user.name],
+                                "connected": False
+                            },
+                            room=room_name,
+                            broadcast=True
+                        )
+
 # -- End FlaskSocketIO -- #
 
 
