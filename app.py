@@ -197,20 +197,29 @@ def on_create_room(data):
         roompw = ws.generate_password_hash(password)
 
     # Add room to dict (and database)
-    rooms[new_room_name] = Room(name=new_room_name,
-                                roompw=roompw, 
-                                game_name=data["game"],
-                                capacity=GAMES_TO_CAPACITY[data["game"]],
-                                date_created=int(time()),
-                                creator=data["username"])
+    rooms[new_room_name] = Room(
+        name=new_room_name,
+        roompw=roompw, 
+        game_name=data["game"],
+        capacity=GAMES_TO_CAPACITY[data["game"]],
+        date_created=int(time()),
+        creator=data["username"]
+    )
     
     # Push new room to all other users in lobby
     # `rooms` is the rooms to add; `room` is room USER IS CURRENTLY IN
     # Don't need to add all rooms, just new room
     # Only add room for users with session var matching the game type
     if data["game"] == fl.session["game"]:
-        fio.emit("update_lobby", {"action": "add_rooms", "room": data["room"], 
-                 "rooms": [rooms[new_room_name].package_self()]}, to="lobby")
+        fio.emit(
+            "update_lobby",
+            {
+                "action": "add_rooms",
+                "room": data["room"],
+                "rooms": [rooms[new_room_name].package_self()]
+            },
+            to="lobby"
+        )
     
     # Use pass / fail for status to denote success of request
     return {"accepted": True}
@@ -868,6 +877,7 @@ def on_move(data):
 
         # Empty log for player after update is sent
         game.players[username].log = []
+        game.players[username].action_log = []
 
     # Reset action dict after all players updated 
     game.action_log = []

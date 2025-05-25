@@ -1,10 +1,26 @@
 // Associate unicode suit character with the letter S, H, D, or C
 const SUIT_TO_DISPLAY = {'S': '\u2660', 'H': '\u2665', 'D': '\u2666', 'C': '\u2663'}
-/*
+
+/**
+    Unicode for suit emojis
     '\u2660': ♠, black
     '\u2665': ♥, red
     '\u2666': ♦, blue
     '\u2663': ♣, green
+
+    Structure of a card object
+    <!-- Outer container -->
+    <div class="card-container">
+    
+        <!-- Rotate card container is what is referred to as the card itself in the js files -->
+        <!-- So named because it is the div that rotates when a card flips -->
+        <div class="rotate-card-container" id="card-id">
+
+            <!-- card front and back are contained within rotate container -->
+            <div class="playing-card card-front"></div>
+            <div class="playing-card card-back"></div>
+        </div>
+    </div>
 */
 
 // Create outer rotating div and card-front + card-back divs
@@ -50,14 +66,6 @@ function createCardObject(cardStr) {
 
 // Create outer rotating div and card-front + card-back divs
 function createPlaceholderCard(kind) {
-    /* 
-        Structure of a placeholder card
-        
-        <div class="rotate-card-container" id="discard-button">
-            <div class="playing-card card-front"></div>
-            <div class="playing-card card-back"></div>
-        </div>
-    */
     const rotateContainer = document.createElement('div');
     rotateContainer.className = 'rotate-card-container placeholder-card';
     

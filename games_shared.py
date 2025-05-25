@@ -11,7 +11,7 @@ class Player:
         self.order = 0
         self.hand = []
         self.log = []  # Individual log messages per player
-        self.action_log = []  # List of dicts TODO implement this
+        self.action_log = []  # List of dicts: {"action": "", "player": "", "card": "" | "cards": []}
 
     
     def __repr__(self) -> str:
@@ -52,6 +52,23 @@ class BaseState:
             self.players[player].log.append(msg)
 
 
+    # Fills in player's action log similarly to text log
+    def add_to_action_log(self, action:dict, player="all") -> None:
+        
+        # action looks something like this
+        # {"action": "", "player": "", "card": "" | "cards": []}
+
+        # Send to all clients
+        if player == "all":
+            # Use all players so players receive msg even after knockout
+            for p_object in self.players.values():
+                p_object.action_log.append(action)
+
+        # Send to one specific client
+        else:
+            self.players[player].log.append(action)
+
+
     def broadcast_start_message(self):
         """Broadcast starting message - standardized between games."""
 
@@ -81,20 +98,3 @@ class BaseState:
             self.player_order.remove(rand_player)
         
         return new_player_order
-
-
-    # TODO - low priority - may not be necessary; maybe can send on non-board updates
-    # fill in this function so action log works similarly to text log
-    # def add_to_action_log(action, target_object, players_dict, recipient="all") -> None:
-        
-    #      {"action": "", "player": "", "card": ""}
-
-    #     # Send to all clients
-    #     if recipient == "all":
-    #         # Use all players so players receive msg even after knockout
-    #         for p_object in players_dict.values():
-    #             p_object.log.append(msg)
-
-    #     # Send to one specific client
-    #     else:
-    #         players_dict[player].log.append(msg)

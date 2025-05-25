@@ -28,8 +28,6 @@ class StateCribbage(BaseState):
         # self.player_order = []  # list of player names
         # self.mode = "start"
         # self.in_progress = False
-        # self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
-            # Should move action log to player object for parity with text log
 
         # Room constants
         self.MAX_PLAYERS = 3
@@ -127,7 +125,7 @@ class StateCribbage(BaseState):
         self.mode = "discard"
 
         # Use 'cards' in the action log - array of cards involved in action
-        self.action_log.append({"action": "deal", "player": "all", "cards": []})        
+        self.add_to_action_log({"action": "deal", "player": "all", "cards": []})
 
         # Increment first player and set dealer, current player
         first_player_index = ((self.round_num) - 1) % len(self.player_order)
@@ -223,14 +221,13 @@ class StateCribbage(BaseState):
             if self.starter is None:
                 self.starter = draw_card(self.shuffled_cards)
                 # Replace text log msg with action log
-                self.action_log.append({"action": "starter", "player": "all", "cards": [self.starter.portable]})
-                # self.print_and_log(f"The starter is {self.starter}.")
+                self.add_to_action_log({"action": "starter", "player": "all", "cards": [self.starter.portable]})
+                self.print_and_log(f"The starter is a {self.starter}.")
 
                 if self.starter.rank == "J":
                     # This is redundant
                     # self.print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.")
                     self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
-
 
 
             ### Taken from get_user_input - put this in start turn?
@@ -415,7 +412,7 @@ class StateCribbage(BaseState):
         # There are a lot of loops in this function, could probably condense if it became a performance issue
 
         # Action log to reveal show cards to all players
-        self.action_log.append({"action": "start_show", "player": self.current_player, "cards": [card.portable for card in four_card_hand]})
+        self.add_to_action_log({"action": "start_show", "player": self.current_player, "cards": [card.portable for card in four_card_hand]})
 
         # Assertion so pylance knows starter is a Card
         assert self.starter is not None, "starter is None at score_show"
@@ -532,7 +529,7 @@ class StateCribbage(BaseState):
             self.has_played_show.add(self.current_player)
 
 
-    def update(self, packet: dict) -> dict[str,str|bool]:
+    def update(self, packet: dict[str,str|bool|list]) -> dict[str,str|bool]:
         """Accept client's input and update game state or reject client's input."""
 
         # Packet received by client contains these keys/values:
@@ -577,10 +574,21 @@ class StateCribbage(BaseState):
                 return response
             
             # Discard move accepted; add to action log and adjust player hand / crib
-            # Pass in actual cards and hide if sending to non-self player -- hidden during package_state()
-            # Don't need to unzip packet["cards"] because it is already in portable format
-            self.action_log.append({"action": "discard", "player": packet["username"], "cards": [card for card in packet["cards"]], "num_to_discard": len(packet["cards"])})
-            
+            for p_name in self.player_order:
+                # Remake list of cards tailored to each player
+                cards = []
+
+                # Do not hide cards for discarding player
+                if p_name == packet["username"]:
+                    # Don't need to unzip packet["cards"] because it is already in portable format
+                    cards = [card for card in packet["cards"]]
+                # Hide for everyone else
+                else:
+                    cards = []
+
+                self.add_to_action_log({"action": "discard", "player": packet["username"], "cards": cards, "num_to_discard": len(packet["cards"])}, player=p_name)
+
+                
             # Iterate through cards in hand to find the discard card - remove from hand and add to crib
             for discard_card in packet["cards"]:
                 
@@ -589,11 +597,8 @@ class StateCribbage(BaseState):
                     
                     # Check for match in hand. Compare to portable string of existing card
                     if card.portable == discard_card:
-                        print(f"Comparing {card.portable} to {discard_card}")
                         # Remove from hand and add to crib on match
                         self.crib.append(card)
-                        print(f"Attempting to remove card {card} from hand")
-                        print(f"Current hand: {self.players[packet["username"]].hand}")
                         self.players[packet["username"]].hand.remove(card)
                         
                         # Break inner loop once card is found
@@ -622,7 +627,7 @@ class StateCribbage(BaseState):
                 return response
             
             # Action log to play a card
-            self.action_log.append({"action": "play_card", "player": packet["username"], "cards": [played_card]})
+            self.add_to_action_log({"action": "play_card", "player": packet["username"], "cards": [played_card]})
 
             # Go will never be scored here - they will be determined automatically in mode_maintenance
             self.score_play(played_card)
@@ -678,7 +683,7 @@ class StateCribbage(BaseState):
         # Could recreate the log message on client-side with `player`, `points`, and `reason`
         # Should specify mode since pairs, 15s, and runs can be scored in both show and play
             # mode can be taken from self.mode
-        self.action_log.append({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards, "mode": self.mode})
+        self.add_to_action_log({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards, "mode": self.mode})
 
 
     # Packages state for each player individually. Includes sid for socketio
@@ -693,6 +698,7 @@ class StateCribbage(BaseState):
         final_scores = []  # Currently unused - may be useful for animating show score
         play_count = 0  # count for each play
         crib = []  # Only send crib if show
+        starter = self.starter
 
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
@@ -733,19 +739,8 @@ class StateCribbage(BaseState):
         elif self.mode == "show":
             crib = self.crib
 
-        custom_action_log = []
-
-        # Hide card (set to "unknown") in action log if player should not see them
-        for action_dict in self.action_log:
-            new_dict = action_dict
-            
-            # If recipient is not the action target and the action is discard, hide the cards
-            if action_dict["action"] == "discard" and player_name != action_dict["player"]:
-                new_dict["cards"] = "unknown"
-            
-            # Add to new list
-            custom_action_log.append(new_dict)
-
+        if self.starter is not None:
+            starter = self.starter.portable
 
         # All data the client needs from server
         return {
@@ -758,6 +753,7 @@ class StateCribbage(BaseState):
             "current_player": self.current_player,  # current player's name
             "hand_sizes": hand_sizes,  # number of cards in each players' hands
             "total_scores": total_scores,  # overall score of game (0-121)
+            "starter": starter,  # None | card string of starter if it exists
             "crib": crib,  # only send on show
             "crib_size": len(self.crib),  # show size of crib as players discard
             "dealer": self.dealer,  # dealer of round
@@ -771,7 +767,7 @@ class StateCribbage(BaseState):
             "hand": [card.portable for card in self.players[player_name].hand],  # hand for self only
             "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
             "log": self.players[player_name].log,  # new log msgs - split up for each player
-            "action_log": custom_action_log,
+            "action_log": self.players[player_name].action_log,
         }
     
 

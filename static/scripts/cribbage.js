@@ -156,15 +156,14 @@ function addlPlayerContainerCribbage(name, playerContainer) {
 }
 
 // Can try to loop by numToDiscard to stagger discards - if it works, can use for deal/draw
-function animateToCrib(player, cardStrs, cribSize) {
+function animateToCrib(player, cardStrs, numToDiscard, cribSize) {
     // cardStrs is arr of card strings
     // Copied from animateToDiscard - edit to fit
     const crib = document.querySelector('#crib-card');
 
-    // Array to keep track of multiple discards
-    let cards = [];
+    console.log(`animateToCrib called; cardStrs = ${cardStrs}`);
     
-    for (let i = 0; i < cardStrs.length; i++) {
+    for (let i = 0; i < numToDiscard; i++) {
         // Define card depending on self / non-self player
         let card;
         let cardContainer;
@@ -182,8 +181,10 @@ function animateToCrib(player, cardStrs, cribSize) {
             cardContainer = allCardContainers[getRandomInt(allCardContainers.length)];
             // Once random card container is chosen, there is only one card that can be selected
             card = cardContainer.querySelector('.rotate-card-container');
+            console.log(`random card chosen: ${card}`);
         }
-        cards.push(card);
+
+        console.log(`Card after processing: ${card}`);
 
         // Get starting position of card
         const cardRect = card.getBoundingClientRect();
@@ -236,6 +237,8 @@ function animateToCrib(player, cardStrs, cribSize) {
             document.querySelector('#crib-count').innerText = `Crib: ${cribSize} cards`;
             // Update crib container dataset
             document.querySelector('#crib-container').dataset.cribSize = cribSize;
+            // Make sure crib card is displaying as a card back
+            document.querySelector('#crib-card').style.transform += `rotateY(0deg)`;
     
             // Remove clone card
             clone.remove();
@@ -258,8 +261,10 @@ function updateCribNoAnimation(cribSize, crib) {
     // Display crib if mode is show and all other hands have been shown
     if (mode === 'show') {
 
+    } else if (cribSize > 0) {
+        // Crib should be face down for whole game until show. Rotate to card back
+        document.querySelector('#crib-card').style.transform += `rotateY(0deg)`;
     }
-
 }
 
 // Set discard action for card in hand
@@ -325,7 +330,7 @@ function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
     cardsInHand.forEach(card => {
         // Check excluded ids
         if (excludedIds.includes(card.id)) { return; }
-        
+
         // Check excluded classes
         for (exClass of excludedClasses) {
             if (card.classList.contains(exClass)) { return; }
@@ -357,6 +362,7 @@ function updateCribbage(response) {
     // "current_player": self.current_player,  # current player's name
     // "hand_sizes": hand_sizes,  # number of cards in each players' hands
     // "total_scores": total_scores,  # overall score of game (0-121)
+    // "starter": starter,  # None | card string of starter if it exists
     // "crib": crib,  # only send on show
     // "crib_size": len(self.crib),  # show size of crib as players discard
     // "dealer": self.dealer,  # dealer of round
@@ -411,7 +417,8 @@ function updateCribbage(response) {
     for (actionObject of response.action_log) {
 
         // May need to make multiple actions async so they don't happen simultaneously
-        console.log(`Action = ${actionObject.action}, ${actionObject.player}, ${actionObject.card}`);
+        // Cards are passed as `actionObject.cards` - differs from 31 where cards are passed as `card`
+        console.log(`Action = ${actionObject.action}, Player = ${actionObject.player}, Cards = ${actionObject.cards}, num_to_discard = ${actionObject.num_to_discard}`);
         
         // Action keys for non-play; non-show
             // "action", "player", "cards"
@@ -458,15 +465,18 @@ function updateCribbage(response) {
             }
         }
 
-        // Create animateToCrib - turns all cards face-down and put in crib container
+        // Animate card from hand to the crib. All cards end face-down.
         else if (actionObject.action === 'discard') {
             // REMEMBER TO UNSTAGE ALL CARDS AFTER CARDS ARE DISCARDED, disallow staging cards, and hide discard button
-            animateToCrib(actionObject.player, actionObject.cards, response.crib_size);
+            animateToCrib(actionObject.player, actionObject.cards, actionObject.num_to_discard, response.crib_size);
         }
 
         // Create animateFlip - flip up a card in place
         else if (actionObject.action === 'starter') {
-            animateFlip(actionObject.card, player='');
+            // cardStr is the first member in actionObject `cards` array
+            const starter = createCardObject(actionObject.cards[0]);
+            document.querySelector('#deck-container').replaceChildren(starter);
+            starter.animate(moveCard(0, 0, 'down', 'up'), ANIMATION_TIMING);
         }
     }
 
@@ -481,8 +491,13 @@ function updateCribbage(response) {
         }
 
         // Update crib outside of player loop
-        // Currently empty function - may need in future
         updateCribNoAnimation(response.crib_size, response.crib);
+        
+        // Update starter - will either be null or a cardStr
+        if (response.starter) {
+            // Replace whatever was in deck container with starter
+            document.querySelector('#deck-container').replaceChildren(createCardObject(response.starter));
+        }
     }
     
     // Must put current player update here since turn may increment on server side
