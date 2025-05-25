@@ -161,8 +161,6 @@ function animateToCrib(player, cardStrs, numToDiscard, cribSize) {
     // Copied from animateToDiscard - edit to fit
     const crib = document.querySelector('#crib-card');
 
-    console.log(`animateToCrib called; cardStrs = ${cardStrs}`);
-    
     for (let i = 0; i < numToDiscard; i++) {
         // Define card depending on self / non-self player
         let card;
@@ -181,10 +179,9 @@ function animateToCrib(player, cardStrs, numToDiscard, cribSize) {
             cardContainer = allCardContainers[getRandomInt(allCardContainers.length)];
             // Once random card container is chosen, there is only one card that can be selected
             card = cardContainer.querySelector('.rotate-card-container');
-            console.log(`random card chosen: ${card}`);
         }
 
-        console.log(`Card after processing: ${card}`);
+        console.log(`card after processing: id - ${card.id}; class - ${card.className}`);
 
         // Get starting position of card
         const cardRect = card.getBoundingClientRect();
@@ -283,19 +280,16 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         
         // Check that player's hand is over 4 to prevent staging after discarding
         if (hand.querySelectorAll('.card-container').length === 4) {
-            console.log('Hand already has 4 cards; cannot discard any more.');
+            console.og('Hand already has 4 cards; cannot discard any more.');
             return;
         }
 
-        console.log(`Card ${this.id} clicked during discard mode`);
-        
         // If card is unstaged: check if can be staged
         // Check if player has already staged enough cards and should not stage any more
         if ((!this.classList.contains('staged-for-discard')) && 
             (hand.querySelectorAll('.card-container').length - 
             document.querySelectorAll('.staged-for-discard').length <= 4)) {
-                
-            console.log('Already staged enough cards; cannot stage any more.');
+            addToLog('You already selected enough cards and cannot select any more.', 'system');
             return;
         }
 
@@ -395,16 +389,12 @@ function updateCribbage(response) {
     // Create player containers if any are missing
     // Check if game is in progress; create player containers if they don't exist
     if (inProgress) {
-
-        console.log('Game is in progress; check if player containers need to be created');
-        
         // Create new player containers if there is mismatch in length between
         // playerOrder and number of player containers - this may not be sufficient
         // check because on new game with same number of players there could be a new
         // order. Complete check would check all player names and see if they were in
         // the right order.
         if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
-            console.log('Calling fillPlayerGrid to create player containers');
             fillPlayerGrid(playerOrder, response.game);
         }
     }
@@ -442,7 +432,6 @@ function updateCribbage(response) {
             
             // Iterate through player order to update all players' hands
             for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
-                console.log(`Dealing for: ${playerOrder[playerIndex]}`);
                 
                 // Empty old hand to get ready for new hand
                 document.querySelector('#hand-container-' + playerOrder[playerIndex]).replaceChildren();
@@ -473,17 +462,21 @@ function updateCribbage(response) {
 
         // Create animateFlip - flip up a card in place
         else if (actionObject.action === 'starter') {
+
+            
             // cardStr is the first member in actionObject `cards` array
             const starter = createCardObject(actionObject.cards[0]);
+            console.log(`Starter created ${starter.id}`);
             document.querySelector('#deck-container').replaceChildren(starter);
-            starter.animate(moveCard(0, 0, 'down', 'up'), ANIMATION_TIMING);
+            starter.style.transform += 'rotateY(180)'
+            // starter.animate(moveCard(0, 0, 'down', 'up'), ANIMATION_TIMING);
         }
     }
 
     // No action; cards will be updated but no animation will happen
         // Ex: Reloading page in middle of game
     if (response.action_log.length === 0) {
-        console.log('No action specified');
+        console.log('No actions from action log.');
 
         // Add cards to hands
         for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
@@ -552,8 +545,6 @@ function updateCribbage(response) {
     // Loop player order to fill containers apart from cards
     for (let i = 0; i < playerOrder.length; i++) {
         
-        console.log(`filling in player info: ${playerOrder[i]}`);
-
         // Once player array is populated, add to player panel display or dataset
         const playerContainer = document.querySelector('#player-container-' + playerOrder[i]);
 

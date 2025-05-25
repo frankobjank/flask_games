@@ -199,8 +199,9 @@ class StateCribbage(BaseState):
 
 
     def start_turn(self):
-        # Set vars and complete actions for certain modes
-        self.mode_maintenance()
+        # MOVING TO END OF UPDATE FUNCTION
+        # # Set vars and complete actions for certain modes
+        # self.mode_maintenance()
 
         # turn_num must increment AFTER set_current_player for current algorithm
         self.turn_num += 1
@@ -229,6 +230,12 @@ class StateCribbage(BaseState):
                     # self.print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.")
                     self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
 
+            # Set unplayed_cards
+            for player in self.players.values():
+                player.unplayed_cards = [card for card in player.hand if card not in player.played_cards]
+                print(f"Setting unplayed cards: {player.unplayed_cards}")
+            
+
 
             ### Taken from get_user_input - put this in start turn?
             current_count = sum([play.card.value for play in self.current_plays])
@@ -256,12 +263,6 @@ class StateCribbage(BaseState):
                 else:
                     self.print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.")
             ### Taken from get_user_input
-
-
-
-            # Set unplayed_cards
-            for player in self.players.values():
-                player.unplayed_cards = [card for card in player.hand if card not in player.played_cards]
 
             # Reset play vars:
                 # for 31 count after end of play is checked
@@ -311,7 +312,7 @@ class StateCribbage(BaseState):
 
 
     def score_go(self) -> None:
-        """Determines if player is last to say go and should score a point."""
+        """Adds go to log. Determines if player is last to say go and should score a point."""
 
         self.go.append(self.current_player)
         self.print_and_log(f"{self.current_player} has said 'Go'.")
@@ -326,7 +327,7 @@ class StateCribbage(BaseState):
 
 
     def score_play(self, played_card: Card) -> None:
-        """Determine if any points should be scored depending on the card just played."""
+        """Determine if any points should be scored depending on the card just played. Add scores to log."""
 
         # Placeholder for `Play` object to be assigned in loop
         play = None
@@ -657,6 +658,9 @@ class StateCribbage(BaseState):
             # Not everyone has played show, end turn and increment current player
             else:
                 self.end_turn()
+
+        # Set vars and complete actions for certain modes
+        self.mode_maintenance()
 
         # If not returned early, move was accepted
         response["accepted"] = True

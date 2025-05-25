@@ -383,7 +383,6 @@ function fillPlayerGrid(playerOrder, gameName) {
 
         newOrder.push(playerOrder[modIndex]);
     }
-    console.log(gridsToFill);
 
     // Fill in grid numbers according to 'gridsToFill', in order of 'priorityOrder'
     for (let j = 0; j < priorityOrder.length; j++) {
@@ -398,13 +397,8 @@ function fillPlayerGrid(playerOrder, gameName) {
         // Iterate through 'priorityOrder' and check if number is in 'gridsToFill'
         if (gridsToFill.includes(priorityOrder[j])) {
     
-            console.log(`Priority Order = ${priorityOrder[j]}`);
-    
             // Get player index from the index that priorityOrder[j] appears in gridsToFill
             let playerIndex = gridsToFill.indexOf(priorityOrder[j]);
-            console.log(
-                `Player ${newOrder[playerIndex]} should go in grid ${priorityOrder[j]}`
-            );
 
             // Create player container based on game
             let playerContainer;

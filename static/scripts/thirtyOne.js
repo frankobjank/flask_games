@@ -524,8 +524,6 @@ function updateThirtyOne(response) {
     // Check if game is in progress; create player containers if they don't exist
     if (inProgress) {
 
-        console.log('Game is in progress; check if player containers need to be created');
-        
         // Create new player containers if there is mismatch in length between
         // playerOrder and number of player containers - this may not be sufficient
         // check because on new game with same number of players there could be a new
@@ -533,7 +531,6 @@ function updateThirtyOne(response) {
         // the right order. Would run fillPlayerGrid to determine if player container
         // needs to be created or not
         if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
-            console.log('Calling fillPlayerGrid to create player containers');
             fillPlayerGrid(playerOrder, response.game);
         }
 

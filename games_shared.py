@@ -66,7 +66,7 @@ class BaseState:
 
         # Send to one specific client
         else:
-            self.players[player].log.append(action)
+            self.players[player].action_log.append(action)
 
 
     def broadcast_start_message(self):
