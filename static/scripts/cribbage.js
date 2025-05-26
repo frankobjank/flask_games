@@ -170,13 +170,12 @@ function animateToCrib(player, cardStrs, numToDiscard, cribSize) {
         if (player === username) {
             card = document.querySelector(`#card-${cardStrs[i]}`);
             cardContainer = card.parentElement;
-        }
-        // If player is not self, pop random card from `player`'s hand
-        else {
-            // Out of hand container, get random card container
+        } else {
+            // If player is not self, pop random card from `player`'s hand
             const handContainer = document.querySelector('#hand-container-' + player);
             let allCardContainers = handContainer.querySelectorAll('.card-container');
             cardContainer = allCardContainers[getRandomInt(allCardContainers.length)];
+
             // Once random card container is chosen, there is only one card that can be selected
             card = cardContainer.querySelector('.rotate-card-container');
         }
@@ -218,9 +217,8 @@ function animateToCrib(player, cardStrs, numToDiscard, cribSize) {
         // Flip down for self
         if (player === username) {
             animObject = clone.animate(moveCard(deltaX, deltaY, 'up', 'down'), ANIMATION_TIMING);
-        }
-        // Stay down for other
-        else {
+        } else {
+            // Stay down for other
             animObject = clone.animate(moveCard(deltaX, deltaY, 'down', 'down'), ANIMATION_TIMING);
         }
     
@@ -306,11 +304,14 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         }
 
         // This is only for staging, actual discard event is tied to discard confirm button
-    }
-
-    // Cards should be selectable if in play
-    if (mode === 'play') {
-        console.log('TODO hand onclick during play');
+    } else if (mode === 'play') {
+        // Send move event to server; dict key is `card` and not `cards`
+        socket.emit('move', {
+            'action': 'play',
+            'room': currentRoom,
+            'username': username, 
+            'card': `${this.dataset.rank}${this.dataset.suit}`
+        });
     }
 }
 
@@ -441,12 +442,11 @@ function updateCribbage(response) {
                     
                     let cardToDraw;
 
-                    // For self player, use response.hand
                     if (playerOrder[playerIndex] === username) {
+                        // For self player, use response.hand
                         cardToDraw = response.hand[cardIndex];
-                    }
-                    // For non-self player, use unknown card
-                    else {
+                    } else {
+                        // For non-self player, use unknown card
                         cardToDraw = 'unknown';
                     }
                     animateDraw(cardToDraw, playerOrder[playerIndex]);
@@ -462,20 +462,19 @@ function updateCribbage(response) {
 
         // Create animateFlip - flip up a card in place
         else if (actionObject.action === 'starter') {
-
             
             // cardStr is the first member in actionObject `cards` array
             const starter = createCardObject(actionObject.cards[0]);
             console.log(`Starter created ${starter.id}`);
             document.querySelector('#deck-container').replaceChildren(starter);
-            starter.style.transform += 'rotateY(180)'
-            // starter.animate(moveCard(0, 0, 'down', 'up'), ANIMATION_TIMING);
+            starter.style.transform += 'rotateY(180)';
         }
     }
 
     // No action; cards will be updated but no animation will happen
         // Ex: Reloading page in middle of game
-    if (response.action_log.length === 0) {
+    // For debugging play: triggering even when action log is present
+    if (mode === 'play' || response.action_log.length === 0) {
         console.log('No actions from action log.');
 
         // Add cards to hands
@@ -511,8 +510,7 @@ function updateCribbage(response) {
     if (inProgress) {
         // Hide start button when game in progress
         document.querySelector('#start-button').style.display = 'none';
-    }
-    else {
+    } else {
         // Unhide start button when game not in progress
         document.querySelector('#start-button').style.display = '';
     }
@@ -522,10 +520,8 @@ function updateCribbage(response) {
         document.querySelector('#continue-button').disabled = false;
         // Unhide button when active
         document.querySelector('#continue-button').style.display = '';
-    }
-    
-    // Disable continue button on when mode != end_round
-    else {
+    } else {
+        // Disable continue button on when mode != end_round
         document.querySelector('#continue-button').disabled = true;
         // HIDE button when not active
         document.querySelector('#continue-button').style.display = 'none';
@@ -535,8 +531,8 @@ function updateCribbage(response) {
     if (response.mode === 'discard' && response.num_to_discard > 0) {
         document.querySelector('#discard-confirm-button').disabled = false;
         document.querySelector('#discard-confirm-button').style.display = '';
-    }
-    else {
+    } else {
+        // Disable and hide discard button
         document.querySelector('#discard-confirm-button').disabled = true;
         document.querySelector('#discard-confirm-button').style.display = 'none';
     }
@@ -567,22 +563,16 @@ function updateCribbage(response) {
             // On play - only if they can play the card - will have to get from server, 
                 // like a 'can_play' flag that can translate to selectable
         if (username === playerOrder[i]) {
-            // const cardsInHand = document.querySelector('#hand-container-' + playerOrder[i]).
-            //     querySelectorAll('.card-container');
             
-            // On discard, check if number player needs to discard is up to the number staged for discard
-            // This is not much different from original statement response.num_to_discard > 0 
-            // because staging for discard happens on client side. May have to include this in the hand
-            // onclick function
+            // Check if player still needs to discard
             if (mode === 'discard' && response.num_to_discard > document.querySelectorAll('.staged-for-discard').length) {
                 // Make all cards in hand selectable
                 toggleHandSelectability(toggleOn=true);
-            }
-            else if (mode === 'play') {
-
-            }
-            // If no conditions are met, make sure selectable class is not on the card
-            else {
+            } else if (mode === 'play') {
+                // Make cards in hand selectable - eventually check if it will go over count or not
+                toggleHandSelectability(toggleOn=true);
+            } else {
+                // Remove selectable class if no conditions are met
                 toggleHandSelectability(toggleOn=false);
             }
         }
@@ -594,8 +584,8 @@ function updateCribbage(response) {
                 playerContainer.dataset.current = '1';
                 // Add marker to current player - '\u2192' is right pointing arrow →
                 document.querySelector('#current-strong-' + playerOrder[i]).innerText = '\u2192';
-            }
-            else {
+            } else {
+                // Remove any current player markers
                 playerContainer.dataset.current = '0';
                 document.querySelector('#current-strong-' + playerOrder[i]).innerText = '';
             }
@@ -608,8 +598,8 @@ function updateCribbage(response) {
         if (response.dealer === playerOrder[i]) {
             playerContainer.dataset.dealer = '1';
             document.querySelector('#dealer-strong-' + playerOrder[i]).innerText = ' - Dealer'
-        }
-        else {
+        } else {
+            // Remove dealer marker
             playerContainer.dataset.dealer = '0';
             document.querySelector('#dealer-strong-' + playerOrder[i]).innerText = '';
         }

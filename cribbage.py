@@ -233,8 +233,6 @@ class StateCribbage(BaseState):
             # Set unplayed_cards
             for player in self.players.values():
                 player.unplayed_cards = [card for card in player.hand if card not in player.played_cards]
-                print(f"Setting unplayed cards: {player.unplayed_cards}")
-            
 
 
             ### Taken from get_user_input - put this in start turn?
@@ -262,6 +260,8 @@ class StateCribbage(BaseState):
                 # Say go but proceed as there are still other players to check for go
                 else:
                     self.print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.")
+                    # End turn to set new current player
+                    self.end_turn()
             ### Taken from get_user_input
 
             # Reset play vars:
@@ -312,7 +312,7 @@ class StateCribbage(BaseState):
 
 
     def score_go(self) -> None:
-        """Adds go to log. Determines if player is last to say go and should score a point."""
+        """Adds go to log. Determines if player is last and should score a point."""
 
         self.go.append(self.current_player)
         self.print_and_log(f"{self.current_player} has said 'Go'.")
@@ -329,24 +329,8 @@ class StateCribbage(BaseState):
     def score_play(self, played_card: Card) -> None:
         """Determine if any points should be scored depending on the card just played. Add scores to log."""
 
-        # Placeholder for `Play` object to be assigned in loop
-        play = None
-
-        # Find played card in hand - compare rank and suit to card given
-        for card in self.players[self.current_player].unplayed_cards:
-            if card.suit == played_card.suit and card.rank == played_card.rank:
-                
-                # Get played card by removing from player's unplayed list; add to played list
-                self.players[self.current_player].unplayed_cards.remove(card)
-                self.players[self.current_player].played_cards.append(card)
-        
-                # Assign `Play` object
-                play = Play(self.current_player, card)
-                
-                # Break loop on finding card
-                break
-        
-        assert play is not None, "Play must not be None at this point."
+        # Assign `Play` object. Note: played_card is a copy of the card object, but it shouldn't matter here
+        play = Play(self.current_player, played_card)
 
         # Add to lists: all plays, current plays 
         self.all_plays.append(play)
@@ -627,10 +611,26 @@ class StateCribbage(BaseState):
                 response["accepted"] = False
                 return response
             
-            # Action log to play a card
-            self.add_to_action_log({"action": "play_card", "player": packet["username"], "cards": [played_card]})
+            # Move is accepted
 
-            # Go will never be scored here - they will be determined automatically in mode_maintenance
+            # For debug until I can animate the play
+            self.print_and_log(f"Play count: {current_count}")
+
+            # Move card from unplayed_cards to played_cards
+            for card in self.players[self.current_player].unplayed_cards:
+                if card.suit == played_card.suit and card.rank == played_card.rank:
+                    
+                    # Get played card by removing from player's unplayed list; add to played list
+                    self.players[self.current_player].unplayed_cards.remove(card)
+                    self.players[self.current_player].played_cards.append(card)
+            
+                    # Break loop on finding card
+                    break
+            
+            # Action log to play a card
+            self.add_to_action_log({"action": "play_card", "player": packet["username"], "cards": [played_card.portable]})
+
+            # Go will not be scored here - they will be determined automatically in mode_maintenance
             self.score_play(played_card)
 
             # Check if anyone has cards left to play
@@ -694,6 +694,7 @@ class StateCribbage(BaseState):
     def package_state(self, player_name) -> dict:
         
         # Build lists in order of player_order to make sure they're unpacked correctly
+        hand = []  # Hand for self - get from unplayed cards during play
         hand_sizes = []
         num_to_discard = 0  # number of cards self needs to discard
         total_scores = []  # Overall score of game (0-121)
@@ -703,6 +704,13 @@ class StateCribbage(BaseState):
         play_count = 0  # count for each play
         crib = []  # Only send crib if show
         starter = self.starter
+
+        # Get hand for self - use `unplayed_cards` if during the play
+        if self.mode == "play":
+            hand = [card.portable for card in self.players[player_name].unplayed_cards]
+        else:
+            hand = [card.portable for card in self.players[player_name].hand]
+
 
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
@@ -768,7 +776,7 @@ class StateCribbage(BaseState):
 
             # Specific to player
             "recipient": player_name,
-            "hand": [card.portable for card in self.players[player_name].hand],  # hand for self only
+            "hand": hand,  # hand for self only
             "num_to_discard": num_to_discard,  # if discard phase, number of cards to discard
             "log": self.players[player_name].log,  # new log msgs - split up for each player
             "action_log": self.players[player_name].action_log,

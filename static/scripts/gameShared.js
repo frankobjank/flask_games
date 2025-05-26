@@ -417,7 +417,7 @@ function fillPlayerGrid(playerOrder, gameName) {
 
 // Populating hand with no animation; called in updateHandNoAnimation()
 function populateHandStatic(playerName, hand, hand_score=0) {
-    
+    console.log(`Called populateHandStatic; hand = ${hand}`);
     const playerHandContainer = document.querySelector('#hand-container-' + playerName);
     
     if (playerHandContainer.hasChildNodes()) {
