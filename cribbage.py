@@ -52,14 +52,6 @@ class StateCribbage(BaseState):
         self.has_played_show = set() # names of players
     
 
-    def new_play(self):
-        """Reset play variables between rounds of the play."""
-        
-        self.go = []
-        self.go_scored = False
-        self.current_plays = []
-
-
     # This is currently only called from app.py
     def add_player(self, name) -> None:
         """Initializes a player and adds to players dict."""
@@ -174,7 +166,7 @@ class StateCribbage(BaseState):
 
 
     def end_round(self):
-
+        """Prints scores at the end of the round. If this is called the game is not over."""
         self.print_and_log(f"\n--- END OF ROUND {self.round_num} ---\n")
 
         # Start string that will capture total hand scores
@@ -183,20 +175,19 @@ class StateCribbage(BaseState):
         for player in self.player_order:
             self.print_and_log(f"{player}: {self.players[player].score}")
     
-        # Check if any player has scored enough to win
-        if any(p_object.score == 121 for p_object in self.players.values()):
-            self.mode = "end_game"
-        
         # No win, continue game. Wait for user input to continue so players have time to view scores.
-        else:
-            self.mode = "end_round"
+        self.mode = "end_round"
 
 
-    def start_turn(self):
+    def start_turn(self) -> None:
+        # If mode is set to end_game, exit early to prevent game from moving on to next round.
+        if self.mode == "end_game":
+            return None
+
         # turn_num must increment AFTER get_next_player (called in end_turn) for current algorithm
         self.turn_num += 1
         
-        # Check if current player can play
+        # Check if current player can play; say go and end turn if not
         if self.mode == "play":
 
             current_count = sum([play.card.value for play in self.current_plays])
@@ -207,6 +198,26 @@ class StateCribbage(BaseState):
                 # Say go for current player and check if they are the last one to say go
                 self.score_go()
                 # End turn to set new current player
+                self.end_turn()
+        
+        # Show does not require user input so logic for show can just be here.
+        # Will cycle through end_turn/start_turn until end of show and start a new round.
+        elif self.mode == "show":
+            # Reveal can be timed and animated on client-side - server can send at once
+            
+            # Score regular hand
+            self.score_show(four_card_hand=self.players[self.current_player].hand, crib=False)
+            
+            # If dealer, score crib as well
+            if self.current_player == self.dealer:
+                self.score_show(four_card_hand=self.crib, crib=True)
+            
+            # Check for end of show; end round if over
+            if len(self.has_played_show) == len(self.player_order):
+                self.end_round()
+            
+            # Not everyone has played show, end turn and increment current player
+            else:
                 self.end_turn()
 
 
@@ -294,6 +305,14 @@ class StateCribbage(BaseState):
             self.add_score_log(player_left, 1, "go", cards=[])
             # Set go_scored to True so round can be reset
             self.go_scored = True
+
+
+    def new_play(self):
+        """Reset play variables between rounds of the play."""
+        
+        self.go = []
+        self.go_scored = False
+        self.current_plays = []
 
 
     def score_play(self, played_card: Card, current_count: int) -> None:
@@ -630,24 +649,6 @@ class StateCribbage(BaseState):
             self.score_play(played_card, current_count)
 
             self.end_turn()
-        
-        elif self.mode == "show":
-            # Reveal can be timed and animated on client-side - server can send at once
-            
-            # Score regular hand
-            self.score_show(four_card_hand=self.players[self.current_player].hand, crib=False)
-            
-            # If dealer, score crib as well
-            if self.current_player == self.dealer:
-                self.score_show(four_card_hand=self.crib, crib=True)
-            
-            # Check for end of show; end round if over
-            if len(self.has_played_show) == len(self.player_order):
-                self.end_round()
-            
-            # Not everyone has played show, end turn and increment current player
-            else:
-                self.end_turn()
 
         # If not returned early, move was accepted
         response["accepted"] = True
@@ -655,7 +656,7 @@ class StateCribbage(BaseState):
 
 
     def add_score_log(self, player: str, points: int, reason: str, cards: list[str]):
-        """Adds scores to player, prints scores to log, and adds to action log for client."""
+        """Adds scores to player, prints scores to log, and adds to action log for client. Checks if player has scored enough to win."""
 
         # Add score to player object
         self.players[player].score += points
@@ -675,6 +676,11 @@ class StateCribbage(BaseState):
         # Should specify mode since pairs, 15s, and runs can be scored in both show and play
             # mode can be taken from self.mode
         self.add_to_action_log({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards, "mode": self.mode})
+
+        # Check if player has won on each score
+        if self.players[player].score >= 121:
+            self.print_and_log(f"{player} has won the game!")
+            self.mode = "end_game"
 
 
     # Packages state for each player individually. Includes sid for socketio
@@ -696,8 +702,8 @@ class StateCribbage(BaseState):
         if self.mode == "play":
             hand = [card.portable for card in self.players[player_name].unplayed_cards]
         else:
+            # Otherwise use hand
             hand = [card.portable for card in self.players[player_name].hand]
-
 
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
@@ -736,7 +742,7 @@ class StateCribbage(BaseState):
                 play_count += play.card.value
         
         elif self.mode == "show":
-            crib = self.crib
+            crib = [card.portable for card in self.crib]
 
         if self.starter is not None:
             starter = self.starter.portable
