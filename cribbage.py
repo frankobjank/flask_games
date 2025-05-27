@@ -510,7 +510,6 @@ class StateCribbage(BaseState):
         # Change response to accept or reject
         # Use msg as response to specific player on a reject
         response = {"accepted": False, "msg": ""}
-        print(type(packet["cards"]))
         assert len(packet) > 0, "empty packet"
         assert isinstance(packet["username"], str), "Username received not type str"
         assert isinstance(packet["cards"], list), "Cards received not type list"
