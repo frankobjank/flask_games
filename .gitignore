@@ -1,17 +1,32 @@
+# Python
 .venv/
-.env
-.vscode/
-
 __pycache__/
 *.pyc
 
+# Heroku
+.env
+# Maybe Heroku
 instance/
 
-.DS_Store
-scrap
-scratch*
+# VScode
+.vscode/
 flask_games.code-workspace
+
+# Flask dir that tracks sessions
 flask_session/
+# Database of users / Rooms. 
+*.db
+# If database is needed in git, can use sqlite to dump contents into a csv file for git to track
+# Can add a pre-commit hook to git
+
+# Logs
 *.log
 logs/
+
+# Mac
+.DS_Store
+
+# Scratch files
+scrap
+scratch*
 test.py

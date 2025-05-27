@@ -31,7 +31,7 @@ def create_app():
     app = fl.Flask(__name__)
     app.config.from_mapping(
         SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev_key'
-    )  
+    )
     return app
 
 app = create_app()
@@ -65,22 +65,46 @@ rooms["lobby"] = Room(
     creator="Frankobjank"
 )
 
+# Rooms for debug
 rooms["Test_1"] = Room(
-    name="Test_1", roompw="", game_name="thirty_one",
-    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
+    name="Test_1",
+    roompw="",
+    game_name="thirty_one",
+    capacity=GAMES_TO_CAPACITY["thirty_one"],
+    date_created=int(time()),
+    creator="Frankobjank"
 )
 
 rooms["Test_2"] = Room(
-    name="Test_2", roompw=ws.generate_password_hash("llll"), 
+    name="Test_2",
+    roompw=ws.generate_password_hash("llll"), 
     game_name="thirty_one", 
-    capacity=GAMES_TO_CAPACITY["thirty_one"], date_created=int(time()), creator="Frankobjank"
+    capacity=GAMES_TO_CAPACITY["thirty_one"],
+    date_created=int(time()),
+    creator="Frankobjank"
 )
 
 rooms["Test_3"] = Room(
-    name="Test_3", roompw="", game_name="cribbage", 
-    capacity=GAMES_TO_CAPACITY["cribbage"], date_created=int(time()), creator="Frankobjank"
+    name="Test_3",
+    roompw="",
+    game_name="cribbage",
+    capacity=GAMES_TO_CAPACITY["cribbage"],
+    date_created=int(time()),
+    creator="Frankobjank"
 )
 
+users_for_debug = ["chrome", "firefox", "edge", "safari"]
+
+# Users for debug - add to db automatically for testing
+with sqlite3.connect("database.db") as conn:
+    for user in users_for_debug:
+        conn.execute(
+            """
+            INSERT INTO users (username, pwhash, date)
+            VALUES (?, ?, ?)
+            """, 
+            (user, ws.generate_password_hash("llll"), int(time()))
+        )
 
 # Uses session cookie
 # If there's nothing in flask or socketio that tracks when users join
