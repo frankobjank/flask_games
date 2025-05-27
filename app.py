@@ -93,18 +93,25 @@ rooms["Test_3"] = Room(
     creator="Frankobjank"
 )
 
+# Create db file with create_tables.sql schema if file doesn't exist
+# Figure out how to automate that
+
 users_for_debug = ["chrome", "firefox", "edge", "safari"]
 
 # Users for debug - add to db automatically for testing
 with sqlite3.connect("database.db") as conn:
     for user in users_for_debug:
-        conn.execute(
-            """
-            INSERT INTO users (username, pwhash, date)
-            VALUES (?, ?, ?)
-            """, 
-            (user, ws.generate_password_hash("llll"), int(time()))
-        )
+        try:
+            conn.execute(
+                """
+                INSERT INTO users (username, pwhash, date)
+                VALUES (?, ?, ?)
+                """, 
+                (user, ws.generate_password_hash("llll"), int(time()))
+            )
+        # Username already added, skip
+        except sqlite3.IntegrityError:
+            pass
 
 # Uses session cookie
 # If there's nothing in flask or socketio that tracks when users join
