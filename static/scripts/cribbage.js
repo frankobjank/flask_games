@@ -278,7 +278,7 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         
         // Check that player's hand is over 4 to prevent staging after discarding
         if (hand.querySelectorAll('.card-container').length === 4) {
-            console.og('Hand already has 4 cards; cannot discard any more.');
+            console.log('Hand already has 4 cards; cannot discard any more.');
             return;
         }
 
@@ -361,7 +361,7 @@ function updateCribbage(response) {
     // "crib": crib,  # only send on show
     // "crib_size": len(self.crib),  # show size of crib as players discard
     // "dealer": self.dealer,  # dealer of round
-    // "played_cards": played_cards,  # list of dicts {"player": ..., "card": ...}
+    // "plays": plays,  # list of dicts {"player": ..., "card": ...}
     // "play_count": play_count,  # current count of the play
     // "final_hands": final_hands,  # reveal all hands to all players
 

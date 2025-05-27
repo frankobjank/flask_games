@@ -17,12 +17,12 @@ SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "c
 # Classes
 class Card:
     def __init__(self, rank: str, suit: str):
-        self.rank = rank
-        self.value = RANK_TO_VALUE[self.rank]
-        self.suit = suit
-        self.suit_display = SUIT_TO_DISPLAY[self.suit]
+        self.rank: str = rank
+        self.value: int = RANK_TO_VALUE[self.rank]
+        self.suit: str = suit
+        self.suit_display: str = SUIT_TO_DISPLAY[self.suit]
         # Easier to store this value in the card rather than calc on-the-fly
-        self.portable = self.zip_card()
+        self.portable: str = self.zip_card()
     
     
     def __repr__(self) -> str:

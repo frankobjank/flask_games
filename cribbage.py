@@ -14,9 +14,9 @@ class PlayerCribbage(Player):
         super().__init__(name)
 
         # Add cribbage specific attributes to Player object
-        self.score = 0
-        self.unplayed_cards = []  # For the play
-        self.played_cards = []  # For the play
+        self.score: int = 0
+        self.unplayed_cards: list[Card] = []  # For the play
+        self.played_cards: list[Card] = []  # For the play
 
 
 class StateCribbage(BaseState):
@@ -54,10 +54,7 @@ class StateCribbage(BaseState):
 
     def new_play(self):
         """Reset play variables between rounds of the play."""
-
-        # Set current player to first person who said go last round
-        if len(self.go) > 0:
-            self.current_player = self.go[0]
+        
         self.go = []
         self.go_scored = False
         self.current_plays = []
@@ -173,9 +170,6 @@ class StateCribbage(BaseState):
         # Reset all plays for round
         self.all_plays = []
         
-        # Reset other play vars that get reset between plays within a round
-        self.new_play()
-        
         self.start_turn()
 
 
@@ -199,43 +193,12 @@ class StateCribbage(BaseState):
 
 
     def start_turn(self):
-        # MOVING TO END OF UPDATE FUNCTION
-        # # Set vars and complete actions for certain modes
-        # self.mode_maintenance()
-
-        # turn_num must increment AFTER set_current_player for current algorithm
+        # turn_num must increment AFTER get_next_player (called in end_turn) for current algorithm
         self.turn_num += 1
-
-
-    def end_turn(self) -> None:
-        # Set current player (must happen BEFORE turn num incrementing for current algorithm)
-        self.current_player = self.get_next_player()
-
-        self.start_turn()
-
-
-    def mode_maintenance(self) -> None:
-        """Trigger actions and variable resets depending on mode."""
-
+        
+        # Check if current player can play
         if self.mode == "play":
-            # set starter (one-time action when play starts)
-            if self.starter is None:
-                self.starter = draw_card(self.shuffled_cards)
-                # Replace text log msg with action log
-                self.add_to_action_log({"action": "starter", "player": "all", "cards": [self.starter.portable]})
-                self.print_and_log(f"The starter is a {self.starter}.")
 
-                if self.starter.rank == "J":
-                    # This is redundant
-                    # self.print_and_log(f"The dealer ({self.dealer}) scores 2 points because the starter is a {self.starter}.")
-                    self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
-
-            # Set unplayed_cards
-            for player in self.players.values():
-                player.unplayed_cards = [card for card in player.hand if card not in player.played_cards]
-
-
-            ### Taken from get_user_input - put this in start turn?
             current_count = sum([play.card.value for play in self.current_plays])
 
             # If player cannot play a card without exceeding 31, force them to say go
@@ -243,39 +206,67 @@ class StateCribbage(BaseState):
 
                 # Everyone else has said go; round should end
                 if len(self.player_order) - len(self.go) == 1:
-                    # I think this message is covered within score_go
-                    # self.print_and_log(f"All other players have said 'Go'. You cannot play any more cards and must say go.")
                     self.score_go()
-
-                    ### Copied from update() -- how to get this in without creating control flow issues?
-                    # Check if anyone has cards left to play
-                    if 4 * len(self.players.keys()) == len(self.all_plays):
-                        
-                        # Move on to show if no cards left for play
-                        self.mode = "show"
-
-                    self.end_turn()
-                    ### Copied from update()
 
                 # Say go but proceed as there are still other players to check for go
                 else:
                     self.print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.")
                     # End turn to set new current player
                     self.end_turn()
-            ### Taken from get_user_input
 
+
+    def end_turn(self) -> None:
+        # ISSUE : RECURSION ERROR
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
+        #     self.end_turn()
+        #     ~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 240, in end_turn
+        #     self.start_turn()
+        #     ~~~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
+        #     self.end_turn()
+        #     ~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 240, in end_turn
+        #     self.start_turn()
+        #     ~~~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
+        #     self.end_turn()
+        #     ~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 240, in end_turn
+        #     self.start_turn()
+        #     ~~~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
+        #     self.end_turn()
+        #     ~~~~~~~~~~~~~^^
+        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 220, in end_turn
+        #     self.current_player = self.get_next_player()
+        #                         ~~~~~~~~~~~~~~~~~~~~^^
+        # RecursionError: maximum recursion depth exceeded
+
+
+        
+        # get_next_player must happen BEFORE turn num incrementing for current algorithm
+        self.current_player = self.get_next_player()
+
+        # Check for end of play
+        if self.mode == "play":
+            # Check if anyone has cards left to play; set mode to "show" if not
+            if 4 * len(self.player_order) == len(self.all_plays):
+                # Move on to show if no cards left for play
+                self.mode = "show"
+                # Reset turn_num to 0 at beginning of show 
+                self.turn_num = 0
+            
             # Reset play vars:
                 # for 31 count after end of play is checked
-                # if all players in round have said go and go has been scored
-            if sum([play.card.value for play in self.current_plays]) == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
+                # OR if all players in round have said go and go has been scored
+            elif sum([play.card.value for play in self.current_plays]) == 31 or (
+                len(self.player_order) == len(self.go) and self.go_scored):
+
                 self.new_play()
                 self.print_and_log(f"Round ending, {self.current_player} will start the next round.")
-            # 3 total players, 1 is out of cards starting the round - they will actually need to say go and be counted in self.go so this will have the same result
-
-        elif self.mode == "show":
-            # Reset turn_num to 0 at beginning of show 
-            if len(self.has_played_show) == 0:
-                self.turn_num = 0
+            
+        self.start_turn()
 
 
     def get_next_player(self) -> str:
@@ -286,9 +277,23 @@ class StateCribbage(BaseState):
         # Make copy of player order since order will be constantly changing during the play.
         player_order = self.player_order.copy()
         
+        # If during play, adjust player order to account for those who have said go
         if self.mode == "play" and len(self.go) > 0:
             for player in self.go:
                 player_order.remove(player)
+
+            # Check for end of play round to set current player using 
+            # Reset play vars:
+                # for 31 count after end of play is checked
+                # OR if all players in round have said go and go has been scored
+
+            if sum([play.card.value for play in self.current_plays]) == 31 or (
+                len(self.player_order) == len(self.go) and self.go_scored):
+
+                # Set current player to first person who said go last round
+                if len(self.go) > 0:
+                    return self.go[0]
+
         
         # Player order must not be empty or there will be modulo by 0 error
         assert len(player_order) > 0, "Player order should be greater than 0, might have to catch end of play sooner."
@@ -326,8 +331,8 @@ class StateCribbage(BaseState):
             self.go_scored = True
 
 
-    def score_play(self, played_card: Card) -> None:
-        """Determine if any points should be scored depending on the card just played. Add scores to log."""
+    def score_play(self, played_card: Card, current_count: int) -> None:
+        """Creates `play` namedtuple. Determine if any points should be scored depending on the card just played. Add scores to log."""
 
         # Assign `Play` object. Note: played_card is a copy of the card object, but it shouldn't matter here
         play = Play(self.current_player, played_card)
@@ -336,15 +341,12 @@ class StateCribbage(BaseState):
         self.all_plays.append(play)
         self.current_plays.append(play)
 
-        # Notify users about play
-        self.print_and_log(f"{play.player} played: {play.card}.")
-
         # Check count for 15, 31
-        if sum([play.card.value for play in self.current_plays]) == 15:
+        if current_count == 15:
             self.add_score_log(self.current_player, 2, "15", cards=[])
         
         # On 31, check if go has been scored already
-        elif sum([play.card.value for play in self.current_plays]) == 31:
+        elif current_count == 31:
             # Only score for 31 if go has been scored
             if self.go_scored:
                 self.add_score_log(self.current_player, 1, "31", cards=[])
@@ -588,11 +590,28 @@ class StateCribbage(BaseState):
                         
                         # Break inner loop once card is found
                         break
-            
-            # Check for end of discard
+
+            # Check for end of discard - cannot put in end_turn because there are technically no turns during discard
             if len(self.crib) == 4:
                 self.mode = "play"
-            
+                
+                # Reset play vars
+                self.new_play()
+
+                # Set unplayed cards for each player
+                for p_object in self.players.values():
+                    p_object.unplayed_cards = [card for card in p_object.hand if card not in p_object.played_cards]
+
+                # Set starter (one-time action when play starts)
+                if self.starter is None:
+                    self.starter = draw_card(self.shuffled_cards)
+                    # Replace text log msg with action log
+                    self.add_to_action_log({"action": "starter", "player": "all", "cards": [self.starter.portable]})
+                    self.print_and_log(f"The starter is a {self.starter}.")
+
+                    if self.starter.rank == "J":
+                        self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
+
         elif self.mode == "play" and packet["action"] == "play":
 
             if packet["username"] != self.current_player:
@@ -602,42 +621,44 @@ class StateCribbage(BaseState):
                 response["accepted"] = False
                 return response
 
-            played_card = unzip_card(packet["card"])
             current_count = sum([play.card.value for play in self.current_plays])
             
-            # Validate input
-            if current_count + played_card.value > 31:
+            # Validation - check if count will exceed 31. Convert to Card to get value.
+            if current_count + unzip_card(packet["card"]).value > 31:
                 response["msg"] = "You cannot exceed 31. Please choose another card."
                 response["accepted"] = False
                 return response
-            
-            # Move is accepted
 
-            # For debug until I can animate the play
-            self.print_and_log(f"Play count: {current_count}")
+            # Set played_card in loop below
+            played_card = None
 
-            # Move card from unplayed_cards to played_cards
+            # Find card in hand; move card from unplayed_cards to played_cards
             for card in self.players[self.current_player].unplayed_cards:
-                if card.suit == played_card.suit and card.rank == played_card.rank:
+                if card.portable == packet["card"]:
                     
                     # Get played card by removing from player's unplayed list; add to played list
-                    self.players[self.current_player].unplayed_cards.remove(card)
+                    played_card = card
                     self.players[self.current_player].played_cards.append(card)
-            
+                    self.players[self.current_player].unplayed_cards.remove(card)
+
                     # Break loop on finding card
                     break
+
+            # Else clause for the for-loop in case card is not found in hand - move is invalid
+            assert played_card is not None, "Played card could not be found in hand."
+            
+            # Move is accepted
             
             # Action log to play a card
             self.add_to_action_log({"action": "play_card", "player": packet["username"], "cards": [played_card.portable]})
 
-            # Go will not be scored here - they will be determined automatically in mode_maintenance
-            self.score_play(played_card)
+            # For debug until I can animate the play - notify users about play
+            self.print_and_log(f"{self.current_player} played: {played_card}.")
+            current_count += played_card.value
+            self.print_and_log(f"Play count: {current_count}")
 
-            # Check if anyone has cards left to play
-            if 4 * len(self.players.keys()) == len(self.all_plays):
-                
-                # Move on to show if no cards left for play
-                self.mode = "show"
+            # Go will not be scored here; will be scored during start_turn
+            self.score_play(played_card, current_count)
 
             self.end_turn()
         
@@ -658,9 +679,6 @@ class StateCribbage(BaseState):
             # Not everyone has played show, end turn and increment current player
             else:
                 self.end_turn()
-
-        # Set vars and complete actions for certain modes
-        self.mode_maintenance()
 
         # If not returned early, move was accepted
         response["accepted"] = True
@@ -698,7 +716,7 @@ class StateCribbage(BaseState):
         hand_sizes = []
         num_to_discard = 0  # number of cards self needs to discard
         total_scores = []  # Overall score of game (0-121)
-        played_cards = []  # For the play - list of dicts {"player": ..., "card": ...}
+        plays = []  # For the play - list of dicts {"player": ..., "card": ...}
         final_hands = []  # For the show
         final_scores = []  # Currently unused - may be useful for animating show score
         play_count = 0  # count for each play
@@ -742,8 +760,8 @@ class StateCribbage(BaseState):
         # Played cards can be retrieved outside of loop since it's independent of player order
         elif self.mode == "play":
             for play in self.current_plays:
-                # Build played_cards - list of cards played during the play
-                played_cards.append({"player": play.player, "card": play.card.portable})
+                # Build plays - dict of players and cards for each move during the play
+                plays.append({"player": play.player, "card": play.card.portable})
 
                 # Count play
                 play_count += play.card.value
@@ -769,7 +787,7 @@ class StateCribbage(BaseState):
             "crib": crib,  # only send on show
             "crib_size": len(self.crib),  # show size of crib as players discard
             "dealer": self.dealer,  # dealer of round
-            "played_cards": played_cards,  # list of dicts {"player": ..., "card": ...}
+            "plays": plays,  # list of dicts {"player": ..., "card": ...}
             "play_count": play_count,  # current count of the play
             "final_hands": final_hands,  # reveal all hands to all players
             # "final_scores": final_scores,  # reveal all scores to all players
