@@ -391,7 +391,7 @@ function updateCribbage(response) {
         // order. Complete check would check all player names and see if they were in
         // the right order.
         if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
-            fillPlayerGrid(playerOrder, response.game);
+            fillPlayerGrid(playerOrder);
         }
     }
 

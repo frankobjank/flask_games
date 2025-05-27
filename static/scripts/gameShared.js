@@ -300,7 +300,6 @@ function updateGameRoom(response) {
     }
 }
 
-
 // Create player for any game; customize function called below
 function createPlayerContainer(name, order, gridNumber) {
     
@@ -353,10 +352,9 @@ function createPlayerContainer(name, order, gridNumber) {
     }
 }
 
-
 // Determine where player containers should go in game grid
 // Fills WHOLE GRID, not specific spots
-function fillPlayerGrid(playerOrder, gameName) {
+function fillPlayerGrid(playerOrder) {
     // Grids that should be filled according to number of players, starting with self (8)
     // 8 is bottom center; cardinal directions are filled first, then ordinal
     const gridsToFill = [8, 2, 4, 6, 1, 3, 7, 9].slice(0, playerOrder.length);
@@ -416,7 +414,7 @@ function fillPlayerGrid(playerOrder, gameName) {
 
 
 // Populating hand with no animation; called in updateHandNoAnimation()
-function populateHandStatic(playerName, hand, hand_score=0) {
+function populateHandStatic(playerName, hand) {
     console.log(`Called populateHandStatic; hand = ${hand}`);
     const playerHandContainer = document.querySelector('#hand-container-' + playerName);
     
@@ -452,24 +450,20 @@ function populateHandStatic(playerName, hand, hand_score=0) {
         // Add card container to hand container
         playerHandContainer.appendChild(cardContainer);
     }
-    
-    // Update hand score - ONLY FOR 31
-    if (game === 'thirty_one') {
-        document.querySelector('#hand-score-' + playerName).innerText = ' Hand Score: ' + hand_score + ' ';
-    }
 }
 
 // Calls populateHandStatic() for front-facing cards; populates placeholders for back-facing cards
+// Can remove `response` from this function and replace with hand, hand_size, and final_hand
 function updateHandNoAnimation(playerName, playerIndex, response) {
     // Create front-facing hand for self, clickable
     if (username === playerName) {
-        populateHandStatic(playerName, response.hand, response.hand_score);
+        populateHandStatic(playerName, response.hand);
     }
 
     // Create front-facing hand for others on game end, not clickable
     // Using `else if` here implies playerName is not the self player
-    else if (response.mode === 'end_round' || response.mode === 'end_game') {
-        populateHandStatic(playerName, response.final_hands[playerIndex], response.final_scores[playerIndex]);
+    else if (mode === 'end_round' || mode === 'end_game') {
+        populateHandStatic(playerName, response.final_hands[playerIndex]);
     }
 
     // Create back-facing hand for others if not end of round / game
@@ -489,11 +483,6 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
             dummyContainer.appendChild(dummyCard);
 
             document.querySelector('#hand-container-' + playerName).appendChild(dummyContainer);
-        }
-        
-        // Remove hand score - ONLY FOR 31
-        if (game === 'thirty_one') {
-            document.querySelector('#hand-score-' + playerName).innerText = '';
         }
     }
 }

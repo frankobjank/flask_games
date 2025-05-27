@@ -269,7 +269,6 @@ class StateCribbage(BaseState):
             # Not end of play round. Prevent players in self.go from being selected to go next
             for player in self.go:
                 player_order.remove(player)
-
         
         # Player order must not be empty or there will be modulo by 0 error
         assert len(player_order) > 0, "Player order should be greater than 0, might have to catch end of play sooner."
@@ -310,6 +309,8 @@ class StateCribbage(BaseState):
     def new_play(self):
         """Reset play variables between rounds of the play."""
         
+        # Reset turn num so get_next_player is accurate.
+        self.turn_num = 0
         self.go = []
         self.go_scored = False
         self.current_plays = []

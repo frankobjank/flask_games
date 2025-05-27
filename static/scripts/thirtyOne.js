@@ -531,17 +531,8 @@ function updateThirtyOne(response) {
         // the right order. Would run fillPlayerGrid to determine if player container
         // needs to be created or not
         if (playerOrder.length !== document.querySelectorAll('.player-container').length) {
-            fillPlayerGrid(playerOrder, response.game);
+            fillPlayerGrid(playerOrder);
         }
-
-        // ?? Undetermined what is else is needed here; will wait
-            // until further along in development
-        // Iterate through player order to see if there are any missing players
-        // for (let p = 0; p < playerOrder.length; p++) {
-        //     if (playerOrder[p]) {
-
-        //     }
-        // }
     }
 
 
@@ -622,6 +613,7 @@ function updateThirtyOne(response) {
     // Must put current player update here since turn may increment on server side
     // Potentially animate changing current player
     currentPlayer = response.current_player;
+    mode = response.mode;
 
     // Fill log
     for (const msg of response.log) {
@@ -642,8 +634,7 @@ function updateThirtyOne(response) {
     if (inProgress) {
         // Hide start button when game in progress
         document.querySelector('#start-button').style.display = 'none';
-    }
-    else {
+    } else {
         // Unhide start button when game not in progress
         document.querySelector('#start-button').style.display = '';
     }
@@ -657,10 +648,8 @@ function updateThirtyOne(response) {
         // TODO figure out how to delay display of winner by ~2 seconds to make reveal more 
         // realistic to a real game. Maybe use roundEnd flag that gets reset every round start?
         // Or can go by specific log messages but that seems more fragile
-    }
-    
-    // Disable continue button on every other mode
-    else {
+    } else {
+        // Disable continue button on every other mode
         document.querySelector('#continue-button').disabled = true;
         // HIDE button when not active
         document.querySelector('#continue-button').style.display = 'none';
@@ -725,7 +714,7 @@ function updateThirtyOne(response) {
             // Add text
             document.querySelector('#lives-' + playerOrder[i]).innerText += 'on the bike';
         }
-                    
+
         // Server will set lives to -1 if knocked out
         else if (response.lives[i] === -1) {
             document.querySelector('#lives-' + playerOrder[i]).innerText = 'Knocked out';
@@ -733,8 +722,13 @@ function updateThirtyOne(response) {
 
         // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
-        if ((username !== playerOrder[i]) && (response.mode === 'end_round' || response.mode === 'end_game')) {
-            populateHandStatic(playerOrder[i], response.final_hands[i], response.final_scores[i], response.mode)
+        if ((username !== playerOrder[i]) && (mode === 'end_round' || mode === 'end_game')) {
+            populateHandStatic(playerOrder[i], response.final_hands[i],)
+            // Update hand score for all players
+            document.querySelector('#hand-score-' + playerOrder[i]).innerText = ' Hand Score: ' + response.final_scores[i] + ' ';
+        } else {            
+            // Remove hand score for non-self player when game or round is not ending
+            document.querySelector('#hand-score-' + playerOrder[i]).innerText = '';
         }
 
         if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
