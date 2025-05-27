@@ -197,12 +197,9 @@ class StateThirtyOne(BaseState):
         for p_name in self.player_order:
 
             # Use try/except clause because some players will have negative lives for more than 1 round
-            if 0 > self.players[p_name].lives:
-                try:
-                    # Adjust player order only; Keep players dict static
-                    self.player_order.remove(p_name)
-                except ValueError:
-                    pass
+            if 0 > self.players[p_name].lives and p_name in self.player_order:
+                # Adjust player order only; Keep players dict static
+                self.player_order.remove(p_name)
 
         assert len(self.player_order) != 0, "Player order must not be 0 on round start."
         

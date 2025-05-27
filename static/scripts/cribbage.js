@@ -73,7 +73,7 @@ function createContinueButtonsCribbage() {
     continueButton.style.display = 'none';
 
     continueButton.onclick = () => {
-        socket.emit('move', {'action': 'continue', 'room': currentRoom, 'username': username});
+        socket.emit('move', {'action': 'continue', 'room': currentRoom, 'username': username, 'cards': []});
     }
 
     continueButtonContainer.appendChild(continueButton);
@@ -88,7 +88,7 @@ function createContinueButtonsCribbage() {
     newGameButton.innerText = 'Start New Game';
     
     newGameButton.onclick = () => {
-        socket.emit('move', {'action': 'start', 'room': currentRoom, 'username': username});
+        socket.emit('move', {'action': 'start', 'room': currentRoom, 'username': username, 'cards': []});
     }
     
     newGameButtonContainer.appendChild(newGameButton);
@@ -306,12 +306,7 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
         // This is only for staging, actual discard event is tied to discard confirm button
     } else if (mode === 'play') {
         // Send move event to server; dict key is `card` and not `cards`
-        socket.emit('move', {
-            'action': 'play',
-            'room': currentRoom,
-            'username': username, 
-            'card': `${this.dataset.rank}${this.dataset.suit}`
-        });
+        socket.emit('move', {'action': 'play', 'room': currentRoom,'username': username, 'cards': [`${this.dataset.rank}${this.dataset.suit}`]});
     }
 }
 

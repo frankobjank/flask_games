@@ -203,96 +203,61 @@ class StateCribbage(BaseState):
 
             # If player cannot play a card without exceeding 31, force them to say go
             if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
-
-                # Everyone else has said go; round should end
-                if len(self.player_order) - len(self.go) == 1:
-                    self.score_go()
-
-                # Say go but proceed as there are still other players to check for go
-                else:
-                    self.print_and_log(f"{self.current_player} cannot play any more cards and must say 'Go'.")
-                    # End turn to set new current player
-                    self.end_turn()
+                
+                # Say go for current player and check if they are the last one to say go
+                self.score_go()
+                # End turn to set new current player
+                self.end_turn()
 
 
     def end_turn(self) -> None:
-        # ISSUE : RECURSION ERROR
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
-        #     self.end_turn()
-        #     ~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 240, in end_turn
-        #     self.start_turn()
-        #     ~~~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
-        #     self.end_turn()
-        #     ~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 240, in end_turn
-        #     self.start_turn()
-        #     ~~~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
-        #     self.end_turn()
-        #     ~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 240, in end_turn
-        #     self.start_turn()
-        #     ~~~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 215, in start_turn
-        #     self.end_turn()
-        #     ~~~~~~~~~~~~~^^
-        # File "/Users/jacobfrank/sources/flask_games/cribbage.py", line 220, in end_turn
-        #     self.current_player = self.get_next_player()
-        #                         ~~~~~~~~~~~~~~~~~~~~^^
-        # RecursionError: maximum recursion depth exceeded
-
-
-        
-        # get_next_player must happen BEFORE turn num incrementing for current algorithm
-        self.current_player = self.get_next_player()
+        # end_play_round flag is needed for get_next_player to get the correct player on a new play round
+        # get_next_player must be called before new_play because new_play resets self.go  
+        end_play_round = False
 
         # Check for end of play
         if self.mode == "play":
-            # Check if anyone has cards left to play; set mode to "show" if not
+
+            # Set mode to "show" if everyone is out of cards
             if 4 * len(self.player_order) == len(self.all_plays):
                 # Move on to show if no cards left for play
                 self.mode = "show"
                 # Reset turn_num to 0 at beginning of show 
                 self.turn_num = 0
             
-            # Reset play vars:
-                # for 31 count after end of play is checked
-                # OR if all players in round have said go and go has been scored
-            elif sum([play.card.value for play in self.current_plays]) == 31 or (
-                len(self.player_order) == len(self.go) and self.go_scored):
-
-                self.new_play()
-                self.print_and_log(f"Round ending, {self.current_player} will start the next round.")
+            # Check whether new play round should be started
+            # if (count is 31) OR if (all players in round have said go and go has been scored)
+            elif sum([play.card.value for play in self.current_plays]) == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
+                end_play_round = True
+        
+        # get_next_player must happen BEFORE turn num incrementing for current algorithm
+        self.current_player = self.get_next_player(end_play_round=end_play_round)
+        
+        if end_play_round:
+            self.new_play()
+            self.print_and_log(f"Round ending, {self.current_player} will start the next round.")
             
         self.start_turn()
 
 
-    def get_next_player(self) -> str:
-        """Get the next player."""
-
-        # Next player rules varies between play and show, and all can play during discard.
+    def get_next_player(self, end_play_round) -> str:
+        """Get the next player. Uses go and to adjust player order during the play. Normal player order for the show. 
+        This is not used during discard because all can play."""
         
         # Make copy of player order since order will be constantly changing during the play.
         player_order = self.player_order.copy()
         
         # If during play, adjust player order to account for those who have said go
         if self.mode == "play" and len(self.go) > 0:
+
+            # If end of play round, exit early
+            if end_play_round:
+                # Set current player to first person who said go last round
+                return self.go[0]
+            
+            # Not end of play round. Prevent players in self.go from being selected to go next
             for player in self.go:
                 player_order.remove(player)
-
-            # Check for end of play round to set current player using 
-            # Reset play vars:
-                # for 31 count after end of play is checked
-                # OR if all players in round have said go and go has been scored
-
-            if sum([play.card.value for play in self.current_plays]) == 31 or (
-                len(self.player_order) == len(self.go) and self.go_scored):
-
-                # Set current player to first person who said go last round
-                if len(self.go) > 0:
-                    return self.go[0]
 
         
         # Player order must not be empty or there will be modulo by 0 error
@@ -516,7 +481,7 @@ class StateCribbage(BaseState):
             self.has_played_show.add(self.current_player)
 
 
-    def update(self, packet: dict[str,str|bool|list]) -> dict[str,str|bool]:
+    def update(self, packet: dict[str, str | bool | list[str]]) -> dict[str, str | bool]:
         """Accept client's input and update game state or reject client's input."""
 
         # Packet received by client contains these keys/values:
@@ -526,8 +491,10 @@ class StateCribbage(BaseState):
         # Change response to accept or reject
         # Use msg as response to specific player on a reject
         response = {"accepted": False, "msg": ""}
-
+        print(type(packet["cards"]))
         assert len(packet) > 0, "empty packet"
+        assert isinstance(packet["username"], str), "Username received not type str"
+        assert isinstance(packet["cards"], list), "Cards received not type list"
         
         # I think this covers when self.mode == "end_game"
         if not self.in_progress:
@@ -547,7 +514,7 @@ class StateCribbage(BaseState):
         
         # Turn modes: "discard", "play", "show"
         elif self.mode == "discard" and packet["action"] == "discard":
-
+            
             # Cards to discard can be sent as packet["cards"]
             target_num = len(self.players[packet["username"]].hand) - 4
             # Validate number of cards
@@ -613,6 +580,7 @@ class StateCribbage(BaseState):
                         self.add_score_log(self.dealer, 2, "his heels (starter is a J)", cards=[self.starter.portable])
 
         elif self.mode == "play" and packet["action"] == "play":
+            assert len(packet["cards"]) == 1, "Cards array should only contain 1 card."
 
             if packet["username"] != self.current_player:
                 print(f"Not accepting move from non-current player ({packet['username']}) during the play.")
@@ -624,7 +592,8 @@ class StateCribbage(BaseState):
             current_count = sum([play.card.value for play in self.current_plays])
             
             # Validation - check if count will exceed 31. Convert to Card to get value.
-            if current_count + unzip_card(packet["card"]).value > 31:
+            # Only 1 card should be passed in cards array for play, so use index 0
+            if current_count + unzip_card(packet["cards"][0]).value > 31:
                 response["msg"] = "You cannot exceed 31. Please choose another card."
                 response["accepted"] = False
                 return response
@@ -634,7 +603,7 @@ class StateCribbage(BaseState):
 
             # Find card in hand; move card from unplayed_cards to played_cards
             for card in self.players[self.current_player].unplayed_cards:
-                if card.portable == packet["card"]:
+                if card.portable == packet["cards"][0]:
                     
                     # Get played card by removing from player's unplayed list; add to played list
                     played_card = card
