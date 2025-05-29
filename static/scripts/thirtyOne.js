@@ -381,6 +381,7 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
     clone.style.position = 'fixed';
     
     // Use '+=' to not overwrite existing transform properties
+    // Removing this line:
     // clone.style.transition += `transform ${ANIMATION_DURATION}s ${EASING_FUNCTION}`;
 
     // Change discard button to new discard

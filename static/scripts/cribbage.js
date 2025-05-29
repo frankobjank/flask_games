@@ -431,12 +431,10 @@ function updateCribbage(response) {
                 
                 // Empty old hand to get ready for new hand
                 document.querySelector('#hand-container-' + playerOrder[playerIndex]).replaceChildren();
-            
+             
                 // Keep drawing until hand reaches hand size
                 for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
-                    
                     let cardToDraw;
-
                     if (playerOrder[playerIndex] === username) {
                         // For self player, use response.hand
                         cardToDraw = response.hand[cardIndex];

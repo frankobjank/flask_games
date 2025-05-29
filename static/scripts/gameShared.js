@@ -2,7 +2,8 @@
 
 // For animating card movement and flipping over
 const EASING_FUNCTION = 'cubic-bezier(0.25, 1, 0.5, 1)';
-const ANIMATION_DURATION = 1;
+// Removing this const
+// const ANIMATION_DURATION = 1;
 // Do not change names of ANIMATION_TIMING parameters - can break animation
 // Also using a variable in duration broke animation in Firefox, but not Chrome 
 const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
@@ -479,9 +480,9 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
             // Add dummy card to container
             const dummyContainer = document.createElement('div');
             dummyContainer.className = 'card-container dummy-container';
-
             dummyContainer.appendChild(dummyCard);
-
+            
+            // Add container to DOM
             document.querySelector('#hand-container-' + playerName).appendChild(dummyContainer);
         }
     }
@@ -548,11 +549,10 @@ function animateDraw(cardStr, player, handScore=0) {
     // arg `true` means copy is a deep copy, i.e. it includes all node's descendants as well
     const clone = card.cloneNode(true);
     clone.classList.add('clone');
+
     // Change id of clone and any child nodes that have ids so no duplicate ids
-    // There won't be an id for a dummy card
-    if (clone.id) {
-        clone.id = 'clone-' + card.id;
-    }
+    // There won't be an id for a dummy card so check if clone has id
+    if (clone.id) { clone.id = 'clone-' + card.id; }
 
     // Card starts face-up by default; flip over to start face-down
     clone.style.transform = `rotateY(180deg)`;
