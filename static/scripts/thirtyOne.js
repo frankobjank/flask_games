@@ -288,7 +288,7 @@ function animateToDiscard(player, cardStr, handScore) {
         
         // Update hand score if given
         if (player === username) {
-            document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
+            document.querySelector('#hand-score-' + player).innerText = `Hand Score: ${handScore}`;
         }
     });
 }
@@ -411,7 +411,7 @@ function animatePickup(cardStr, player, replaceDiscard, handScore) {
 
         // Update hand score if self
         if (player === username) {
-            document.querySelector('#hand-score-' + player).innerText = ' Hand Score: ' + handScore + ' ';
+            document.querySelector('#hand-score-' + player).innerText = `Hand Score: ${handScore}`;
         }
     })
 }
@@ -721,15 +721,20 @@ function updateThirtyOne(response) {
             document.querySelector('#lives-' + playerOrder[i]).innerText = 'Knocked out';
         }
 
-        // Create front-facing hand for others on game end, not clickable
         // Animation idea: reveal of cards (first card flips, second card, third card)
-        if ((username !== playerOrder[i]) && (mode === 'end_round' || mode === 'end_game')) {
-            populateHandStatic(playerOrder[i], response.final_hands[i],)
-            // Update hand score for all players
-            document.querySelector('#hand-score-' + playerOrder[i]).innerText = ' Hand Score: ' + response.final_scores[i] + ' ';
-        } else {            
-            // Remove hand score for non-self player when game or round is not ending
-            document.querySelector('#hand-score-' + playerOrder[i]).innerText = '';
+        if (username !== playerOrder[i]) {
+            if (mode === 'end_round' || mode === 'end_game') {
+                // Create front-facing hand for others on game end, not clickable
+                populateHandStatic(playerOrder[i], response.final_hands[i],)
+                // Update hand score for all players
+                document.querySelector('#hand-score-' + playerOrder[i]).innerText = `Hand Score: ${response.final_scores[i]}`;
+            } else {            
+                // Remove hand score for non-self player when game or round is not ending
+                document.querySelector('#hand-score-' + playerOrder[i]).innerText = '';
+            }
+        } else {
+            // Self, fill in score
+            document.querySelector('#hand-score-' + playerOrder[i]).innerText = `Hand score: ${response.hand_score}`;
         }
 
         if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){

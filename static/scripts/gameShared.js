@@ -584,6 +584,8 @@ function animateDraw(cardStr, player, handScore=0) {
 
     // Add event listener to animObject to trigger on animation end
     animObject.addEventListener('finish', () => {
+        console.log(`Does animobject have a .then method? ${typeof animObject.finished.then === 'function'}`);
+        console.log(`Animation.finished = ${animObject.finished}`);
         // Reveal real card
         card.style.visibility = 'visible';
     
