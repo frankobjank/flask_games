@@ -501,6 +501,12 @@ class StateThirtyOne(BaseState):
                 self.mode = "discard"
             
         elif self.mode == "discard" and packet["action"] == "discard":
+
+            # Check if card in hand
+            if packet["card"] not in [card.portable for card in self.players[packet["username"]].hand]:
+                print(f"Card {packet['card']} not found in hand")
+                response["accepted"] = False
+                return response 
             
             # Unzip card from client
             self.hand_to_discard(card_to_discard=unzip_card(packet["card"]))

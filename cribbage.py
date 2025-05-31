@@ -30,26 +30,26 @@ class StateCribbage(BaseState):
         # self.in_progress = False
 
         # Room constants
-        self.MAX_PLAYERS = 3
-        self.MIN_PLAYERS = 2
+        self.MAX_PLAYERS: int = 3
+        self.MIN_PLAYERS: int = 2
 
         # Game pieces
-        self.deck = Deck()
-        self.shuffled_cards = []
+        self.deck: Deck = Deck()
+        self.shuffled_cards: list[Card] = []
 
         # Rounds
-        self.round_num = 0
-        self.turn_num = 0
-        self.first_player = ""
-        self.current_player = ""
-        self.dealer = ""
-        self.crib = []
-        self.starter = None
-        self.go = []  # names of players; list for > 2 players
-        self.go_scored = False
-        self.current_plays = []  # list of Plays for a single play
-        self.all_plays = []  # list of Plays for all plays of round
-        self.has_played_show = set() # names of players
+        self.round_num: int = 0
+        self.turn_num: int = 0
+        self.first_player: str = ""
+        self.current_player: str = ""
+        self.dealer: str = ""
+        self.crib: list[Card] = []
+        self.starter: Card | None = None
+        self.go: list[str] = []  # names of players; list for > 2 players
+        self.go_scored: bool = False
+        self.current_plays: list[Play] = []  # list of Plays for a single play
+        self.all_plays: list[Play] = []  # list of Plays for all plays of round
+        self.has_played_show: set = set() # names of players
     
 
     # This is currently only called from app.py

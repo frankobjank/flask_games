@@ -7,11 +7,11 @@ from cards_shared import *
 ### Functions and classes shared by all games
 class Player:
     def __init__(self, name: str) -> None:
-        self.name = name
-        self.order = 0
-        self.hand = []
-        self.log = []  # Individual log messages per player
-        self.action_log = []  # List of dicts: {"action": "", "player": "", "card": "" | "cards": []}
+        self.name: str = name
+        self.order: int = 0
+        self.hand: list[Card] = []
+        self.log: list[str] = []  # Individual log messages per player
+        self.action_log: list[dict[str, str|list[str]]] = []  # List of dicts: {"action": "", "player": "", "card": "" | "cards": []}
 
     
     def __repr__(self) -> str:

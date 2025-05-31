@@ -10,12 +10,12 @@ const ANIMATION_TIMING = { duration: 1000, iterations: 1 };
 
 // Game state
 let inProgress = false;
-var mode;
-var game;
-var currentPlayer;
-var discardCard;
-var playerOrder = [];
-var chatLogCount = 0;  // Number of entries in chat log
+let mode;
+let game;
+let currentPlayer;
+let discardCard;
+let playerOrder = [];
+let chatLogCount = 0;  // Number of entries in chat log
 let playersConnected = [];  // Keep track of player names connected
 
 // Get a random integer - used for choosing a random object from non-self player
@@ -520,7 +520,7 @@ function animateDraw(cardStr, player, handScore=0) {
         cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
         // Card.id = 'card-AS'
-        cardContainer.id = card.id + '-container'
+        cardContainer.id = card.id + '-container';
     }
     
     // Add card to card container
@@ -592,20 +592,22 @@ function animateDraw(cardStr, player, handScore=0) {
         // Remove clone card
         clone.remove();
 
-        // Send server request on click; custom handlers per game
-        // Game is global var
-        switch (game) {
-            case 'thirty_one':
-                card.addEventListener('click', handHandlerThirtyOne);
-                // Update hand score if given (only for 31)
-                if (player === username && handScore > 0) {
-                    document.querySelector('#hand-score-' + player)
-                        .innerText = ' Hand Score: ' + handScore + ' ';
-                };
-                break;
-            case 'cribbage':
-                card.addEventListener('click', handHandlerCribbage);
-                break;
+        // Add onclick if self player
+        if (player === username) {
+            // Game is global var
+            switch (game) {
+                // Custom handlers per game
+                case 'thirty_one':
+                    card.addEventListener('click', handHandlerThirtyOne);
+                    // Update hand score if given (only for 31)
+                    if (handScore > 0) {
+                        document.querySelector('#hand-score-' + player).innerText = `Hand Score: ${handScore}`;
+                    }
+                    break;
+                case 'cribbage':
+                    card.addEventListener('click', handHandlerCribbage);
+                    break;
+            }
         }
     });
 }
