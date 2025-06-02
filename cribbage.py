@@ -41,6 +41,7 @@ class StateCribbage(BaseState):
         self.round_num: int = 0
         self.turn_num: int = 0
         self.first_player: str = ""
+        self.first_player_play: str = ""
         self.current_player: str = ""
         self.dealer: str = ""
         self.crib: list[Card] = []
@@ -222,11 +223,8 @@ class StateCribbage(BaseState):
 
 
     def end_turn(self) -> None:
-        # end_play_round flag is needed for get_next_player to get the correct player on a new play round
-        # get_next_player must be called before new_play because new_play resets self.go  
-        end_play_round = False
 
-        # Check for end of play
+        # Check for end of play. For end of play, set mode to either show or end_round_play
         if self.mode == "play":
 
             # Set mode to "show" if everyone is out of cards
@@ -239,57 +237,95 @@ class StateCribbage(BaseState):
             # Check whether new play round should be started
             # if (count is 31) OR if (all players in round have said go and go has been scored)
             elif sum([play.card.value for play in self.current_plays]) == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
-                end_play_round = True
+                # end_round_play is needed for get_next_player to get the correct player on a new play round
+                # get_next_player must be called before new_play because new_play resets self.go  
+                self.mode = "end_round_play"
         
         # get_next_player must happen BEFORE turn num incrementing for current algorithm
-        self.current_player = self.get_next_player(end_play_round=end_play_round)
+        self.current_player = self.get_next_player()
         
-        if end_play_round:
+        if self.mode == "end_round_play":
             self.new_play()
             self.print_and_log(f"Round ending, {self.current_player} will start the next round.")
+            # Set mode back to play
+            self.mode = "play"
             
         self.start_turn()
 
 
-    def get_next_player(self, end_play_round) -> str:
-        """Get the next player. Uses go and to adjust player order during the play. Normal player order for the show. 
-        This is not used during discard because all can play."""
-        
-        # Make copy of player order since order will be constantly changing during the play.
-        player_order = self.player_order.copy()
-        
-        # If during play, adjust player order to account for those who have said go
-        if self.mode == "play" and len(self.go) > 0:
-
-            # If end of play round, exit early
-            if end_play_round:
-                # Set current player to first person who said go last round
-                return self.go[0]
-            
-            # Not end of play round. Prevent players in self.go from being selected to go next
-            for player in self.go:
-                player_order.remove(player)
-        
-        # Player order must not be empty or there will be modulo by 0 error
-        assert len(player_order) > 0, "Player order should be greater than 0, might have to catch end of play sooner."
+    def get_next_player(self) -> str:
+        """Get the next player. This is not used during discard because all can play.
+        Uses go and turn number to adjust player order during the play. Normal player
+        order for the show."""
 
         next_player = ""
-
-        # At the end of a round, next player would be first player, but second player is new first player
-        if self.mode == "end_round":
-            first_player_index = self.player_order.index(self.first_player)
-            next_player = player_order[(first_player_index + 1) % len(player_order)]
-
-        # Beginning of show only - make sure show starts with original first player of round
-        elif self.mode == "show" and len(self.has_played_show) == 0:
-            next_player = self.first_player
         
-        # Otherwise get next player normally using turn number
-        else:
-            next_player = player_order[((self.turn_num + ((self.round_num - 1) % len(player_order))) % len(player_order))]
+        # If end of play round, set current player to first person who said go
+        if self.mode == "end_round_play":
+            # Set something like play_turn_offset or first_player_play to keep track of who starts play
+            # Need to keep track of starting player to get subsequent players
+            self.first_player_play = self.go[0]
+            # Exit early
+            next_player = self.first_player_play
         
+        # Check for play, different rules apply than for show
+        elif self.mode == "play":
+            # Make copy of player order since order will be constantly changing during the play.
+            player_order = self.player_order.copy()
+            
+            # Use global first player for very beginning of play
+            if len(self.all_plays) == 0:
+                return self.first_player
+            
+            # Adjust player order to account for those who have said go
+            elif len(self.go) > 0:
+                # Not end of play round. Prevent players in self.go from being selected to go next
+                for player in self.go:
+                    player_order.remove(player)
+
+            # After altering, player order must not be empty or there will be modulo by 0 error
+            assert len(player_order) > 0, "Player order len must be greater than 0"
+
+            # Get next player according to first player offset
+            offset = player_order.index(self.first_player)
+            next_player = player_order[((self.turn_num + offset) % len(self.player_order))]
+
+        elif self.mode == "show":
+            # Beginning of show only - make sure show starts with original first player of round
+            if len(self.has_played_show) == 0:
+                next_player = self.first_player
+        
+            # Otherwise get next player normally using turn number
+            else:
+                next_player = self.player_order[((self.turn_num + ((self.round_num - 1) % len(self.player_order))) % len(self.player_order))]
+
+        # At the end of a round, next player would be first player, but first player
+        # should be offset by 1 and 2nd player should go first.
+        # Round is one cycle of all the modes (discard, play, show). Round resets after the show
+        elif self.mode == "end_round":
+            # Get offset using index of first_player
+            offset = self.player_order.index(self.first_player)
+            next_player = self.player_order[(offset + 1) % len(self.player_order)]
+
+        # player_order = [1, 2]
+        # Round 5
+        # 1 says go
+        # 1 starts next play round
+        # 1 goes
+        # next player index = turn=1 + (round_num-1=4 % 2 = 0) % 2
+            # 1 % 2 = 1
+        # next player = player_order[1] should be correct when 1 starts a new round. should check 2
+
+        # 2 says go
+        # 2 starts next play round
+        # turn = 1
+        # 2 goes,
+        # next player index = turn=1 + ( % 2 = 0) % 2
+            # 1 % 2
+        # next player index would be incorrect as it is saying player 2 (player_order[1]) should go next
+        # Maybe need to keep track of next play player separately because it is unrelated to the rest of order, except for getting very first player
+
         return next_player
-
 
     def score_go(self) -> None:
         """Adds go to log. Determines if player is last and should score a point."""
@@ -510,7 +546,7 @@ class StateCribbage(BaseState):
 
         # Change response to accept or reject
         # Use msg as response to specific player on a reject
-        response = {"accepted": False, "msg": ""}
+        response: dict[str, str|bool] = {"accepted": False, "msg": ""}
         assert len(packet) > 0, "empty packet"
         assert isinstance(packet["username"], str), "Username received not type str"
         assert isinstance(packet["cards"], list), "Cards received not type list"
@@ -555,7 +591,7 @@ class StateCribbage(BaseState):
                 if p_name == packet["username"]:
                     # Don't need to unzip packet["cards"] because it is already in portable format
                     cards = [card for card in packet["cards"]]
-                # Hide for everyone else
+                # Hide for everyone else - may be unnecessary as cards is already empty list
                 else:
                     cards = []
 
