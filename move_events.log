@@ -1,0 +1,76 @@
+next player should have been bjb but it is kjnk instead
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+kjnk played: 2♦.
+Play count: 2
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 0
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === kjnk
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+kjnk played: 2♠.
+Play count: 4
+kjnk scored 2 for a pair.
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 1
+play - (turn_num + offset) % len(player_order) === 1
+play - next player === bjb
+
+received event "move" from 8nWUiAGhL76oC60UAAAE [/]
+Received move event `play` from sid `8nWUiAGhL76oC60UAAAE`.
+bjb played: 5♠.
+Play count: 9
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 2
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === kjnk
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+kjnk played: 5♥.
+Play count: 14
+kjnk scored 2 for a pair.
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 3
+play - (turn_num + offset) % len(player_order) === 1
+play - next player === bjb
+
+received event "move" from 8nWUiAGhL76oC60UAAAE [/]
+Received move event `play` from sid `8nWUiAGhL76oC60UAAAE`.
+bjb played: 10♦.
+Play count: 24
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 4
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === kjnk
+kjnk has said 'Go'.
+bjb scored 1 for a go.
+
+received event "move" from 8nWUiAGhL76oC60UAAAE [/]
+Received move event `play` from sid `8nWUiAGhL76oC60UAAAE`.
+bjb played: 5♠.
+Play count: 9
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 2
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === kjnk
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+kjnk played: 5♥.
+Play count: 14
+kjnk scored 2 for a pair.
+play - offset === 0
+play - first_player_play === kjnk
+play - turn_num === 3
+play - (turn_num + offset) % len(player_order) === 1
+play - next player === bjb

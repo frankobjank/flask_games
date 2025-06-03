@@ -23,7 +23,6 @@ flask_session/
 # Can add a pre-commit hook to git
 
 # Logs
-*.log
 logs/
 
 # Mac

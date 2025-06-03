@@ -519,7 +519,7 @@ class StateThirtyOne(BaseState):
         
 
     # Packages state for each player individually. Includes sid for socketio
-    def package_state(self, player_name) -> dict:
+    def package_state(self, player_name: str) -> dict:
         
         # assert self.mode == "end_game" or self.in_progress, "Only call once game has started or between games"
 
@@ -543,7 +543,7 @@ class StateThirtyOne(BaseState):
                 final_scores.append(self.calc_hand_score(self.players[p_name]))
 
         # Rebuild action log so it can be customized for each player
-        custom_action_log = []
+        custom_action_log: list[dict] = []
 
         # Hide card (set to "unknown") in action log if player should not see them
         for action_dict in self.action_log:

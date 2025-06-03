@@ -121,6 +121,7 @@ class StateCribbage(BaseState):
         first_player_index = ((self.round_num) - 1) % len(self.player_order)
 
         self.first_player = self.player_order[first_player_index]
+        self.first_player_play = self.player_order[first_player_index]
         self.current_player = self.player_order[first_player_index]
         self.dealer = self.player_order[first_player_index - 1]
         
@@ -287,8 +288,15 @@ class StateCribbage(BaseState):
             assert len(player_order) > 0, "Player order len must be greater than 0"
 
             # Get next player according to first player offset
-            offset = player_order.index(self.first_player)
-            next_player = player_order[((self.turn_num + offset) % len(self.player_order))]
+            # How to handle when first_player_play says go? Can check the go logic
+            offset = player_order.index(self.first_player_play)
+            next_player = player_order[((self.turn_num + offset) % len(player_order))]
+
+            print(f"play - offset === {offset}")
+            print(f"play - first_player_play === {self.first_player_play}")
+            print(f"play - turn_num === {self.turn_num}")
+            print(f"play - (turn_num + offset) % len(player_order) === {((self.turn_num + offset) % len(player_order))}")
+            print(f"play - next player === {next_player}")
 
         elif self.mode == "show":
             # Beginning of show only - make sure show starts with original first player of round
@@ -720,7 +728,7 @@ class StateCribbage(BaseState):
 
 
     # Packages state for each player individually. Includes sid for socketio
-    def package_state(self, player_name) -> dict:
+    def package_state(self, player_name: str) -> dict:
         
         # Build lists in order of player_order to make sure they're unpacked correctly
         hand = []  # Hand for self - get from unplayed cards during play
