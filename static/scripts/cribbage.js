@@ -543,8 +543,9 @@ function updateCribbage(response) {
             if (mode === 'discard' && response.num_to_discard > document.querySelectorAll('.staged-for-discard').length) {
                 // Make all cards in hand selectable
                 toggleHandSelectability(toggleOn=true);
-            } else if (mode === 'play') {
+            } else if (mode === 'play' && username === currentPlayer) {
                 // Make cards in hand selectable - eventually check if it will go over count or not
+                // Also must be self turn to be selectable
                 toggleHandSelectability(toggleOn=true);
             } else {
                 // Remove selectable class if no conditions are met

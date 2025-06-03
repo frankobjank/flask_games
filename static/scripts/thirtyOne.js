@@ -715,37 +715,10 @@ function updateThirtyOne(response) {
                 // Remove hand score for non-self player when game or round is not ending
                 document.querySelector('#hand-score-' + playerOrder[i]).innerText = '';
             }
-            
-            // Make all cards unselectable because it is not self turn
-            document.querySelector('#deck-button').classList.remove('selectable');
-            document.querySelector('#discard-button').classList.remove('selectable');
-            toggleHandSelectability(toggleOn=false);
+
         } else {
             // Self, fill in hand score
             document.querySelector('#hand-score-' + playerOrder[i]).innerText = `Hand score: ${response.hand_score}`;
-            
-            // Make deck selectable for self on main phase
-            if (mode === 'main_phase') {
-                document.querySelector('#deck-button').classList.add('selectable');
-                
-                // Make discard selectable only if discard is not a placeholder
-                if (!isPlaceholder(document.querySelector('#discard-button'))) {
-                    document.querySelector('#discard-button').classList.add('selectable');
-                }
-                
-                // Make hand unselectable until discard phase
-                toggleHandSelectability(toggleOn=false);
-            }
-
-            // Make cards selectable for self on discard mode
-            else if (mode === 'discard') {
-                // Make deck and discard unselectable
-                document.querySelector('#deck-button').classList.remove('selectable');
-                document.querySelector('#discard-button').classList.remove('selectable');
-
-                // Make all cards in hand selectable
-                toggleHandSelectability(toggleOn=true);
-            }
         }
 
         if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
@@ -776,5 +749,33 @@ function updateThirtyOne(response) {
             playerContainer.dataset.knocked = '0';
             document.querySelector('#knocked-strong-' + playerOrder[i]).innerText = '';
         }
+    }
+
+    // Toggle selectable class on cards that can be selected
+    if (response.current_player === username) {
+        // Current player is self, make cards selectable based on mode
+        if (mode === 'main_phase') {
+            // Make hand unselectable until discard phase
+            toggleHandSelectability(toggleOn=false);
+            // Make deck and discard selectable for draw
+            document.querySelector('#deck-button').classList.add('selectable');
+            document.querySelector('#discard-button').classList.add('selectable');
+            // At first I checked that discard is not placeholder, but it logically 
+            // cannot be because at the main phase the discard can only be placeholder
+            // during the discard phase
+
+        } else if (mode === 'discard') {
+            // Make all cards in hand selectable
+            toggleHandSelectability(toggleOn=true);
+            // Make deck and discard unselectable
+            document.querySelector('#deck-button').classList.remove('selectable');
+            document.querySelector('#discard-button').classList.remove('selectable');
+        }
+
+    // If not self turn, make all cards unselectable
+    } else {
+        toggleHandSelectability(toggleOn=false);
+        document.querySelector('#deck-button').classList.remove('selectable');
+        document.querySelector('#discard-button').classList.remove('selectable');
     }
 }

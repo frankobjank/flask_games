@@ -101,7 +101,7 @@ class StateThirtyOne(BaseState):
         return discard_card
 
 
-    def calc_hand_score(self, player_object:Player) -> int:
+    def calc_hand_score(self, player_object: Player) -> int:
         """Calculate the highest score of a player's hand."""
 
         # Return if hand is empty
@@ -141,7 +141,7 @@ class StateThirtyOne(BaseState):
         
 
     # This is currently only called from app.py
-    def add_player(self, name:str) -> None:
+    def add_player(self, name: str) -> None:
         """Initializes a player and adds to players dict."""
 
         self.players[name] = PlayerThirtyOne(name)
@@ -150,7 +150,7 @@ class StateThirtyOne(BaseState):
 
     # This will be used by every game but must be in specific game files because
     # it returns a specific Player class, i.e. PlayerCribbage, PlayerThirtyOne
-    def reorder_players(self) -> dict[str,PlayerThirtyOne]:
+    def reorder_players(self) -> dict[str, PlayerThirtyOne]:
         """Updates the `order` attribute of player objects. Returns updated players dict with proper typing."""
         new_players = {}
 
@@ -401,7 +401,7 @@ class StateThirtyOne(BaseState):
             self.start_turn()
 
 
-    def update(self, packet: dict) -> dict[str,str]:
+    def update(self, packet: dict) -> dict[str, str]:
         """Accept client's input and update game state or reject client's input."""
 
         # potential action requests: start, add_player, draw, pickup, knock, discard, quit
