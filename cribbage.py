@@ -41,7 +41,6 @@ class StateCribbage(BaseState):
         self.round_num: int = 0
         self.turn_num: int = 0
         self.first_player: str = ""
-        self.first_player_play: str = ""
         self.current_player: str = ""
         self.dealer: str = ""
         self.crib: list[Card] = []
@@ -121,7 +120,6 @@ class StateCribbage(BaseState):
         first_player_index = ((self.round_num) - 1) % len(self.player_order)
 
         self.first_player = self.player_order[first_player_index]
-        self.first_player_play = self.player_order[first_player_index]
         self.current_player = self.player_order[first_player_index]
         self.dealer = self.player_order[first_player_index - 1]
         
@@ -263,41 +261,35 @@ class StateCribbage(BaseState):
         
         # If end of play round, set current player to first person who said go
         if self.mode == "end_round_play":
-            # Set something like play_turn_offset or first_player_play to keep track of who starts play
-            # Need to keep track of starting player to get subsequent players
-            self.first_player_play = self.go[0]
-            # Exit early
-            next_player = self.first_player_play
+            next_player = self.go[0]
         
         # Check for play, different rules apply than for show
         elif self.mode == "play":
             # Make copy of player order since order will be constantly changing during the play.
-            player_order = self.player_order.copy()
+            # player_order = self.player_order.copy()
             
             # Use global first player for very beginning of play
             if len(self.all_plays) == 0:
                 return self.first_player
             
-            # Adjust player order to account for those who have said go
-            elif len(self.go) > 0:
-                # Not end of play round. Prevent players in self.go from being selected to go next
-                for player in self.go:
-                    player_order.remove(player)
-
-            # After altering, player order must not be empty or there will be modulo by 0 error
-            assert len(player_order) > 0, "Player order len must be greater than 0"
-
-            # Get next player according to first player offset
-            # How to handle when first_player_play says go? Can check the go logic
-            offset = player_order.index(self.first_player_play)
-            next_player = player_order[((self.turn_num + offset) % len(player_order))]
-
-            print(f"play - offset === {offset}")
-            print(f"play - first_player_play === {self.first_player_play}")
-            print(f"play - turn_num === {self.turn_num}")
-            print(f"play - (turn_num + offset) % len(player_order) === {((self.turn_num + offset) % len(player_order))}")
-            print(f"play - next player === {next_player}")
-
+            # New algo for play
+            # Maybe instead of removing players in self.go[] from order, can just skip them
+            # def get_next(players, current_player, go_players):
+            current_index = self.player_order.index(self.current_player)
+            
+            # Go through entire len of players to account for everyone who might be in go
+            for i in range(len(self.player_order)):
+                # Get next player by incrementing current index by 1
+                # Keep incrementing by i for each player in go.
+                # Use modulo to prevent indexing past array len
+                next_index = (current_index + 1 + i) % len(self.player_order)
+                if self.player_order[next_index] in self.go:
+                    continue
+                else:
+                    next_player = self.player_order[next_index]
+                    # Exit when player not in go is found
+                    break
+            
         elif self.mode == "show":
             # Beginning of show only - make sure show starts with original first player of round
             if len(self.has_played_show) == 0:
@@ -314,24 +306,6 @@ class StateCribbage(BaseState):
             # Get offset using index of first_player
             offset = self.player_order.index(self.first_player)
             next_player = self.player_order[(offset + 1) % len(self.player_order)]
-
-        # player_order = [1, 2]
-        # Round 5
-        # 1 says go
-        # 1 starts next play round
-        # 1 goes
-        # next player index = turn=1 + (round_num-1=4 % 2 = 0) % 2
-            # 1 % 2 = 1
-        # next player = player_order[1] should be correct when 1 starts a new round. should check 2
-
-        # 2 says go
-        # 2 starts next play round
-        # turn = 1
-        # 2 goes,
-        # next player index = turn=1 + ( % 2 = 0) % 2
-            # 1 % 2
-        # next player index would be incorrect as it is saying player 2 (player_order[1]) should go next
-        # Maybe need to keep track of next play player separately because it is unrelated to the rest of order, except for getting very first player
 
         return next_player
 
