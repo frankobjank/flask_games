@@ -310,29 +310,30 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
     }
 }
 
-// The add or remove selectable class for all cards in self hand; can exclude with class or id
-function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
+// Moving to gameShared
+// // The add or remove selectable class for all cards in self hand; can exclude with class or id
+// function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
     
-    const cardsInHand = document.querySelector('#hand-container-' + username).
-        querySelectorAll('.rotate-card-container');
+//     const cardsInHand = document.querySelector('#hand-container-' + username).
+//         querySelectorAll('.rotate-card-container');
 
-    // forEach uses a function instance each loop so can use return to exit early from an iteration
-    cardsInHand.forEach(card => {
-        // Check excluded ids
-        if (excludedIds.includes(card.id)) { return; }
+//     // forEach uses a function instance each loop so can use return to exit early from an iteration
+//     cardsInHand.forEach(card => {
+//         // Check excluded ids
+//         if (excludedIds.includes(card.id)) { return; }
 
-        // Check excluded classes
-        for (exClass of excludedClasses) {
-            if (card.classList.contains(exClass)) { return; }
-        }
+//         // Check excluded classes
+//         for (exClass of excludedClasses) {
+//             if (card.classList.contains(exClass)) { return; }
+//         }
 
-        if (toggleOn) {
-            card.classList.add('selectable');
-        } else if (!toggleOn) {
-            card.classList.remove('selectable');
-        }
-    });
-}
+//         if (toggleOn) {
+//             card.classList.add('selectable');
+//         } else if (!toggleOn) {
+//             card.classList.remove('selectable');
+//         }
+//     });
+// }
 
 function updateCribbage(response) {
     if (response === undefined) {
@@ -425,26 +426,7 @@ function updateCribbage(response) {
         // client hand has cards from previous round,
         // Animate deal if action === 'start' (combination of `draw` animations)
         if (actionObject.action === 'deal') {
-            
-            // Iterate through player order to update all players' hands
-            for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
-                
-                // Empty old hand to get ready for new hand
-                document.querySelector('#hand-container-' + playerOrder[playerIndex]).replaceChildren();
-             
-                // Keep drawing until hand reaches hand size
-                for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
-                    let cardToDraw;
-                    if (playerOrder[playerIndex] === username) {
-                        // For self player, use response.hand
-                        cardToDraw = response.hand[cardIndex];
-                    } else {
-                        // For non-self player, use unknown card
-                        cardToDraw = 'unknown';
-                    }
-                    animateDraw(cardToDraw, playerOrder[playerIndex]);
-                }
-            }
+            animateDealAll(playerOrder, response.hand_sizes, response.hand);
         }
 
         // Animate card from hand to the crib. All cards end face-down.

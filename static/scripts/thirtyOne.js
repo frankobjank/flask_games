@@ -553,27 +553,10 @@ function updateThirtyOne(response) {
         // client hand has cards from previous round,
         // Animate deal if action === 'start' (combination of `draw` animations)
         if (actionObject.action === 'deal') {
+
+            // Newest deal
+            animateDealAll(playerOrder, response.hand_sizes, response.hand);
             
-            // Iterate through player order to update all players' hands
-            for (let playerIndex = 0; playerIndex < playerOrder.length; playerIndex++) {
-                console.log(`Dealing for: ${playerOrder[playerIndex]}`);
-                
-                // Empty old hand to get ready for new hand - replaceChildren with no args
-                document.querySelector('#hand-container-' + playerOrder[playerIndex]).replaceChildren();
-            
-                // Keep drawing until hand reaches hand size
-                for (let cardIndex = 0; cardIndex < response.hand_sizes[playerIndex]; cardIndex++) {
-                    
-                    // For self player, use response.hand
-                    if (playerOrder[playerIndex] === username) {
-                        animateDraw(response.hand[cardIndex], playerOrder[playerIndex], response.hand_score);
-                    }
-                    // For non-self player, use unknown card
-                    else {
-                        animateDraw('unknown', playerOrder[playerIndex], response.hand_score);
-                    }
-                }
-            }
             // Need to populate discard - eventually animate this by flipping from deck to discard
             const newDiscard = setNewDiscard(response.discard);
             document.querySelector('#discard-container').replaceChildren(newDiscard);
@@ -732,14 +715,42 @@ function updateThirtyOne(response) {
                 // Remove hand score for non-self player when game or round is not ending
                 document.querySelector('#hand-score-' + playerOrder[i]).innerText = '';
             }
+            
+            // Make all cards unselectable because it is not self turn
+            document.querySelector('#deck-button').classList.remove('selectable');
+            document.querySelector('#discard-button').classList.remove('selectable');
+            toggleHandSelectability(toggleOn=false);
         } else {
-            // Self, fill in score
+            // Self, fill in hand score
             document.querySelector('#hand-score-' + playerOrder[i]).innerText = `Hand score: ${response.hand_score}`;
+            
+            // Make deck selectable for self on main phase
+            if (mode === 'main_phase') {
+                document.querySelector('#deck-button').classList.add('selectable');
+                
+                // Make discard selectable only if discard is not a placeholder
+                if (!isPlaceholder(document.querySelector('#discard-button'))) {
+                    document.querySelector('#discard-button').classList.add('selectable');
+                }
+                
+                // Make hand unselectable until discard phase
+                toggleHandSelectability(toggleOn=false);
+            }
+
+            // Make cards selectable for self on discard mode
+            else if (mode === 'discard') {
+                // Make deck and discard unselectable
+                document.querySelector('#deck-button').classList.remove('selectable');
+                document.querySelector('#discard-button').classList.remove('selectable');
+
+                // Make all cards in hand selectable
+                toggleHandSelectability(toggleOn=true);
+            }
         }
 
         if (!document.querySelector('#hand-container-' + playerOrder[i]).hasChildNodes()){
             console.log(`${playerOrder[i]} hand is empty.`);
-        }        
+        }
         
         // Set dataset `current` atribute - must be a string, so '1' = true and '0' = false
         // Animation idea: move current marker to new current player

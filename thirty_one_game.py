@@ -3,6 +3,7 @@ import random
 from games_shared import *
 
 # TODO - what happens when deck runs out of cards?
+# TODO - disallow discarding card that was just picked up from discard
 
 # Set ace value
 RANK_TO_VALUE["A"] = 11

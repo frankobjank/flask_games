@@ -424,8 +424,11 @@ function addRooms(newRooms) {
             }
 
             // preJoin is async function; handled as a Promise
-            const promise = preJoin(room.name, document.querySelector('#password-modal-input').value,
-                                    reqUsername);
+            const promise = preJoin(
+                room.name,
+                document.querySelector('#password-modal-input').value,
+                reqUsername
+            );
 
             promise
                 .then((data) => {

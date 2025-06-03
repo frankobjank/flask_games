@@ -84,13 +84,13 @@ function createGameContainer() {
     // Board will go in div 5 (2, 2), self in div 8 (2, 3), other spots filled as players are added
     for (let col = 1; col < 4; col++) {
         for (let row = 1; row < 4; row++) {
-            
+
             const gridItem = document.createElement('div');
             gridItem.className = 'game-grid';
-            
+
             // Convert row and col to ID number, starting at 1 left->right and ending at 9
             gridItem.id = 'game-grid-' + (row + ((col - 1) * 3));
-            
+
             // Set row and column values
             gridItem.style.gridArea = `${col} / ${row}`;
 
@@ -100,7 +100,6 @@ function createGameContainer() {
 
     return gameContainer;
 }
-
 
 function addPlayers(players) {
 
@@ -116,20 +115,20 @@ function addPlayers(players) {
         if (document.querySelector('#player-container-' + players[i]) !== null) {
             document.querySelector('#player-container-' + players[i]).dataset.connected = '1';
         }
-    }   
+    }
 }
 
 // Opposite of addPlayers
 function removePlayers(players) {
-        
+
     // Remove anyone on local list who isn't on server list
     for (let i = 0; i < playersConnected.length; i++) {
-        
+
         // Check if player already in list
         if ((players.includes(playersConnected[i]))) {
-            
+
             console.log(`Removing ${playersConnected[i]} from room.`);
-            
+
             // Remove player from local list
             playersConnected.splice(i, 1);
         }
@@ -140,15 +139,15 @@ function removePlayers(players) {
 function updateRuleModal(game) {
     // Update modal title
     document.querySelector('#rules-modal-title').innerText = `Rules of ${GAME_DISPLAY_NAMES[game]}`;
-    
+
     // Rules is one big string containing newlines at breaks. Split string by newline for display
     const rulesSplit = RULES[game].split('\n');
-    
+
     for (let i = 0; i < rulesSplit.length; i++) {
         let p = document.createElement('p');
         p.className = 'rules-modal-p';
         p.innerText = rulesSplit[i];
-        
+
         // Update modal body
         document.querySelector('#rules-modal-body').appendChild(p);
     }
@@ -161,13 +160,13 @@ function updateGameRoom(response) {
         console.log('response = undefined');
         return;
     }
-    
+
     // Called on join. Client adds username, builds room.
     if (response.action === 'setup_room') {
-        
+
         // Update global var `currentRoom`
         currentRoom = response.room;
-        
+
         // Assign username if not yet defined
         username = response.username;
 
@@ -175,12 +174,12 @@ function updateGameRoom(response) {
             console.log('Username not set, cannot continue to set up room')
             return
         }
-        
+
         // Set up game room
 
         // Update page title
         document.querySelector('title').innerText = `The Space: ${GAME_DISPLAY_NAMES[response.game]}`;
-        
+
         // Save game name (thirty_one, cribbage, natac) in `game` var
         game = response.game;
 
@@ -190,17 +189,17 @@ function updateGameRoom(response) {
         // Remove anything from left and right sub-headers
         document.querySelector('#sub-header-left').replaceChildren()
         document.querySelector('#sub-header-right').replaceChildren()
-        
+
         // The outermost level before outer-container
         // Contains everything - return to lobby button, chat box, players, board
         // Game, player, chat panels are removed on leave - Create board from scratch on EVERY join
         const gameRoomContainer = document.createElement('div');
         gameRoomContainer.id = 'game-room-container'
         document.querySelector('#outer-container').appendChild(gameRoomContainer);
-        
+
         // Add return to lobby button to header; must remove on leave
         document.querySelector('#sub-header-left').appendChild(createLobbyButton());
-        
+
         // Keep track of players connected
         document.querySelector('#sub-header-right').appendChild(createRulesButton());
 
@@ -228,9 +227,9 @@ function updateGameRoom(response) {
                 document.querySelector('#game-grid-5').appendChild(createContinueButtonsCribbage());
                 break;
         }
-        
+
         /* End of game container */
-        
+
         // Create new chat panel if doesn't exist
         if (document.querySelector('#chat-log-panel') === null) {
             gameRoomContainer.appendChild(createChatLogPanel(username));
@@ -241,7 +240,7 @@ function updateGameRoom(response) {
 
         gameRoomContainer.appendChild(chatLogPanel);
     }
-    
+
 
     // Called on leave. Removes panels so they can be re-added with new data.
     else if (response.action === 'teardown_room') {
@@ -256,21 +255,21 @@ function updateGameRoom(response) {
 
         // Set current room to null
         currentRoom = `teardown of ${currentRoom}`;
-        
+
         // Reset game vars when leaving room
         inProgress = false;
         currentPlayer = '';
         discardCard = '';
         playerOrder = [];
         playersConnected = [];
-        mode = '';        
+        mode = '';
     }
 
     // Add players to player panel on join
     else if (response.action === 'add_players') {
         addPlayers(response.players);
     }
-    
+
     // Remove players on leave
     else if (response.action === 'remove_players') {
         removePlayers(response.players);
@@ -278,12 +277,12 @@ function updateGameRoom(response) {
 
     // Update player connection
     else if (response.action === 'conn_status') {
-        
+
         // Response player should only contain 1 player for conn_status messages
         for (const player of response.players) {
-            
+
             // Check if player exists - player may not have been added yet
-            if (document.querySelector('#player-container-' + player) ===  null) {
+            if (document.querySelector('#player-container-' + player) === null) {
                 continue;
             }
 
@@ -303,35 +302,35 @@ function updateGameRoom(response) {
 
 // Create player for any game; customize function called below
 function createPlayerContainer(name, order, gridNumber) {
-    
+
     const playerContainer = document.createElement('div');
     playerContainer.className = 'player-container';
-    
+
     // Give container id of 'playerName-container'
     playerContainer.id = 'player-container-' + name;
 
     // Set order and grid number in dataset
     playerContainer.dataset.order = order;
     playerContainer.dataset.gridNumber = gridNumber;
-    
+
     // Put hand in div
     const hand = document.createElement('div');
     hand.className = 'hand-container';
     hand.id = 'hand-container-' + name;
-    
+
     const playerNameContainer = document.createElement('div');
     playerNameContainer.className = 'name-container';
     playerNameContainer.id = 'name-container-' + name;
-    
+
     const currentPlayerStrong = document.createElement('strong');
     currentPlayerStrong.id = 'current-strong-' + name;
     playerNameContainer.appendChild(currentPlayerStrong);
-    
+
     const playerNameStrong = document.createElement('strong');
     playerNameStrong.id = 'name-strong-' + name;
     playerNameStrong.innerText = name;
     playerNameContainer.appendChild(playerNameStrong);
-    
+
     // If on top row of grid (or middle for now), put name above hand
     if ([1, 2, 3, 4, 6].includes(gridNumber)) {
         playerContainer.appendChild(playerNameContainer);
@@ -385,7 +384,7 @@ function fillPlayerGrid(playerOrder) {
 
     // Fill in grid numbers according to 'gridsToFill', in order of 'priorityOrder'
     for (let j = 0; j < priorityOrder.length; j++) {
-        
+
         let gridContainer = document.querySelector('#game-grid-' + priorityOrder[j]);
 
         // Empty grid ONLY IF IT CONTAINS PLAYER to make room for new player
@@ -395,7 +394,7 @@ function fillPlayerGrid(playerOrder) {
 
         // Iterate through 'priorityOrder' and check if number is in 'gridsToFill'
         if (gridsToFill.includes(priorityOrder[j])) {
-    
+
             // Get player index from the index that priorityOrder[j] appears in gridsToFill
             let playerIndex = gridsToFill.indexOf(priorityOrder[j]);
 
@@ -418,7 +417,7 @@ function fillPlayerGrid(playerOrder) {
 function populateHandStatic(playerName, hand) {
     console.log(`Called populateHandStatic; hand = ${hand}`);
     const playerHandContainer = document.querySelector('#hand-container-' + playerName);
-    
+
     if (playerHandContainer.hasChildNodes()) {
         // Empty old hand to get ready for new hand - replaceChildren with no args
         playerHandContainer.replaceChildren();
@@ -444,7 +443,7 @@ function populateHandStatic(playerName, hand) {
         cardContainer.className = 'card-container';
         // Configure id this way so container can be selected with the card id
         cardContainer.id = 'card-' + card + '-container';
-        
+
         // Add card object to card container
         cardContainer.appendChild(cardObject);
 
@@ -476,34 +475,117 @@ function updateHandNoAnimation(playerName, playerIndex, response) {
         for (let i = 0; i < response.hand_sizes[playerIndex]; i++) {
 
             const dummyCard = createPlaceholderCard('unknown');
-            
+
             // Add dummy card to container
             const dummyContainer = document.createElement('div');
             dummyContainer.className = 'card-container dummy-container';
             dummyContainer.appendChild(dummyCard);
-            
+
             // Add container to DOM
             document.querySelector('#hand-container-' + playerName).appendChild(dummyContainer);
         }
     }
 }
 
+// Add or remove selectable class for all cards in self hand; can exclude with class or ids
+function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
+    
+    const cardsInHand = document.querySelector('#hand-container-' + username).
+        querySelectorAll('.rotate-card-container');
+
+    // forEach uses a function instance each loop so can use return to exit early from an iteration
+    cardsInHand.forEach(card => {
+        // Check excluded ids
+        if (excludedIds.includes(card.id)) { return; }
+
+        // Check excluded classes
+        for (exClass of excludedClasses) {
+            if (card.classList.contains(exClass)) { return; }
+        }
+
+        if (toggleOn) {
+            card.classList.add('selectable');
+        } else if (!toggleOn) {
+            card.classList.remove('selectable');
+        }
+    });
+}
 
 // Animations/ general game functions
 
-// Moved this from thirtyOne.js to gameShared.js since it can be reused in cribbage
+async function animateDealAll(players, handSizes, selfHand) {
+    // Iterate through player order to clear all players' hands
+    players.forEach(playerName => {
+        // Empty old hand to get ready for new hand - replaceChildren with no args
+        document.querySelector('#hand-container-' + playerName).replaceChildren();
+    });
+
+    // Get smallest hand size to avoid indexing out of range
+    // Start with first hand size and compare rest sizes to that one
+    let lowestHandSize = handSizes[0];
+    let varyingLengths = false;
+    
+    for (let handIndex = 1; handIndex < handSizes.length; handIndex++) {
+        if (handSizes[handIndex] < lowestHandSize) {
+    
+            lowestHandSize = handSizes[handIndex];
+            varyingLengths = true;
+        }
+    }
+
+    // Goal is to deal like in real life. Starting left of the dealer and
+    // going around clockwise, alternating players. Only issue right now
+    // is using correct hand sizes when hand sizes differ between players 
+        // - maybe reconcile at the end
+    for (let cardIndex = 0; cardIndex < lowestHandSize; cardIndex++) {
+        
+        for (let i = 0; i < players.length; i++) {
+            if (players[i] !== username) {
+                // If player is not self, use hand of unknowns equal to size of hand
+                await animateDraw('unknown', players[i]);
+            } else {
+                // If player is self, use selfHand
+                // If 31, fill in score later once all cards are dealt
+                await animateDraw(selfHand[cardIndex], players[i]);
+            }
+        }
+    }
+
+    // This bool allows script to skip redoing looping through players and cards if
+    // hand sizes are all equal
+    if (!varyingLengths) { return; }
+
+    // Check which players need more cards, only for when all hand sizes are not equal
+    // Untested; may have to wait til 3 player cribbage for differing hand sizes
+    for (let playerIndex = 0; playerIndex < handSizes.length; playerIndex++) {
+        diff = handSizes[playerIndex] - lowestHandSize;
+        if (diff > 0) {
+            // If there is difference between lowest hand size and actual hand size, make up
+            // difference by looping diff and dealing depending on username
+            for (let i = 0; i < diff; i++) {
+                if (players[playerIndex] !== username) {
+                    // If player is not self, use hand of unknowns equal to size of hand
+                    await animateDraw('unknown', players[playerIndex]);
+                } else {
+                    // If player is self, use selfHand
+                    await animateDraw(selfHand[lowestHandSize + i], players[playerIndex]);
+                }
+            }
+        }
+    }
+}
 
 // Animation of deck to player 
-    // If self, use card object && end face-up
-    // If other, use placeholder && end face-down
-function animateDraw(cardStr, player, handScore=0) {
+// If self, use card object && end face-up
+// If other, use placeholder && end face-down
+function animateDraw(cardStr, player, handScore = 0) {
     let card;
     let cardContainer;
 
     // Unknown card for non-self player
     if (cardStr === 'unknown') {
         card = createPlaceholderCard('unknown');
-        
+
         // Create dummy card container
         cardContainer = document.createElement('div');
         cardContainer.className = 'card-container dummy-container';
@@ -522,19 +604,19 @@ function animateDraw(cardStr, player, handScore=0) {
         // Card.id = 'card-AS'
         cardContainer.id = card.id + '-container';
     }
-    
+
     // Add card to card container
     cardContainer.appendChild(card);
 
     // Start hidden and become visible at end of animation
     card.style.visibility = 'hidden';
-    
+
     // Add card container to hand container of current player
     document.querySelector('#hand-container-' + player).appendChild(cardContainer);
 
     // Get end positions by comparing deck and new card container
     // Card will start at deck and move to hand
-    
+
     // Starting position
     const deckRect = document.querySelector('#deck-container').getBoundingClientRect();
 
@@ -560,7 +642,7 @@ function animateDraw(cardStr, player, handScore=0) {
 
     // Add clone to DOM
     document.body.appendChild(clone);
-    
+
     // Start clone at deck location
     clone.style.left = `${deckRect.left}px`;
     clone.style.top = `${deckRect.top}px`;
@@ -584,11 +666,8 @@ function animateDraw(cardStr, player, handScore=0) {
 
     // Add event listener to animObject to trigger on animation end
     animObject.addEventListener('finish', () => {
-        console.log(`Does animobject have a .then method? ${typeof animObject.finished.then === 'function'}`);
-        console.log(`Animation.finished = ${animObject.finished}`);
         // Reveal real card
         card.style.visibility = 'visible';
-    
         // Remove clone card
         clone.remove();
 
@@ -610,12 +689,15 @@ function animateDraw(cardStr, player, handScore=0) {
             }
         }
     });
+
+    // Return promise to signal when done
+    return animObject.finished;
 }
 
 // Rules for each game
 const RULES = {
     'thirty_one':
-    "Each turn, a player must either draw a card from the deck or pick up a card from the discard pile. \
+        "Each turn, a player must either draw a card from the deck or pick up a card from the discard pile. \
     The player must then discard a card to the discard pile, so that they always have 3 cards in their \
     hand at the end of their turn.\
     \n\
@@ -632,7 +714,7 @@ const RULES = {
     \n\
     Each player starts with three extra lives, and a player is kicked out of the game after losing all extra \
     lives, plus one additional life. The last remaining player wins the game.",
-    
+
     'cribbage':
-    'cribbage rules to come',
+        'cribbage rules to come',
 }

@@ -356,6 +356,7 @@ Can turn game room container into grid - 2fr for players and board and 1fr for c
     outline-width: thick;
     outline-style: solid;
     border-radius: var(--card-border-radius);
+    cursor: pointer;
 }
 
 /* Playing card (as opposed to Bootstrap card) */
