@@ -108,8 +108,6 @@ function isPlaceholder(card) {
     // return true if card does NOT have a suit (therefore is a placeholder)
     // false if card does have a suit (is not a placeholder)
     return !(card.hasAttribute('data-suit'));
-    return !('suit' in card.dataset);
-    return card.dataset.suit == null;
 }
 
 // Defining keyframes in js for moving card
