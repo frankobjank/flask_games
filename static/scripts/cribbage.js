@@ -310,31 +310,6 @@ var handHandlerCribbage = function handOnClickCribbage(event) {
     }
 }
 
-// Moving to gameShared
-// // The add or remove selectable class for all cards in self hand; can exclude with class or id
-// function toggleHandSelectability(toggleOn, excludedClasses=[], excludedIds=[]) {
-    
-//     const cardsInHand = document.querySelector('#hand-container-' + username).
-//         querySelectorAll('.rotate-card-container');
-
-//     // forEach uses a function instance each loop so can use return to exit early from an iteration
-//     cardsInHand.forEach(card => {
-//         // Check excluded ids
-//         if (excludedIds.includes(card.id)) { return; }
-
-//         // Check excluded classes
-//         for (exClass of excludedClasses) {
-//             if (card.classList.contains(exClass)) { return; }
-//         }
-
-//         if (toggleOn) {
-//             card.classList.add('selectable');
-//         } else if (!toggleOn) {
-//             card.classList.remove('selectable');
-//         }
-//     });
-// }
-
 function updateCribbage(response) {
     if (response === undefined) {
         console.log('response = undefined');
