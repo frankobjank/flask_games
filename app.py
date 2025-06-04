@@ -643,6 +643,7 @@ def on_join(data):
         # Send game data if game in progress
         print(f"Sending game state to {user.name} on join: \n{game_update}")    
         fio.emit("update_board", game_update, to=fl.request.sid, room=data["room"])
+        # fio.emit("debug_msg", {"msg": f"Server sent game state on join."}, to=fl.request.sid)
         
         # If player is rejoining, update connection status for all other clients in room
         fio.emit(
@@ -900,6 +901,11 @@ def on_move(data):
         # Return response using update_board event
         fio.emit("update_board", response, to=recipient_sid, room=data["room"])
         
+        # When debug is on, all debug_msg emits are also printed to terminal. No need to print them again.
+        # fio.emit("debug_msg", {"msg": 
+        #         f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
+        #         to=recipient_sid)
+
         # Empty log for player after update is sent
         game.players[username].log = []
         game.players[username].action_log = []
