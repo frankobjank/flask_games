@@ -1,0 +1,78 @@
+
+players = [player1, dealer]
+next player should have been dealer but it is player1 instead
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+player1 played: 2♦.
+Play count: 2
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 0
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === player1
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+player1 played: 2♠.
+Play count: 4
+player1 scored 2 for a pair.
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 1
+play - (turn_num + offset) % len(player_order) === 1
+play - next player === dealer
+
+received event "move" from 8nWUiAGhL76oC60UAAAE [/]
+Received move event `play` from sid `8nWUiAGhL76oC60UAAAE`.
+dealer played: 5♠.
+Play count: 9
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 2
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === player1
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+player1 played: 5♥.
+Play count: 14
+player1 scored 2 for a pair.
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 3
+play - (turn_num + offset) % len(player_order) === 1
+play - next player === dealer
+
+received event "move" from 8nWUiAGhL76oC60UAAAE [/]
+Received move event `play` from sid `8nWUiAGhL76oC60UAAAE`.
+dealer played: 10♦.
+Play count: 24
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 4
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === player1
+player1 has said 'Go'.
+dealer scored 1 for a go.
+
+received event "move" from 8nWUiAGhL76oC60UAAAE [/]
+Received move event `play` from sid `8nWUiAGhL76oC60UAAAE`.
+dealer played: 5♠.
+Play count: 9
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 2
+play - (turn_num + offset) % len(player_order) === 0
+play - next player === player1
+
+received event "move" from sNrTg5xT8vUc_AabAAAF [/]
+Received move event `play` from sid `sNrTg5xT8vUc_AabAAAF`.
+player1 played: 5♥.
+Play count: 14
+player1 scored 2 for a pair.
+play - offset [index of player1] === 0
+play - first_player_play === player1
+play - turn_num === 3
+play - (turn_num + offset) % len(player_order) === 1
+play - next player === dealer
