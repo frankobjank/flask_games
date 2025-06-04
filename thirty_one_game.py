@@ -1,6 +1,7 @@
 import random
 
 from games_shared import *
+from short_logger import short_logger
 
 # TODO - what happens when deck runs out of cards?
 # TODO - disallow discarding card that was just picked up from discard
