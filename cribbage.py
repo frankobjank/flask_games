@@ -9,6 +9,7 @@ Play = namedtuple("Play", ["player", "card"])
 
 # Idea for front-end - when scoring, highlight cards used in the score to show which cards are being used
 
+
 class PlayerCribbage(Player):
     def __init__(self, name: str) -> None:
         super().__init__(name)
