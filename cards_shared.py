@@ -6,6 +6,8 @@ import random
 # Ranks and ranks to value
 RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 
+# Default Ace value to 1; change in game code if needed.
+RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": 1}
 
 # Suits and unicode for suits
 SUITS = ["spade", "heart", "diamond", "club"]
@@ -16,7 +18,7 @@ SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "c
 class Card:
     def __init__(self, rank: str, suit: str):
         self.rank: str = rank
-        # self.value: int = RANK_TO_VALUE[self.rank]
+        self.value: int = RANK_TO_VALUE[self.rank]
         self.suit: str = suit
         self.suit_display: str = SUIT_TO_DISPLAY[self.suit]
         # Easier to store this value in the card rather than calc on-the-fly
@@ -41,13 +43,11 @@ class Card:
 
         # returns 2S, 3C, AH, etc.
         return f"{rank}{self.suit[0].capitalize()}"
-
+    
 
 class Deck:
     def __init__(self) -> None:
-        # Fill unshuffled cards with specific Card class
-        self.unshuffled_cards = []
-        # self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
+        self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
 
 
     def __repr__(self) -> str:
@@ -77,6 +77,7 @@ def unzip_card(card_str: str) -> Card:
 # Previously part of player class methods
 def sort_hand(hand: list[Card]) -> list[Card]:
     """Sort hand in order of suit."""
+
     return sorted(sorted(hand, key=attrgetter("suit"), reverse=True), key=attrgetter("value"), reverse=True)
 
 

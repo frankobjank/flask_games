@@ -9,32 +9,14 @@ Play = namedtuple("Play", ["player", "card"])
 
 # Idea for front-end - when scoring, highlight cards used in the score to show which cards are being used
 
-# Custom rank to value per game since values (esp Ace) varies between games
-rank_to_value_cribbage = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": 1}
-
-
-# Custom Card class so correct Ace value can be set
-class CardCribbage(Card):
-    def __init__(self, rank: str, suit: str):
-        super().__init__(rank, suit)
-        self.value: int = rank_to_value_cribbage[self.rank]
-
-    
-# Deck class using CardCribbage class
-class DeckCribbage(Deck):
-    def __init__(self) -> None:
-        super().__init__()
-        self.unshuffled_cards = [CardCribbage(rank, suit) for suit in SUITS for rank in RANKS]
- 
-
 class PlayerCribbage(Player):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
         # Add cribbage specific attributes to Player object
         self.score: int = 0
-        self.unplayed_cards: list[CardCribbage] = []  # For the play
-        self.played_cards: list[CardCribbage] = []  # For the play
+        self.unplayed_cards: list[Card] = []  # For the play
+        self.played_cards: list[Card] = []  # For the play
 
 
 class StateCribbage(BaseState):
@@ -52,8 +34,8 @@ class StateCribbage(BaseState):
         self.MIN_PLAYERS: int = 2
 
         # Game pieces
-        self.deck: Deck = DeckCribbage()
-        self.shuffled_cards: list[CardCribbage] = []
+        self.deck: Deck = Deck()
+        self.shuffled_cards: list[Card] = []
 
         # Rounds
         self.round_num: int = 0
@@ -61,8 +43,8 @@ class StateCribbage(BaseState):
         self.first_player: str = ""
         self.current_player: str = ""
         self.dealer: str = ""
-        self.crib: list[CardCribbage] = []
-        self.starter: CardCribbage | None = None
+        self.crib: list[Card] = []
+        self.starter: Card | None = None
         self.go: list[str] = []  # names of players; list for > 2 players
         self.go_scored: bool = False
         self.current_plays: list[Play] = []  # list of Plays for a single play
@@ -288,13 +270,11 @@ class StateCribbage(BaseState):
             
             # Use global first player for very beginning of play
             if len(self.all_plays) == 0:
-                # Exit early
                 return self.first_player
             
             # New algo for play
-            # Instead of removing players who have said go, use continue to skip them
-            
-            # Get current index and increment by 1, then check go
+            # Maybe instead of removing players in self.go[] from order, can just skip them
+            # def get_next(players, current_player, go_players):
             current_index = self.player_order.index(self.current_player)
             
             # Go through entire len of players to account for everyone who might be in go
@@ -354,7 +334,7 @@ class StateCribbage(BaseState):
         self.current_plays = []
 
 
-    def score_play(self, played_card: CardCribbage, current_count: int) -> None:
+    def score_play(self, played_card: Card, current_count: int) -> None:
         """Creates `play` namedtuple. Determine if any points should be scored depending on the card just played. Add scores to log."""
 
         # Assign `Play` object. Note: played_card is a copy of the card object, but it shouldn't matter here
@@ -418,13 +398,13 @@ class StateCribbage(BaseState):
             self.add_score_log(self.current_player, 1, "playing the last card", cards=[self.current_plays[-1].card.portable])
         
 
-    def score_show(self, four_card_hand: list[CardCribbage], crib: bool):
+    def score_show(self, four_card_hand: list[Card], crib: bool):
         # There are a lot of loops in this function, could probably condense if it became a performance issue
 
         # Action log to reveal show cards to all players
         self.add_to_action_log({"action": "start_show", "player": self.current_player, "cards": [card.portable for card in four_card_hand]})
 
-        # Assertion so pylance knows starter is not None
+        # Assertion so pylance knows starter is a Card
         assert self.starter is not None, "starter is None at score_show"
 
         # Hand plus starter used for scoring the show
