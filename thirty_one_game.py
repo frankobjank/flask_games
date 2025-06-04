@@ -5,9 +5,23 @@ from games_shared import *
 # TODO - what happens when deck runs out of cards?
 # TODO - disallow discarding card that was just picked up from discard
 
-# Set ace value
-RANK_TO_VALUE["A"] = 11
+# Custom rank to value per game since values (esp Ace) varies between games
+rank_to_value_thirty_one = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": 11}
 
+
+# Custom Card class so correct Ace value can be set
+class CardThirtyOne(Card):
+    def __init__(self, rank: str, suit: str):
+        super().__init__(rank, suit)
+        self.value: int = rank_to_value_thirty_one[self.rank]
+
+    
+# Deck class using CardThirtyOne class
+class DeckThirtyOne(Deck):
+    def __init__(self) -> None:
+        super().__init__()
+        self.unshuffled_cards = [CardThirtyOne(rank, suit) for suit in SUITS for rank in RANKS]
+ 
 
 class PlayerThirtyOne(Player):
     def __init__(self, name: str) -> None:
@@ -36,7 +50,7 @@ class StateThirtyOne(BaseState):
         self.MIN_PLAYERS = 2
 
         # Game pieces
-        self.deck = Deck()
+        self.deck = DeckThirtyOne()
         self.shuffled_cards = []
 
         # Rounds

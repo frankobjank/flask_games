@@ -23,17 +23,17 @@ class BaseState:
     def __init__(self, room_name: str) -> None:
 
         # Room
-        self.room_name = room_name
+        self.room_name: str = room_name
         
-        self.players = {}  # Static; {player name: player object}
-        self.player_order = []  # Dynamic; adjusted when player gets knocked out
+        self.players: dict = {}  # Static; {player name: player object}
+        self.player_order: list[str] = []  # Dynamic; adjusted when player gets knocked out
 
         # Gameplay
-        self.mode = "start"
-        self.in_progress = False
+        self.mode: str = "start"
+        self.in_progress: bool = False
         
         # Should move action log to player object for parity with text log
-        self.action_log = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
+        self.action_log: list = []  # A list of action dicts for each action {"action": "", "player": "", "card": ""}
 
 
     def print_and_log(self, msg:str, player:str="all") -> None:
