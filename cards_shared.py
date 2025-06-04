@@ -6,9 +6,6 @@ import random
 # Ranks and ranks to value
 RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 
-# Default Ace value to 1; change in game code if needed.
-RANK_TO_VALUE = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": 1}
-
 # Suits and unicode for suits
 SUITS = ["spade", "heart", "diamond", "club"]
 
@@ -16,9 +13,9 @@ SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "c
 
 # Classes
 class Card:
-    def __init__(self, rank: str, suit: str):
+    def __init__(self, rank: str, suit: str, rank_to_value: dict[str, int]):
         self.rank: str = rank
-        self.value: int = RANK_TO_VALUE[self.rank]
+        self.value: int = rank_to_value[self.rank]
         self.suit: str = suit
         self.suit_display: str = SUIT_TO_DISPLAY[self.suit]
         # Easier to store this value in the card rather than calc on-the-fly
@@ -46,8 +43,8 @@ class Card:
     
 
 class Deck:
-    def __init__(self) -> None:
-        self.unshuffled_cards = [Card(rank, suit) for suit in SUITS for rank in RANKS]
+    def __init__(self, rank_to_value: dict[str, int]) -> None:
+        self.unshuffled_cards = [Card(rank, suit, rank_to_value) for suit in SUITS for rank in RANKS]
 
 
     def __repr__(self) -> str:
