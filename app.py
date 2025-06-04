@@ -902,9 +902,7 @@ def on_move(data):
         fio.emit("update_board", response, to=recipient_sid, room=data["room"])
         
         # When debug is on, all debug_msg emits are also printed to terminal. No need to print them again.
-        fio.emit("debug_msg", {"msg": 
-                f"Server accepted move event `{data['action']}`. Server response: {response}."}, 
-                to=recipient_sid)
+        fio.emit("debug_msg", {"msg": f"Server accepted move event `{data['action']}`."}, to=recipient_sid)
 
         # Empty log for player after update is sent
         game.players[username].log = []
