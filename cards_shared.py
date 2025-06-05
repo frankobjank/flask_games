@@ -28,7 +28,11 @@ class Card:
     
     
     def __str__(self) -> str:
-        return f"{self.rank}{self.suit_display}"
+        display_rank = self.rank
+        # Change T to 10 for display
+        if display_rank == "T":
+            display_rank = "10"
+        return f"{display_rank}{self.suit_display}"
     
 
 class Deck:

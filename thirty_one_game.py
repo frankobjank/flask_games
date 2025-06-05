@@ -83,14 +83,17 @@ class StateThirtyOne(BaseState):
         # Either one card out of suit, or lowest card of a hand that only has one suit
         discard_card = None
         
-        suits = {}
+        # Create dict with suit as keys and list of cards as values to isolate odd card out
+        suits: dict[str, list[Card]] = {}
         for card in self.players[self.current_player].hand:
+            # Suit already a key, append to list
             if card.suit in suits.keys():
                 suits[card.suit].append(card)
+            # Suit not a key, start new list
             else:
                 suits[card.suit] = [card]
         
-        # Len 1 means only suit; find lowest card
+        # Len 1 means only suit; find lowest value card
         if len(suits.keys()) == 1:
             discard_card = min(self.players[self.current_player].hand, key = lambda x: x.value)
         

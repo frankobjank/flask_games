@@ -365,10 +365,14 @@ class StateCribbage(BaseState):
         # Check for pairs
         play_ranks = [play.card.rank for play in self.current_plays]
         
+        # Start with last card played
         pairs = [play_ranks[-1]]
+        # Look for the same rank in reverse
         for rank in reversed(play_ranks[:-1]):
+            # If match found, add pair. Catches matches of 2, 3 or 4 of a kind.
             if rank in pairs:
                 pairs.append(rank)
+            # Break when match not found
             else:
                 break
 
@@ -632,8 +636,9 @@ class StateCribbage(BaseState):
             current_count = sum([play.card.value for play in self.current_plays])
             
             # Validation - check if count will exceed 31. Use rank_to_value dict to get value
-            # Only 1 card should be passed in cards array for play, so use index 0
-            if current_count + self.rank_to_value[packet["cards"][0]] > 31:
+            # index [0][0] is used to get the first (and only) card in the packet["cards"] array,
+            # and get the first char of that card
+            if current_count + self.rank_to_value[packet["cards"][0][0]] > 31:
                 response["msg"] = "You cannot exceed 31. Please choose another card."
                 response["accepted"] = False
                 return response
@@ -803,7 +808,7 @@ def is_run(potential_run: list[str]):
     """Check if all ranks provided are within 1 rank of each other. Run may be out of order."""
 
     # Convert card ranks to sorted list of indices of this list of card ranks
-    indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].index(rank) for rank in potential_run])
+    indices = sorted([["A", "2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K"].index(rank) for rank in potential_run])
 
     # Check if all adjacent indices are within 1 of each other
     return all(indices[i + 1] - indices[i] == 1 for i in range(len(indices) - 1))
