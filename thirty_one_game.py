@@ -34,8 +34,9 @@ class StateThirtyOne(BaseState):
         self.MIN_PLAYERS = 2
 
         # Game pieces
-        # Deck uses custom rank_to_value dict to ensure correct Ace value
-        self.deck: Deck = Deck(rank_to_value={"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": 11})
+        # Deck uses rank_to_value dict to ensure correct Ace value
+        self.rank_to_value={"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "T": 10, "J": 10, "Q": 10, "K": 10, "A": 11}
+        self.deck: Deck = Deck(self.rank_to_value)
         self.shuffled_cards = []
 
         # Rounds
@@ -50,17 +51,21 @@ class StateThirtyOne(BaseState):
         self.free_ride_alts = ["getting a free ride", "on the bike", "barely hanging on", "having a tummy ache", "having a long day"]
         
 
-    def hand_to_discard(self, card_to_discard: Card) -> None:
+    def hand_to_discard(self, card_str: str) -> None:
         """Find selected card in hand and move from hand to discard."""
 
         # Created a function for this because it happens both during discard phase and after blitz
-        
+        card_to_discard = None
+
         # Find in card in hand by comparing suit and rank
         for card in self.players[self.current_player].hand:
-            if card.suit == card_to_discard.suit and card.rank == card_to_discard.rank:
+            if card.rank == card_str[0] and card.suit == card_str[1]:
+                card_to_discard = card
                 # Remove from hand
                 self.players[self.current_player].hand.remove(card)
                 break
+        
+        assert isinstance(card_to_discard, Card), "card_to_discard must be type Card"
         
         # Add to discard
         self.discard.append(card_to_discard)
@@ -95,7 +100,7 @@ class StateThirtyOne(BaseState):
                 if len(card_list) == 1:
                     discard_card = card_list[0]
         
-        assert discard_card is not None, "discard is None at the end of find_discard_on_blitz"
+        assert isinstance(discard_card, Card), "discard must be Card at the end of find_discard_on_blitz"
         
         return discard_card
 
@@ -488,9 +493,9 @@ class StateThirtyOne(BaseState):
             if self.calc_hand_score(self.players[self.current_player]) == 31:
                 self.blitzed_players.append(self.current_player)
                 
-                # Auto-discard lowest card or odd suit out
-                # looks better than ending with 4 cards in hand
-                self.hand_to_discard(card_to_discard=self.find_discard_on_blitz())
+                # Auto-discard lowest card or odd suit out; looks better than ending with 4 cards in hand
+                # Changed hand_to_discard to use card_str, so pass in portable of find_discard_on_blitz result
+                self.hand_to_discard(card_str=self.find_discard_on_blitz().portable)
 
                 # End round after card discarded
                 self.end_round()
@@ -509,7 +514,7 @@ class StateThirtyOne(BaseState):
                 return response 
             
             # Unzip card from client
-            self.hand_to_discard(card_to_discard=unzip_card(packet["card"]))
+            self.hand_to_discard(card_str=packet["card"])
             self.end_turn()
         
         # If not returned early, move was accepted

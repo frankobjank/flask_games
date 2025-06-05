@@ -3,72 +3,41 @@ import random
 
 # Constants
 
-# Ranks and ranks to value
-RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+# Ranks - 10 is `T` here so it can be represented by a single character
+# Values determined by rank_to_value lookup specific to each game.
+RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]
 
 # Suits and unicode for suits
 SUITS = ["spade", "heart", "diamond", "club"]
-
 SUIT_TO_DISPLAY = {"spade": "\u2660", "heart": "\u2665", "diamond": "\u2666", "club": "\u2663"}
+
 
 # Classes
 class Card:
-    def __init__(self, rank: str, suit: str, rank_to_value: dict[str, int]):
+    def __init__(self, rank: str, suit: str, value: int):
         self.rank: str = rank
-        self.value: int = rank_to_value[self.rank]
+        self.value: int = value
         self.suit: str = suit
         self.suit_display: str = SUIT_TO_DISPLAY[self.suit]
-        # Easier to store this value in the card rather than calc on-the-fly
-        self.portable: str = self.zip_card()
+        # Value used when passed between server and client. Examples: AH, 3S, TC ...
+        self.portable: str = f"{rank}{self.suit[0].capitalize()}"
     
     
     def __repr__(self) -> str:
-        return f"Card({self.rank}, {self.suit})"
+        return f"Card({self.rank}, {self.suit}, {self.value})"
     
     
     def __str__(self) -> str:
         return f"{self.rank}{self.suit_display}"
     
 
-    def zip_card(self):
-        """Create portable string to send to client."""
-        
-        # Convert 10 to T to make all cards 2 chars long
-        rank = self.rank
-        if rank == "10":
-            rank = "T"
-
-        # returns 2S, 3C, AH, etc.
-        return f"{rank}{self.suit[0].capitalize()}"
-    
-
 class Deck:
     def __init__(self, rank_to_value: dict[str, int]) -> None:
-        self.unshuffled_cards = [Card(rank, suit, rank_to_value) for suit in SUITS for rank in RANKS]
+        self.unshuffled_cards = [Card(rank, suit, rank_to_value[rank]) for suit in SUITS for rank in RANKS]
 
 
     def __repr__(self) -> str:
         return f"Deck({self.unshuffled_cards})"
-
-
-# Functions
-def unzip_card(card_str: str) -> Card:
-    """Decode portable string from client."""
-
-    # Convert 10 to T to make all cards 2 chars long
-    rank = card_str[0]
-    if rank == "T":
-        rank = "10"
-    
-    suit_letter = card_str[1].lower()
-    suit = ""
-
-    for s in SUITS:
-        if suit_letter in s[0]:
-            suit = s
-
-    # returns 2S, 3C, AH, etc.
-    return Card(rank, suit)
 
 
 # Previously part of player class methods

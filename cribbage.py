@@ -36,7 +36,8 @@ class StateCribbage(BaseState):
 
         # Game pieces
         # Deck uses custom rank_to_value dict to ensure correct Ace value
-        self.deck: Deck = Deck(rank_to_value={"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10, "A": 1})
+        self.rank_to_value = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "T": 10, "J": 10, "Q": 10, "K": 10, "A": 1}
+        self.deck: Deck = Deck(self.rank_to_value)
         self.shuffled_cards: list[Card] = []
 
         # Rounds
@@ -630,9 +631,9 @@ class StateCribbage(BaseState):
 
             current_count = sum([play.card.value for play in self.current_plays])
             
-            # Validation - check if count will exceed 31. Convert to Card to get value.
+            # Validation - check if count will exceed 31. Use rank_to_value dict to get value
             # Only 1 card should be passed in cards array for play, so use index 0
-            if current_count + unzip_card(packet["cards"][0]).value > 31:
+            if current_count + self.rank_to_value[packet["cards"][0]] > 31:
                 response["msg"] = "You cannot exceed 31. Please choose another card."
                 response["accepted"] = False
                 return response
