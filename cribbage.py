@@ -717,7 +717,8 @@ class StateCribbage(BaseState):
 
     # Packages state for each player individually. Includes sid for socketio
     def package_state(self, player_name: str) -> dict:
-        
+        # This function is never called when mode == "show". Use mode == "end_round" for sending show-related things.
+
         # Build lists in order of player_order to make sure they're unpacked correctly
         hand = []  # Hand for self - get from unplayed cards during play
         hand_sizes = []
@@ -740,7 +741,9 @@ class StateCribbage(BaseState):
         # Display hands differently per mode:
             # Discard: normal, show self hand, show opponents' hand sizes
             # Play: self hand is unplayed cards, opponents' hand is opponents' len(unplayed cards)
-                # AND played cards (face up) will be 
+                # AND played cards will be visible for all face up
+            # End round (show): send all hands and crib
+            
         for p_name in self.player_order:
             
             # Get total score from player dict
@@ -756,7 +759,7 @@ class StateCribbage(BaseState):
                 hand_sizes.append(len(self.players[p_name].unplayed_cards))
 
             # Send all hands if show
-            if self.mode == "show":
+            if self.mode == "end_round":
                 # Scoring should appear in log - can also make graphic for scoring on front end
                 final_hands.append([card.portable for card in self.players[p_name].hand])
         
@@ -773,7 +776,7 @@ class StateCribbage(BaseState):
                 # Count play
                 play_count += play.card.value
         
-        elif self.mode == "show":
+        elif self.mode == "end_round":
             crib = [card.portable for card in self.crib]
 
         if self.starter is not None:
