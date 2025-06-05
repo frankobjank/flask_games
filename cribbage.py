@@ -50,6 +50,7 @@ class StateCribbage(BaseState):
         self.starter: Card | None = None
         self.go: list[str] = []  # names of players; list for > 2 players
         self.go_scored: bool = False
+        self.play_count: int = 0
         self.current_plays: list[Play] = []  # list of Plays for a single play
         self.all_plays: list[Play] = []  # list of Plays for all plays of round
         self.has_played_show: set = set() # names of players
@@ -185,19 +186,16 @@ class StateCribbage(BaseState):
     def start_turn(self) -> None:
         # If mode is set to end_game, exit early to prevent game from moving on to next round.
         if self.mode == "end_game":
-            return None
+            return
 
         # turn_num must increment AFTER get_next_player (called in end_turn) for current algorithm
         self.turn_num += 1
         
         # Check if current player can play; say go and end turn if not
         if self.mode == "play":
-
-            current_count = sum([play.card.value for play in self.current_plays])
-
-            # If player cannot play a card without exceeding 31, force them to say go
-            if all(current_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
-                
+            # If a player is out of cards OR cannot play a card without exceeding 31, force them to say go
+            if len(self.players[self.current_player].unplayed_cards) == 0 or \
+                all(self.play_count + card.value > 31 for card in self.players[self.current_player].unplayed_cards):
                 # Say go for current player and check if they are the last one to say go
                 self.score_go()
                 # End turn to set new current player
@@ -238,7 +236,7 @@ class StateCribbage(BaseState):
             
             # Check whether new play round should be started
             # if (count is 31) OR if (all players in round have said go and go has been scored)
-            elif sum([play.card.value for play in self.current_plays]) == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
+            elif self.play_count == 31 or (len(self.player_order) == len(self.go) and self.go_scored):
                 # end_round_play is needed for get_next_player to get the correct player on a new play round
                 # get_next_player must be called before new_play because new_play resets self.go  
                 self.mode = "end_round_play"
@@ -262,35 +260,44 @@ class StateCribbage(BaseState):
 
         next_player = ""
         
-        # If end of play round, set current player to first person who said go
+        # End of play round due to count reaching 31 or all players saying go.
+        # !! NOT end of play, otherwise mode would be "show" !!
         if self.mode == "end_round_play":
-            next_player = self.go[0]
+            # If count is exactly 31, there will be no `go`.
+            if len(self.go) == 0 and self.play_count == 31:
+                # Next player is next in the order (same as regular `play` rules except
+                # don't have to check for go because it's the end of the round)
+                current_index = self.player_order.index(self.current_player)
+            
+                # Use modulo to prevent indexing past array len
+                next_player = self.player_order[(current_index + 1) % len(self.player_order)]
+                
+            # If there is go, set current player to first person who said go
+            elif len(self.go) > 0:
+                next_player = self.go[0]
         
         # Check for play, different rules apply than for show
         elif self.mode == "play":
             # Make copy of player order since order will be constantly changing during the play.
-            # player_order = self.player_order.copy()
             
-            # Use global first player for very beginning of play
+            # Use first player of round for very beginning of play
             if len(self.all_plays) == 0:
                 return self.first_player
             
-            # New algo for play
-            # Maybe instead of removing players in self.go[] from order, can just skip them
-            # def get_next(players, current_player, go_players):
+            # Get index of current player
             current_index = self.player_order.index(self.current_player)
             
-            # Go through entire len of players to account for everyone who might be in go
+            # Increment current index by 1; iterate through players to check if they are in go
             for i in range(len(self.player_order)):
-                # Get next player by incrementing current index by 1
-                # Keep incrementing by i for each player in go.
-                # Use modulo to prevent indexing past array len
+                # Keep incrementing by i for each player in go; Use modulo to prevent indexing past array len
                 next_index = (current_index + 1 + i) % len(self.player_order)
+                
+                # Skip player in go
                 if self.player_order[next_index] in self.go:
                     continue
+                # Exit when player not in go is found
                 else:
                     next_player = self.player_order[next_index]
-                    # Exit when player not in go is found
                     break
             
         elif self.mode == "show":
@@ -334,10 +341,11 @@ class StateCribbage(BaseState):
         self.turn_num = 0
         self.go = []
         self.go_scored = False
+        self.play_count = 0
         self.current_plays = []
 
 
-    def score_play(self, played_card: Card, current_count: int) -> None:
+    def score_play(self, played_card: Card) -> None:
         """Creates `play` namedtuple. Determine if any points should be scored depending on the card just played. Add scores to log."""
 
         # Assign `Play` object. Note: played_card is a copy of the card object, but it shouldn't matter here
@@ -348,11 +356,11 @@ class StateCribbage(BaseState):
         self.current_plays.append(play)
 
         # Check count for 15, 31
-        if current_count == 15:
+        if self.play_count == 15:
             self.add_score_log(self.current_player, 2, "15", cards=[])
         
         # On 31, check if go has been scored already
-        elif current_count == 31:
+        elif self.play_count == 31:
             # Only score for 31 if go has been scored
             if self.go_scored:
                 self.add_score_log(self.current_player, 1, "31", cards=[])
@@ -633,12 +641,10 @@ class StateCribbage(BaseState):
                 response["accepted"] = False
                 return response
 
-            current_count = sum([play.card.value for play in self.current_plays])
-            
             # Validation - check if count will exceed 31. Use rank_to_value dict to get value
             # index [0][0] is used to get the first (and only) card in the packet["cards"] array,
             # and get the first char of that card
-            if current_count + self.rank_to_value[packet["cards"][0][0]] > 31:
+            if self.play_count + self.rank_to_value[packet["cards"][0][0]] > 31:
                 response["msg"] = "You cannot exceed 31. Please choose another card."
                 response["accepted"] = False
                 return response
@@ -668,11 +674,11 @@ class StateCribbage(BaseState):
 
             # For debug until I can animate the play - notify users about play
             self.print_and_log(f"{self.current_player} played: {played_card}.")
-            current_count += played_card.value
-            self.print_and_log(f"Play count: {current_count}")
+            self.play_count += played_card.value
+            self.print_and_log(f"Play count: {self.play_count}")
 
             # Go will not be scored here; will be scored during start_turn
-            self.score_play(played_card, current_count)
+            self.score_play(played_card)
 
             self.end_turn()
 
