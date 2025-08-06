@@ -226,11 +226,17 @@ function updateGameRoom(response) {
         break;
 
       case "cribbage":
+        // Add play count to
+        document.querySelector("#game-grid-5").appendChild(createPlayCount());
         document
           .querySelector("#game-grid-5")
+          .appendChild(createShowContainer());
+        // Add deck to grid 6 so there's room in center grid for play
+        document
+          .querySelector("#game-grid-6")
           .appendChild(createBoardCribbage());
         document
-          .querySelector("#game-grid-5")
+          .querySelector("#game-grid-6")
           .appendChild(createContinueButtonsCribbage());
         break;
     }

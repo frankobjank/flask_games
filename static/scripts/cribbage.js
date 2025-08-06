@@ -108,6 +108,19 @@ function createContinueButtonsCribbage() {
   return tempButtonContainer;
 }
 
+function createPlayCount() {
+  const playCount = document.createElement("strong");
+  playCount.id = "play-count";
+  playCount.innerText = "Play count: ";
+  return playCount;
+}
+
+function createShowContainer() {
+  const showContainer = document.createElement("div");
+  showContainer.id = "show-container";
+  return showContainer;
+}
+
 function addlPlayerContainerCribbage(name, playerContainer) {
   /* Structure:
           Name - Dealer
@@ -439,6 +452,8 @@ function updateCribbage(response) {
     // self.action_log.append({"action": "start_show", "player": self.current_player, "cards": [card.portable for card in four_card_hand]})
     // self.action_log.append({"action": "score", "player": player, "points": points, "reason": reason, "cards": cards, "mode": self.mode})
 
+    // HANDLE ACTIONS
+
     // Start - empty client hand, deal the required cards
     // No action
     // client hand has cards from previous round,
@@ -449,7 +464,6 @@ function updateCribbage(response) {
 
     // Animate card from hand to the crib. All cards end face-down.
     else if (actionObject.action === "discard") {
-      // REMEMBER TO UNSTAGE ALL CARDS AFTER CARDS ARE DISCARDED, disallow staging cards, and hide discard button
       animateToCrib(
         actionObject.player,
         actionObject.cards,
@@ -465,6 +479,11 @@ function updateCribbage(response) {
       console.log(`Starter created ${starter.id}`);
       document.querySelector("#deck-container").replaceChildren(starter);
       starter.style.transform += "rotateY(180)";
+    }
+
+    // TODO Handle play action
+    else if (actionObject.action === "play_card") {
+      // self.add_to_action_log({"action": "play_card", "player": packet["username"], "cards": [played_card.portable]})
     }
   }
 
@@ -534,6 +553,15 @@ function updateCribbage(response) {
     // Disable and hide discard button
     document.querySelector("#discard-confirm-button").disabled = true;
     document.querySelector("#discard-confirm-button").style.display = "none";
+  }
+
+  if (response.mode === "play") {
+    // Update play count
+    document.querySelector("#play-count").style.display = "block";
+    document.querySelector("#play-count") = "block";
+  } else {
+    // Hide play count
+    document.querySelector("#play-count").style.display = "none";
   }
 
   // Loop player order to fill containers apart from cards
